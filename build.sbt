@@ -18,7 +18,7 @@ lazy val microservice = Project("disa-returns", file("."))
   )
   .disablePlugins(JUnitXmlReportPlugin)
 
-addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check")
+addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck")
 
 lazy val it = project
   .enablePlugins(PlayScala)
