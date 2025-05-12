@@ -5,32 +5,19 @@ info:
   title: DISA Returns API
 
 servers:
-  - url: https://test-api.service.hmrc.gov.uk/hello-world
+  - url: https://test-api.service.hmrc.gov.uk/disa-returns
     description: Sandbox
-  - url: https://api.service.hmrc.gov.uk/hello-world
+  - url: https://api.service.hmrc.gov.uk/disa-returns
     description: Production
-
-components:
-  parameters:
-    acceptHeader:
-      name: Accept
-      in: header
-      schema:
-        type: string
-        enum: [
-          "application/vnd.hmrc.1.0+json",
-          "application/vnd.hmrc.1.0+xml"
-        ]
-      required: true
 
 paths:
   /monthly-returns/{isaManagerReferenceNumber}/init:
     post:
       summary: Initialise a bulk monthly returns submission.
       description: |
-        An endpoint that checks if submission is allowed and returns report ID.
+        An endpoint that checks if submission is allowed and returns return ID.
       tags:
-        - disa-returns
+        - Monthly Returns Submission
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -56,10 +43,12 @@ paths:
               properties:
                 totalRecords:
                   type: integer
-                  minimum: 1
+                  minimum: 0
+                  example: 10000
                   description: 'Total number of records to be submitted'
                 submissionPeriod:
                   type: string
+                  example: APR
                   enum:
                     - JAN
                     - FEB
@@ -75,16 +64,25 @@ paths:
                     - DEC
       responses:
         '200':
-          description: Submission is permitted and report id is generated
+          description: Submission is permitted and return id is generated
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  reportId:
+                  returnId:
                     type: string
                     format: uuid
                     description: 'Unique identifier for this submission batch'
+                    example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+                  action:
+                    type: string
+                    description: 'Action to be taken'
+                    enum:
+                      # TODO: Should we also include the url to submit the return?
+                      - SUBMIT_RETURN_TO_PAGINATED_API
+                      - NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION
+
         '401':
           description: Submission is not permitted.
           content:
@@ -97,19 +95,19 @@ paths:
                     type: string
                     description: 'Types of errors encountered'
                     enum:
-                      - REPORTING_WINDOW_CLOSED
-                      - REPORTING_OBLIGATION_ALREADY_MET
+                      - RETURN_WINDOW_CLOSED
+                      - RETURN_OBLIGATION_ALREADY_MET
                   message:
                     type: string
 
-  /monthly-returns/{isaManagerReferenceNumber}/complete:
+  /monthly-returns/{isaManagerReferenceNumber}/complete/{returnId}:
     post:
       summary: Complete a bulk monthly returns submission.
       description: |
-        An endpoint to confirm report submission has completed.
-        Returns the confirmation of whether the submission is successful or not.
+        An endpoint to confirm return submission has completed.
+        Returns the confirmation of whether the submission was successful or not.
       tags:
-        - disa-returns
+        - Monthly Returns Submission
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -122,6 +120,16 @@ paths:
             pattern: "^Z([0-9]{4}|[0-9]{6})$"
             type: string
             example: Z1234
+        - name: returnId
+          in: path
+          description: The unique identifier for this submission batch.
+          required: true
+          style: simple
+          explode: false
+          schema:
+              type: string
+              format: uuid
+              example: b4aba7b8-0d34-4936-923c-d9ef2747c099
         - $ref: '#/components/parameters/acceptHeader'
       responses:
         '200':
@@ -131,10 +139,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  reportId:
+                  returnResultsSummaryLocation:
                     type: string
-                    format: uuid
-                    description: 'Unique identifier for this submission batch'
+                    format: uri
+                    description: 'Location to query the return results summary following the closure of the returns window'
+                    example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/results-summary/b4aba7b8-0d34-4936-923c-d9ef2747c099'
         '400':
           description: Submission was rejected.
           content:
@@ -149,6 +158,8 @@ paths:
                     enum:
                       - VALIDATION_FAILURE_OCCURRED
                       - MISMATCH_EXPECTED_VS_RECEIVED
+                  # TODO: What will we supply alongside the code here?
+                  # Is a default message enough or do we need to provide more details?
                   message:
                     type: string
         '401':
@@ -163,12 +174,221 @@ paths:
                     type: string
                     description: 'Types of errors encountered'
                     enum:
-                      - REPORTING_WINDOW_CLOSED
-                      - REPORTING_OBLIGATION_ALREADY_MET
+                      - RETURN_WINDOW_CLOSED
+                      - RETURN_OBLIGATION_ALREADY_MET
                   message:
                     type: string
 
+  /monthly-returns/{isaManagerReferenceNumber}/results-summary/{returnId}:
+    get:
+      summary: Query if the return results summary is available.
+      description: |
+        An endpoint to confirm if return results are available. 
+        
+        Returns the location to retrieve the return results if available, or not found.
+      tags:
+        - Monthly Return Results
+      parameters:
+        - name: isaManagerReferenceNumber
+          in: path
+          description: The reference given to the ISA provider when they applied for
+            approval from HMRC, commonly referred as Z-Ref.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            type: string
+            example: Z1234
+        - name: returnId
+          in: path
+          description: The unique identifier for this submission batch.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            format: uuid
+            example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+        - $ref: '#/components/parameters/acceptHeader'
+      responses:
+        '200':
+          description: Return results are available to collect.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  returnResultsLocation:
+                    type: string
+                    format: uri
+                    description: 'Location to retrieve the return results of the submitted in month return'
+                    example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/results/b4aba7b8-0d34-4936-923c-d9ef2747c099?page=1'
+                  totalRecords:
+                    type: integer
+                    description: 'Total number of records in the return results'
+                    example: 10000
+                  numberOfPages:
+                    type: integer
+                    description: 'Total number of pages to return all results'
+                    example: 2
+        '404':
+          description: Return results not available.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - RETURN_NOT_FOUND
+                      - RETURN_RESULTS_NOT_READY
+                  message:
+                    type: string
 
+  /monthly-returns/{isaManagerReferenceNumber}/results/{returnId}:
+    get:
+      summary: Retrieve return results through paginated API.
+      description: |
+        An endpoint to retrieve the return results. 
 
+        Returns the results in paginated batches.
+      tags:
+        - Monthly Return Results
+      parameters:
+        - name: isaManagerReferenceNumber
+          in: path
+          description: The reference given to the ISA provider when they applied for
+            approval from HMRC, commonly referred as Z-Ref.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            type: string
+            example: Z1234
+        - name: returnId
+          in: path
+          description: The unique identifier for this submission batch.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            format: uuid
+            example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+        - name: page
+          in: query
+          description: The page number to retrieve.
+          required: false
+          style: simple
+          explode: false
+          schema:
+              type: integer
+              example: 1
+        - $ref: '#/components/parameters/acceptHeader'
+      responses:
+        '200':
+          description: Return results for specified page.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentPage:
+                      type: integer
+                      description: 'The page number of the results'
+                      example: 1
+                  recordsInPage:
+                      type: integer
+                      description: 'The number of records in the current page'
+                      example: 8000
+                  totalRecords:
+                      type: integer
+                      description: 'Total number of records in the return results'
+                      example: 10000
+                  totalNumberOfPages:
+                      type: integer
+                      description: 'Total number of pages to return all results'
+                      example: 2
+                  returnResults:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/returnResult'
+                    description: 'The return results for the specified page'
 
+        '404':
+          description: Return results not available.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - RETURN_NOT_FOUND
+                      - RETURN_RESULTS_NOT_READY
+                  message:
+                    type: string
 
+components:
+  parameters:
+    acceptHeader:
+      name: Accept
+      in: header
+      schema:
+        type: string
+        enum: [
+          "application/vnd.hmrc.1.0+json",
+          "application/vnd.hmrc.1.0+xml"
+        ]
+      required: true
+  schemas:
+    returnResult:
+      type: object
+      properties:
+        accountNumber:
+          type: string
+          description: 'The account number of the ISA account'
+          example: 12345678
+        nino:
+          type: string
+          description: 'The National Insurance Number of the account holder'
+          example: AB123456C
+        issueIdentified:
+          oneOf:
+            - $ref: '#/components/schemas/returnResultOverSubscribed'
+            - $ref: '#/components/schemas/returnResultUnableToIdentifyInvestor'
+    returnResultOverSubscribed:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 'The result of the return submission'
+          enum:
+            - OVER_SUBSCRIBED
+          example: OVER_SUBSCRIBED
+        overSubscribedAmount:
+          type: number
+          format: double
+          description: 'The amount that was over subscribed'
+          example: 1000.00
+    returnResultUnableToIdentifyInvestor:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 'The result of the return submission'
+          enum:
+            - UNABLE_TO_IDENTIFY_INVESTOR
+          example: UNABLE_TO_IDENTIFY_INVESTOR
+        message:
+          type: string
+          description: 'The reason for the inability to identify the investor'
+          example: "The NINO provided does not match any records"
