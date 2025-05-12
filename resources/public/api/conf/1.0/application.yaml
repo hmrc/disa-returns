@@ -2,7 +2,7 @@ openapi: "3.0.3"
 
 info:
   version: 1.0.0
-  title: Hello World
+  title: DISA Returns API
 
 servers:
   - url: https://test-api.service.hmrc.gov.uk/hello-world
@@ -24,26 +24,151 @@ components:
       required: true
 
 paths:
-  /hello-world:
-    get:
-      summary: Placeholder hello world endpoint
+  /monthly-returns/{isaManagerReferenceNumber}/init:
+    post:
+      summary: Initialise a bulk monthly returns submission.
       description: |
-        An endpoint that returns "Hello world"
+        An endpoint that checks if submission is allowed and returns report ID.
       tags:
         - disa-returns
       parameters:
+        - name: isaManagerReferenceNumber
+          in: path
+          description: The reference given to the ISA provider when they applied for
+            approval from HMRC, commonly referred as Z-Ref.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            type: string
+            example: Z1234
         - $ref: '#/components/parameters/acceptHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - totalRecords
+                - submissionPeriod
+              properties:
+                totalRecords:
+                  type: integer
+                  minimum: 1
+                  description: 'Total number of records to be submitted'
+                submissionPeriod:
+                  type: string
+                  enum:
+                    - JAN
+                    - FEB
+                    - MAR
+                    - APR
+                    - MAY
+                    - JUN
+                    - JUL
+                    - AUG
+                    - SEP
+                    - OCT
+                    - NOV
+                    - DEC
       responses:
-        200:
-          description: "OK Response"
+        '200':
+          description: Submission is permitted and report id is generated
           content:
             application/json:
               schema:
                 type: object
                 properties:
+                  reportId:
+                    type: string
+                    format: uuid
+                    description: 'Unique identifier for this submission batch'
+        '401':
+          description: Submission is not permitted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - REPORTING_WINDOW_CLOSED
+                      - REPORTING_OBLIGATION_ALREADY_MET
                   message:
                     type: string
-              example:
-                "Hello world"
-      security:
-        - {}
+
+  /monthly-returns/{isaManagerReferenceNumber}/complete:
+    post:
+      summary: Complete a bulk monthly returns submission.
+      description: |
+        An endpoint to confirm report submission has completed.
+        Returns the confirmation of whether the submission is successful or not.
+      tags:
+        - disa-returns
+      parameters:
+        - name: isaManagerReferenceNumber
+          in: path
+          description: The reference given to the ISA provider when they applied for
+            approval from HMRC, commonly referred as Z-Ref.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            type: string
+            example: Z1234
+        - $ref: '#/components/parameters/acceptHeader'
+      responses:
+        '200':
+          description: Submission is accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reportId:
+                    type: string
+                    format: uuid
+                    description: 'Unique identifier for this submission batch'
+        '400':
+          description: Submission was rejected.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - VALIDATION_FAILURE_OCCURRED
+                      - MISMATCH_EXPECTED_VS_RECEIVED
+                  message:
+                    type: string
+        '401':
+          description: Submission is not permitted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - REPORTING_WINDOW_CLOSED
+                      - REPORTING_OBLIGATION_ALREADY_MET
+                  message:
+                    type: string
+
+
+
+
+
