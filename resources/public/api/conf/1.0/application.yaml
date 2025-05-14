@@ -83,7 +83,6 @@ paths:
                       # TODO: Should we also include the url to submit the return?
                       - SUBMIT_RETURN_TO_PAGINATED_API
                       - NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION
-
         '401':
           description: Submission is not permitted.
           content:
@@ -106,7 +105,7 @@ paths:
       summary: Submit a paginated bulk monthly return.
       description: |
         An endpoint to submit a paginated bulk monthly return.
-        
+
         Maximum of 10mb may be sent at a time.
       tags:
         - Monthly Returns Submission
@@ -263,8 +262,8 @@ paths:
     get:
       summary: Query if the return results summary is available.
       description: |
-        An endpoint to confirm if return results are available. 
-        
+        An endpoint to confirm if return results are available.
+
         Returns the location to retrieve the return results if available, or not found.
       tags:
         - Monthly Return Results
@@ -401,7 +400,6 @@ paths:
                     items:
                       $ref: '#/components/schemas/returnResult'
                     description: 'The return results for the specified page'
-
         '404':
           description: Return results not available.
           content:
@@ -438,7 +436,123 @@ components:
       description: Bearer token for authentication
   schemas:
     investorDetails:
+      anyOf:
+        - title: "Lifetime ISA - New Subscription"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
+                reportingATransfer:
+                  enum: [false]
+                dateOfFirstSubscription:
+                  type: string
+                  format: date
+              required: [dateOfFirstSubscription]
+              not:
+                required: [closureDate, accountNumberOfTransferringAccount]
+        - title: "Lifetime ISA - Transfer"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
+                reportingATransfer:
+                  enum: [true]
+                dateOfFirstSubscription:
+                  type: string
+                  format: date
+                accountNumberOfTransferringAccount:
+                  type: string
+                amountTransferred:
+                  type: number
+              required: [dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred]
+              not:
+                required: [closureDate]
+        - title: "Lifetime ISA - Closure"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
+                dateOfFirstSubscription:
+                  type: string
+                  format: date
+                closureDate:
+                  type: string
+                  format: date
+                reasonForClosure:
+                  type: string
+                  enum:
+                    - CANCELLED
+                    - CLOSED
+                    - VOID
+                    - TRANSFERRED_IN_FULL
+                    - ALL_FUNDS_WITHDRAWN
+              required: [dateOfFirstSubscription, closureDate, reasonForClosure]
+        - title: "Standard ISA - New Subscription"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE]
+                reportingATransfer:
+                  enum: [false]
+              not:
+                required: [closureDate, accountNumberOfTransferringAccount, dateOfFirstSubscription]
+        - title: "Standard ISA - Transfer"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE]
+                reportingATransfer:
+                  enum: [true]
+                accountNumberOfTransferringAccount:
+                  type: string
+                amountTransferred:
+                  type: number
+              required: [accountNumberOfTransferringAccount, amountTransferred]
+              not:
+                required: [closureDate]
+        - title: "Standard ISA - Closure"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE]
+                closureDate:
+                  type: string
+                  format: date
+                reasonForClosure:
+                  type: string
+                  enum:
+                    - CANCELLED
+                    - CLOSED
+                    - VOID
+                    - TRANSFERRED_IN_FULL
+                    - ALL_FUNDS_WITHDRAWN
+              required: [closureDate, reasonForClosure]
+    investorDetailsBase:
       type: object
+      required:
+        - accountNumber
+        - nino
+        - firstName
+        - lastName
+        - dateOfBirth
+        - isaType
+        - flexibleIsa
+        - reportingATransfer
+        - dateOfLastSubscription
+        - totalCurrentYearSubscriptionsToDate
+        - marketValueOfAccount
       properties:
         accountNumber:
           type: string
@@ -448,11 +562,85 @@ components:
           type: string
           description: 'The National Insurance Number of the account holder'
           example: AB123456C
-        amountSubscribed:
+        firstName:
+          type: string
+          description: 'The first name of the account holder'
+          example: John
+        middleName:
+          type: string
+          description: 'The middle name of the account holder'
+          example: Michael
+        lastName:
+          type: string
+          description: 'The last name of the account holder'
+          example: Smith
+        dateOfBirth:
+          type: string
+          format: date
+          description: 'The date of birth of the account holder'
+          example: 1980-01-01
+        isaType:
+          type: string
+          description: 'The type of ISA account'
+          example: LIFETIME_CASH
+          enum:
+            - CASH
+            - STOCKS_AND_SHARES
+            - INNOVATIVE_FINANCE
+            - LIFETIME_CASH
+            - LIFETIME_STOCKS_AND_SHARES
+        flexibleIsa:
+          type: boolean
+          description: 'Indicates if the ISA account is flexible'
+          example: false
+        reportingATransfer:
+          type: boolean
+          description: 'Indicates if the ISA account is a reporting transfer'
+          example: true
+        accountNumberOfTransferringAccount:
+          type: string
+          description: 'The account number of the transferring ISA account'
+          example: 87654321
+        amountTransferred:
           type: number
           format: double
-          description: 'The amount subscribed to the ISA account'
-          example: 1000.00
+          description: 'The amount transferred to the ISA account'
+          example: 5000.00
+        dateOfFirstSubscription:
+          type: string
+          format: date
+          description: 'The date of the first subscription to the ISA account'
+          example: 2025-04-06
+        dateOfLastSubscription:
+          type: string
+          format: date
+          description: 'The date of the last subscription to the ISA account'
+          example: 2025-05-01
+        totalCurrentYearSubscriptionsToDate:
+          type: number
+          format: double
+          description: 'The total subscriptions to the ISA account for the current year'
+          example: 5000.00
+        marketValueOfAccount:
+          type: number
+          format: double
+          description: 'The market value of the ISA account'
+          example: 10000.00
+        closureDate:
+          type: string
+          format: date
+          description: 'The date the ISA account was closed'
+          example: 2025-05-15
+        reasonForClosure:
+          type: string
+          description: 'The reason for the closure of the ISA account'
+          example: ALL_FUNDS_WITHDRAWN
+          enum:
+            - CANCELLED
+            - CLOSED
+            - VOID
+            - TRANSFERRED_IN_FULL
+            - ALL_FUNDS_WITHDRAWN
     validationFailed:
       type: object
       properties:
