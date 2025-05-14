@@ -31,6 +31,7 @@ paths:
             type: string
             example: Z1234
         - $ref: '#/components/parameters/acceptHeader'
+        - $ref: '#/components/parameters/authorizationHeader'
       requestBody:
         required: true
         content:
@@ -131,6 +132,7 @@ paths:
               format: uuid
               example: b4aba7b8-0d34-4936-923c-d9ef2747c099
         - $ref: '#/components/parameters/acceptHeader'
+        - $ref: '#/components/parameters/authorizationHeader'
       responses:
         '200':
           description: Submission is accepted.
@@ -211,6 +213,7 @@ paths:
             format: uuid
             example: b4aba7b8-0d34-4936-923c-d9ef2747c099
         - $ref: '#/components/parameters/acceptHeader'
+        - $ref: '#/components/parameters/authorizationHeader'
       responses:
         '200':
           description: Return results are available to collect.
@@ -290,6 +293,7 @@ paths:
               type: integer
               example: 1
         - $ref: '#/components/parameters/acceptHeader'
+        - $ref: '#/components/parameters/authorizationHeader'
       responses:
         '200':
           description: Return results for specified page.
@@ -345,10 +349,15 @@ components:
       schema:
         type: string
         enum: [
-          "application/vnd.hmrc.1.0+json",
-          "application/vnd.hmrc.1.0+xml"
+          "application/vnd.hmrc.1.0+json"
         ]
+    authorizationHeader:
+      name: Authorization
+      in: header
       required: true
+      schema:
+        type: string
+      description: Bearer token for authentication
   schemas:
     returnResult:
       type: object
