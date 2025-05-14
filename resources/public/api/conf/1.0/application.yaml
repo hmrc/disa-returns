@@ -101,6 +101,84 @@ paths:
                   message:
                     type: string
 
+  /monthly-returns/{isaManagerReferenceNumber}/submission/{returnId}:
+    post:
+      summary: Submit a paginated bulk monthly return.
+      description: |
+        An endpoint to submit a paginated bulk monthly return.
+        
+        Maximum of 10mb may be sent at a time.
+      tags:
+        - Monthly Returns Submission
+      parameters:
+        - name: isaManagerReferenceNumber
+          in: path
+          description: The reference given to the ISA provider when they applied for
+            approval from HMRC, commonly referred as Z-Ref.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            type: string
+            example: Z1234
+        - name: returnId
+          in: path
+          description: The unique identifier for this submission batch.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            format: uuid
+            example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+        - $ref: '#/components/parameters/acceptHeader'
+        - $ref: '#/components/parameters/authorizationHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/investorDetails'
+      responses:
+        '204':
+          description: Submission is accepted.
+        '400':
+          description: Submission was rejected.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - VALIDATION_FAILURE_OCCURRED
+                  validationFailures:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/validationFailed'
+        '401':
+          description: Submission is not permitted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - PREVIOUS_VALIDATION_FAILURE_OCCURRED
+                      - RETURN_OBLIGATION_ALREADY_MET
+                  message:
+                    type: string
+
   /monthly-returns/{isaManagerReferenceNumber}/complete/{returnId}:
     post:
       summary: Complete a bulk monthly returns submission.
@@ -359,6 +437,44 @@ components:
         type: string
       description: Bearer token for authentication
   schemas:
+    investorDetails:
+      type: object
+      properties:
+        accountNumber:
+          type: string
+          description: 'The account number of the ISA account'
+          example: 12345678
+        nino:
+          type: string
+          description: 'The National Insurance Number of the account holder'
+          example: AB123456C
+        amountSubscribed:
+          type: number
+          format: double
+          description: 'The amount subscribed to the ISA account'
+          example: 1000.00
+    validationFailed:
+      type: object
+      properties:
+        nino:
+          type: string
+          description: 'The National Insurance Number of the account holder'
+          example: AB123456C
+        accountNumber:
+          type: string
+          description: 'The account number of the ISA account'
+          example: 12345678
+        code:
+          type: string
+          enum:
+            - INVALID_NINO
+            - INVALID_ACCOUNT_NUMBER
+            - INVALID_AMOUNT_SUBSCRIBED
+          example: INVALID_NINO
+        message:
+          type: string
+          description: 'A detailed message about the validation failure'
+          example: "The NINO provided is invalid"
     returnResult:
       type: object
       properties:
