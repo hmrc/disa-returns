@@ -205,9 +205,9 @@ paths:
           style: simple
           explode: false
           schema:
-              type: string
-              format: uuid
-              example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+            type: string
+            format: uuid
+            example: b4aba7b8-0d34-4936-923c-d9ef2747c099
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
@@ -367,8 +367,8 @@ paths:
           style: simple
           explode: false
           schema:
-              type: integer
-              example: 1
+            type: integer
+            example: 1
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
@@ -380,21 +380,21 @@ paths:
                 type: object
                 properties:
                   currentPage:
-                      type: integer
-                      description: 'The page number of the results'
-                      example: 1
+                    type: integer
+                    description: 'The page number of the results'
+                    example: 1
                   recordsInPage:
-                      type: integer
-                      description: 'The number of records in the current page'
-                      example: 8000
+                    type: integer
+                    description: 'The number of records in the current page'
+                    example: 8000
                   totalRecords:
-                      type: integer
-                      description: 'Total number of records in the return results'
-                      example: 10000
+                    type: integer
+                    description: 'Total number of records in the return results'
+                    example: 10000
                   totalNumberOfPages:
-                      type: integer
-                      description: 'Total number of pages to return all results'
-                      example: 2
+                    type: integer
+                    description: 'Total number of pages to return all results'
+                    example: 2
                   returnResults:
                     type: array
                     items:
@@ -449,7 +449,19 @@ components:
                 dateOfFirstSubscription:
                   type: string
                   format: date
-              required: [dateOfFirstSubscription]
+                  description: 'The date of the first subscription to the ISA account'
+                  example: 2025-04-06
+                lisaQualifyingAddition:
+                  type: number
+                  format: double
+                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  example: 1000.00
+                lisaBonusClaim:
+                  type: number
+                  format: double
+                  description: The amount being claimed as a LISA bonus
+                  example: 1000.00
+              required: [dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim]
               not:
                 required: [closureDate, accountNumberOfTransferringAccount]
         - title: "Lifetime ISA - Transfer"
@@ -461,14 +473,31 @@ components:
                   enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
                 reportingATransfer:
                   enum: [true]
+                accountNumberOfTransferringAccount:
+                  type: string
+                  description: 'The account number of the transferring ISA account'
+                  example: 87654321
+                amountTransferred:
+                  type: number
+                  format: double
+                  description: 'The amount transferred to the ISA account'
+                  example: 5000.00
                 dateOfFirstSubscription:
                   type: string
                   format: date
-                accountNumberOfTransferringAccount:
-                  type: string
-                amountTransferred:
+                  description: 'The date of the first subscription to the ISA account'
+                  example: 2025-04-06
+                lisaQualifyingAddition:
                   type: number
-              required: [dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred]
+                  format: double
+                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  example: 1000.00
+                lisaBonusClaim:
+                  type: number
+                  format: double
+                  description: The amount being claimed as a LISA bonus
+                  example: 1000.00
+              required: [dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred, lisaQualifyingAddition, lisaBonusClaim]
               not:
                 required: [closureDate]
         - title: "Lifetime ISA - Closure"
@@ -478,21 +507,88 @@ components:
               properties:
                 isaType:
                   enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
+                reportingATransfer:
+                  enum: [ false ]
                 dateOfFirstSubscription:
                   type: string
                   format: date
+                  description: 'The date of the first subscription to the ISA account'
+                  example: 2025-04-06
                 closureDate:
                   type: string
                   format: date
+                  description: 'The date the ISA account was closed'
+                  example: 2025-05-15
                 reasonForClosure:
                   type: string
+                  description: 'The reason for the closure of the ISA account'
+                  example: ALL_FUNDS_WITHDRAWN
                   enum:
                     - CANCELLED
                     - CLOSED
                     - VOID
                     - TRANSFERRED_IN_FULL
                     - ALL_FUNDS_WITHDRAWN
-              required: [dateOfFirstSubscription, closureDate, reasonForClosure]
+                lisaQualifyingAddition:
+                  type: number
+                  format: double
+                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  example: 1000.00
+                lisaBonusClaim:
+                  type: number
+                  format: double
+                  description: The amount being claimed as a LISA bonus
+                  example: 1000.00
+              required: [dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim]
+        - title: "Lifetime ISA - Transfer & Closure"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
+                reportingATransfer:
+                  enum: [ true ]
+                accountNumberOfTransferringAccount:
+                  type: string
+                  description: 'The account number of the transferring ISA account'
+                  example: 87654321
+                amountTransferred:
+                  type: number
+                  format: double
+                  description: 'The amount transferred to the ISA account'
+                  example: 5000.00
+                dateOfFirstSubscription:
+                  type: string
+                  format: date
+                  description: 'The date of the first subscription to the ISA account'
+                  example: 2025-04-06
+                closureDate:
+                  type: string
+                  format: date
+                  description: 'The date the ISA account was closed'
+                  example: 2025-05-15
+                reasonForClosure:
+                  type: string
+                  description: 'The reason for the closure of the ISA account'
+                  example: ALL_FUNDS_WITHDRAWN
+                  enum:
+                    - CANCELLED
+                    - CLOSED
+                    - VOID
+                    - TRANSFERRED_IN_FULL
+                    - ALL_FUNDS_WITHDRAWN
+                lisaQualifyingAddition:
+                  type: number
+                  format: double
+                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  example: 1000.00
+                lisaBonusClaim:
+                  type: number
+                  format: double
+                  description: The amount being claimed as a LISA bonus
+                  example: 1000.00
+              required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim, accountNumberOfTransferringAccount, amountTransferred]
         - title: "Standard ISA - New Subscription"
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
@@ -502,6 +598,11 @@ components:
                   enum: [CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE]
                 reportingATransfer:
                   enum: [false]
+                flexibleIsa:
+                  type: boolean
+                  description: 'Indicates if the ISA account is flexible'
+                  example: false
+              required: [flexibleIsa]
               not:
                 required: [closureDate, accountNumberOfTransferringAccount, dateOfFirstSubscription]
         - title: "Standard ISA - Transfer"
@@ -515,30 +616,20 @@ components:
                   enum: [true]
                 accountNumberOfTransferringAccount:
                   type: string
+                  description: 'The account number of the transferring ISA account'
+                  example: 87654321
                 amountTransferred:
                   type: number
-              required: [accountNumberOfTransferringAccount, amountTransferred]
+                  format: double
+                  description: 'The amount transferred to the ISA account'
+                  example: 5000.00
+                flexibleIsa:
+                  type: boolean
+                  description: 'Indicates if the ISA account is flexible'
+                  example: false
+              required: [accountNumberOfTransferringAccount, amountTransferred, flexibleIsa]
               not:
                 required: [closureDate]
-        - title: "Standard ISA - Closure"
-          allOf:
-            - $ref: '#/components/schemas/investorDetailsBase'
-            - type: object
-              properties:
-                isaType:
-                  enum: [CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE]
-                closureDate:
-                  type: string
-                  format: date
-                reasonForClosure:
-                  type: string
-                  enum:
-                    - CANCELLED
-                    - CLOSED
-                    - VOID
-                    - TRANSFERRED_IN_FULL
-                    - ALL_FUNDS_WITHDRAWN
-              required: [closureDate, reasonForClosure]
     investorDetailsBase:
       type: object
       required:
@@ -548,7 +639,6 @@ components:
         - lastName
         - dateOfBirth
         - isaType
-        - flexibleIsa
         - reportingATransfer
         - dateOfLastSubscription
         - totalCurrentYearSubscriptionsToDate
@@ -589,28 +679,10 @@ components:
             - INNOVATIVE_FINANCE
             - LIFETIME_CASH
             - LIFETIME_STOCKS_AND_SHARES
-        flexibleIsa:
-          type: boolean
-          description: 'Indicates if the ISA account is flexible'
-          example: false
         reportingATransfer:
           type: boolean
           description: 'Indicates if the ISA account is a reporting transfer'
           example: true
-        accountNumberOfTransferringAccount:
-          type: string
-          description: 'The account number of the transferring ISA account'
-          example: 87654321
-        amountTransferred:
-          type: number
-          format: double
-          description: 'The amount transferred to the ISA account'
-          example: 5000.00
-        dateOfFirstSubscription:
-          type: string
-          format: date
-          description: 'The date of the first subscription to the ISA account'
-          example: 2025-04-06
         dateOfLastSubscription:
           type: string
           format: date
@@ -626,21 +698,6 @@ components:
           format: double
           description: 'The market value of the ISA account'
           example: 10000.00
-        closureDate:
-          type: string
-          format: date
-          description: 'The date the ISA account was closed'
-          example: 2025-05-15
-        reasonForClosure:
-          type: string
-          description: 'The reason for the closure of the ISA account'
-          example: ALL_FUNDS_WITHDRAWN
-          enum:
-            - CANCELLED
-            - CLOSED
-            - VOID
-            - TRANSFERRED_IN_FULL
-            - ALL_FUNDS_WITHDRAWN
     validationFailed:
       type: object
       properties:
