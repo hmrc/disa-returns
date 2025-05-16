@@ -45,8 +45,16 @@ curl http://localhost:9000/api/definition
 
 ### Running the test suite
 
+To run the unit tests:
+
 ```bash
 sbt test
+```
+
+To run the integration tests:
+
+```bash
+sbt it/test
 ```
 
 ### Before you commit
