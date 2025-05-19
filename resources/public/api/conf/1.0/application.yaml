@@ -451,16 +451,19 @@ components:
                   format: date
                   description: 'The date of the first subscription to the ISA account'
                   example: 2025-04-06
+                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
                 lisaQualifyingAddition:
                   type: number
                   format: double
                   description: The amount of the current subscription that qualifies for a LISA bonus
                   example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
                 lisaBonusClaim:
                   type: number
                   format: double
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
               required: [dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim]
               not:
                 required: [closureDate, accountNumberOfTransferringAccount]
@@ -482,21 +485,25 @@ components:
                   format: double
                   description: 'The amount transferred to the ISA account'
                   example: 5000.00
+                  pattern: '^\d+\.\d{2}$'
                 dateOfFirstSubscription:
                   type: string
                   format: date
                   description: 'The date of the first subscription to the ISA account'
                   example: 2025-04-06
+                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
                 lisaQualifyingAddition:
                   type: number
                   format: double
                   description: The amount of the current subscription that qualifies for a LISA bonus
                   example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
                 lisaBonusClaim:
                   type: number
                   format: double
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
               required: [dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred, lisaQualifyingAddition, lisaBonusClaim]
               not:
                 required: [closureDate]
@@ -514,11 +521,13 @@ components:
                   format: date
                   description: 'The date of the first subscription to the ISA account'
                   example: 2025-04-06
+                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
                 closureDate:
                   type: string
                   format: date
                   description: 'The date the ISA account was closed'
                   example: 2025-05-15
+                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
                 reasonForClosure:
                   type: string
                   description: 'The reason for the closure of the ISA account'
@@ -534,11 +543,13 @@ components:
                   format: double
                   description: The amount of the current subscription that qualifies for a LISA bonus
                   example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
                 lisaBonusClaim:
                   type: number
                   format: double
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
               required: [dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim]
         - title: "Lifetime ISA - Transfer & Closure"
           allOf:
@@ -558,16 +569,19 @@ components:
                   format: double
                   description: 'The amount transferred to the ISA account'
                   example: 5000.00
+                  pattern: '^\d+\.\d{2}$'
                 dateOfFirstSubscription:
                   type: string
                   format: date
                   description: 'The date of the first subscription to the ISA account'
                   example: 2025-04-06
+                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
                 closureDate:
                   type: string
                   format: date
                   description: 'The date the ISA account was closed'
                   example: 2025-05-15
+                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
                 reasonForClosure:
                   type: string
                   description: 'The reason for the closure of the ISA account'
@@ -583,11 +597,13 @@ components:
                   format: double
                   description: The amount of the current subscription that qualifies for a LISA bonus
                   example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
                 lisaBonusClaim:
                   type: number
                   format: double
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
               required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim, accountNumberOfTransferringAccount, amountTransferred]
         - title: "Standard ISA - New Subscription"
           allOf:
@@ -623,6 +639,7 @@ components:
                   format: double
                   description: 'The amount transferred to the ISA account'
                   example: 5000.00
+                  pattern: '^\d+\.\d{2}$'
                 flexibleIsa:
                   type: boolean
                   description: 'Indicates if the ISA account is flexible'
@@ -652,6 +669,7 @@ components:
           type: string
           description: 'The National Insurance Number of the account holder'
           example: AB123456C
+          pattern: '^(?!BG|GB|NK|KN|TN|NT|ZZ)[ABCEGHJ-PRSTW-Z][ABCEGHJ-NPRSTW-Z]\d{6}[A-D]$'
         firstName:
           type: string
           description: 'The first name of the account holder'
@@ -669,6 +687,7 @@ components:
           format: date
           description: 'The date of birth of the account holder'
           example: 1980-01-01
+          pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
         isaType:
           type: string
           description: 'The type of ISA account'
@@ -688,16 +707,19 @@ components:
           format: date
           description: 'The date of the last subscription to the ISA account'
           example: 2025-05-01
+          pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
         totalCurrentYearSubscriptionsToDate:
           type: number
           format: double
           description: 'The total subscriptions to the ISA account for the current year'
           example: 5000.00
+          pattern: '^\d+\.\d{2}$'
         marketValueOfAccount:
           type: number
           format: double
           description: 'The market value of the ISA account'
           example: 10000.00
+          pattern: '^\d+\.\d{2}$'
     validationFailed:
       type: object
       properties:
@@ -705,6 +727,7 @@ components:
           type: string
           description: 'The National Insurance Number of the account holder'
           example: AB123456C
+          pattern: '^(?!BG|GB|NK|KN|TN|NT|ZZ)[ABCEGHJ-PRSTW-Z][ABCEGHJ-NPRSTW-Z]\d{6}[A-D]$'
         accountNumber:
           type: string
           description: 'The account number of the ISA account'
@@ -731,6 +754,7 @@ components:
           type: string
           description: 'The National Insurance Number of the account holder'
           example: AB123456C
+          pattern: '^(?!BG|GB|NK|KN|TN|NT|ZZ)[ABCEGHJ-PRSTW-Z][ABCEGHJ-NPRSTW-Z]\d{6}[A-D]$'
         issueIdentified:
           oneOf:
             - $ref: '#/components/schemas/returnResultOverSubscribed'
@@ -749,6 +773,7 @@ components:
           format: double
           description: 'The amount that was over subscribed'
           example: 1000.00
+          pattern: '^\d+\.\d{2}$'
     returnResultUnableToIdentifyInvestor:
       type: object
       properties:
