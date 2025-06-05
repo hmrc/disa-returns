@@ -41,6 +41,7 @@ paths:
               required:
                 - totalRecords
                 - submissionPeriod
+                - taxYear
               properties:
                 totalRecords:
                   type: integer
@@ -63,6 +64,10 @@ paths:
                     - OCT
                     - NOV
                     - DEC
+                taxYear:
+                  type: integer
+                  example: 2026
+                  description: 'The tax year of the monthly reporting information'
       responses:
         '200':
           description: Submission is permitted and return id is generated
@@ -136,7 +141,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/x-ndjson:
             schema:
               type: array
               items:
@@ -451,7 +456,7 @@ components:
                   format: date
                   description: 'The date of the first subscription to the ISA account'
                   example: 2025-04-06
-                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
                 lisaQualifyingAddition:
                   type: number
                   format: double
@@ -491,7 +496,7 @@ components:
                   format: date
                   description: 'The date of the first subscription to the ISA account'
                   example: 2025-04-06
-                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
                 lisaQualifyingAddition:
                   type: number
                   format: double
@@ -521,13 +526,13 @@ components:
                   format: date
                   description: 'The date of the first subscription to the ISA account'
                   example: 2025-04-06
-                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
                 closureDate:
                   type: string
                   format: date
                   description: 'The date the ISA account was closed'
                   example: 2025-05-15
-                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
                 reasonForClosure:
                   type: string
                   description: 'The reason for the closure of the ISA account'
@@ -575,13 +580,13 @@ components:
                   format: date
                   description: 'The date of the first subscription to the ISA account'
                   example: 2025-04-06
-                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
                 closureDate:
                   type: string
                   format: date
                   description: 'The date the ISA account was closed'
                   example: 2025-05-15
-                  pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
                 reasonForClosure:
                   type: string
                   description: 'The reason for the closure of the ISA account'
@@ -669,7 +674,7 @@ components:
           type: string
           description: 'The National Insurance Number of the account holder'
           example: AB123456C
-          pattern: '^(?!BG|GB|NK|KN|TN|NT|ZZ)[ABCEGHJ-PRSTW-Z][ABCEGHJ-NPRSTW-Z]\d{6}[A-D]$'
+          pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
         firstName:
           type: string
           description: 'The first name of the account holder'
@@ -687,7 +692,7 @@ components:
           format: date
           description: 'The date of birth of the account holder'
           example: 1980-01-01
-          pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
+          pattern: '^\d{4}-\d{2}-\d{2}$'
         isaType:
           type: string
           description: 'The type of ISA account'
@@ -707,7 +712,7 @@ components:
           format: date
           description: 'The date of the last subscription to the ISA account'
           example: 2025-05-01
-          pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$'
+          pattern: '^\d{4}-\d{2}-\d{2}$'
         totalCurrentYearSubscriptionsToDate:
           type: number
           format: double
@@ -727,7 +732,7 @@ components:
           type: string
           description: 'The National Insurance Number of the account holder'
           example: AB123456C
-          pattern: '^(?!BG|GB|NK|KN|TN|NT|ZZ)[ABCEGHJ-PRSTW-Z][ABCEGHJ-NPRSTW-Z]\d{6}[A-D]$'
+          pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
         accountNumber:
           type: string
           description: 'The account number of the ISA account'
@@ -754,7 +759,7 @@ components:
           type: string
           description: 'The National Insurance Number of the account holder'
           example: AB123456C
-          pattern: '^(?!BG|GB|NK|KN|TN|NT|ZZ)[ABCEGHJ-PRSTW-Z][ABCEGHJ-NPRSTW-Z]\d{6}[A-D]$'
+          pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
         issueIdentified:
           oneOf:
             - $ref: '#/components/schemas/returnResultOverSubscribed'
