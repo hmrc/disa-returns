@@ -11,13 +11,16 @@ servers:
     description: Production
 
 paths:
-  /monthly-returns/{isaManagerReferenceNumber}/init:
+  /monthly/{isaManagerReferenceNumber}/init:
     post:
       summary: Initialise a bulk monthly returns submission.
       description: |
         An endpoint that checks if submission is allowed and returns return ID.
       tags:
         - Monthly Returns Submission
+      security:
+        - userRestricted:
+            - write:isa-returns
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -105,7 +108,7 @@ paths:
                   message:
                     type: string
 
-  /monthly-returns/{isaManagerReferenceNumber}/submission/{returnId}:
+  /monthly/{isaManagerReferenceNumber}/submission/{returnId}:
     post:
       summary: Submit a paginated bulk monthly return.
       description: |
@@ -114,6 +117,9 @@ paths:
         Maximum of 10mb may be sent at a time.
       tags:
         - Monthly Returns Submission
+      security:
+        - userRestricted:
+            - write:isa-returns
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -183,7 +189,7 @@ paths:
                   message:
                     type: string
 
-  /monthly-returns/{isaManagerReferenceNumber}/complete/{returnId}:
+  /monthly/{isaManagerReferenceNumber}/complete/{returnId}:
     post:
       summary: Complete a bulk monthly returns submission.
       description: |
@@ -191,6 +197,9 @@ paths:
         Returns the confirmation of whether the submission was successful or not.
       tags:
         - Monthly Returns Submission
+      security:
+        - userRestricted:
+            - write:isa-returns
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -263,7 +272,7 @@ paths:
                   message:
                     type: string
 
-  /monthly-returns/{isaManagerReferenceNumber}/results-summary/{returnId}:
+  /monthly/{isaManagerReferenceNumber}/results-summary/{returnId}:
     get:
       summary: Query if the return results summary is available.
       description: |
@@ -272,6 +281,9 @@ paths:
         Returns the location to retrieve the return results if available, or not found.
       tags:
         - Monthly Return Results
+      security:
+        - userRestricted:
+            - read:isa-returns
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -334,7 +346,7 @@ paths:
                   message:
                     type: string
 
-  /monthly-returns/{isaManagerReferenceNumber}/results/{returnId}:
+  /monthly/{isaManagerReferenceNumber}/results/{returnId}:
     get:
       summary: Retrieve return results through paginated API.
       description: |
@@ -343,6 +355,9 @@ paths:
         Returns the results in paginated batches.
       tags:
         - Monthly Return Results
+      security:
+        - userRestricted:
+            - read:isa-returns
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -423,6 +438,20 @@ paths:
                     type: string
 
 components:
+  securitySchemes:
+    userRestricted:
+      type: oauth2
+      description: |
+        HMRC supports OAuth 2.0 for authenticating user restricted API requests using an OAuth 2.0 Bearer Token in the AUTHORIZATION header.
+        See https://developer.service.hmrc.gov.uk/api-documentation/docs/authorisation/user-restricted-endpoints for details.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://api.service.hmrc.gov.uk/oauth/authorize
+          tokenUrl: https://api.service.hmrc.gov.uk/oauth/token
+          refreshUrl: https://api.service.hmrc.gov.uk/oauth/refresh
+          scopes:
+#            //TODO: update scopes -
+            hello: access hello user
   parameters:
     acceptHeader:
       name: Accept
