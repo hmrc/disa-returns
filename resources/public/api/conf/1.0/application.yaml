@@ -5,9 +5,9 @@ info:
   title: DISA Returns API
 
 servers:
-  - url: https://test-api.service.hmrc.gov.uk/disa-returns
+  - url: https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return
     description: Sandbox
-  - url: https://api.service.hmrc.gov.uk/disa-returns
+  - url: https://api.service.hmrc.gov.uk/obligations/declaration/isa/return
     description: Production
 
 paths:
@@ -20,7 +20,7 @@ paths:
         - Monthly Returns Submission
       security:
         - userRestricted:
-            - write:isa-returns
+            - write:manage-individual-savings-accounts
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -119,7 +119,7 @@ paths:
         - Monthly Returns Submission
       security:
         - userRestricted:
-            - write:isa-returns
+            - write:manage-individual-savings-accounts
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -199,7 +199,7 @@ paths:
         - Monthly Returns Submission
       security:
         - userRestricted:
-            - write:isa-returns
+            - write:manage-individual-savings-accounts
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -283,7 +283,7 @@ paths:
         - Monthly Return Results
       security:
         - userRestricted:
-            - read:isa-returns
+            - write:manage-individual-savings-accounts
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -357,7 +357,7 @@ paths:
         - Monthly Return Results
       security:
         - userRestricted:
-            - read:isa-returns
+            - write:manage-individual-savings-accounts
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -450,8 +450,8 @@ components:
           tokenUrl: https://api.service.hmrc.gov.uk/oauth/token
           refreshUrl: https://api.service.hmrc.gov.uk/oauth/refresh
           scopes:
-#            //TODO: update scopes -
-            hello: access hello user
+            write:manage-individual-savings-accounts
+            read:manage-individual-savings-accounts
   parameters:
     acceptHeader:
       name: Accept
