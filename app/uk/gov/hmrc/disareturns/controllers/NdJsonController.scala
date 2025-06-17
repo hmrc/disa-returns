@@ -61,7 +61,7 @@ class NdJsonController @Inject() (
     val source: Source[ByteString, _] = request.body
 
     val lines = source
-      .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = true))
+      .via(Framing.delimiter(delimiter = ByteString("\n"), maximumFrameLength = 65536, allowTruncation = true))
       .map(_.utf8String)
       .filter(_.nonEmpty)
 
@@ -80,8 +80,9 @@ class NdJsonController @Inject() (
   def uploadNdjsonStreamWithMongo(isaMangagerId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) { request =>
     val source: Source[ByteString, _] = request.body
 
+    // why is maximumFrameLength needed? any side effects of exceeding or not enforcing this?
     val lines: Source[String, _] = source
-      .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = true))
+      .via(Framing.delimiter(delimiter = ByteString("\n"), maximumFrameLength = 65536, allowTruncation = true))
       .map(_.utf8String)
       .filter(_.nonEmpty)
 
