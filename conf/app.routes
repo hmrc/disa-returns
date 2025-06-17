@@ -1,1 +1,3 @@
 # microservice specific routes
+
+POST /monthly/:isaManagerReferenceNumber/submission/:returnId   uk.gov.hmrc.disareturns.controllers.NdJsonController.uploadNdjsonStreamWithMongo(isaMangagerId =  String, returnId = String)

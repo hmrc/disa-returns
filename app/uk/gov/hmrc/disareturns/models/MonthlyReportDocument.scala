@@ -16,17 +16,11 @@
 
 package uk.gov.hmrc.disareturns.models
 
-import play.api.libs.json.Format
+import play.api.libs.json._
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 
-object IsaType extends Enumeration {
-  type IsaType = Value
+case class MonthlyReportDocument(returnId: String, isaManagerReferenceNumber: String, isaReport: Seq[IsaAccount])
 
-  val CASH: Value = Value("CASH")
-  val STOCKS_AND_SHARES: Value = Value("STOCKS_AND_SHARES")
-  val INNOVATIVE_FINANCE: Value = Value("INNOVATIVE_FINANCE")
-  val LIFETIME_CASH: Value = Value("LIFETIME_CASH")
-  val LIFETIME_STOCKS_AND_SHARES: Value = Value("LIFETIME_STOCKS_AND_SHARES")
-
-  implicit val format: Format[IsaType.Value] = JsonUtils.enumFormat(IsaType)
-
+object MonthlyReportDocument {
+    implicit val format: OFormat[MonthlyReportDocument] = Json.format[MonthlyReportDocument]
 }

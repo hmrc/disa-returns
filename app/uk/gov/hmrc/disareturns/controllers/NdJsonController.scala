@@ -32,12 +32,12 @@ package uk.gov.hmrc.disareturns.controllers
  */
 
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
+import org.apache.pekko.stream.scaladsl.{Framing, Source}
 import org.apache.pekko.util.ByteString
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
-import uk.gov.hmrc.disareturns.models.ISAReport
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.mongoRepositories.ReportingRepository
 
 import javax.inject._
@@ -77,7 +77,7 @@ class NdJsonController @Inject() (
   }
 
 
-  def uploadNdjsonStreamWithMongo(isaMangagerId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) { request =>
+  def uploadNdjsonStreamWithMongo(isaMangagerId: String, returnId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) { request =>
     val source: Source[ByteString, _] = request.body
 
     // why is maximumFrameLength needed? any side effects of exceeding or not enforcing this?
@@ -86,14 +86,14 @@ class NdJsonController @Inject() (
       .map(_.utf8String)
       .filter(_.nonEmpty)
 
-    val parsedReports: Source[ISAReport, _] = lines.map { line =>
-      Json.parse(line).as[ISAReport]
+    val parsedReports: Source[IsaAccount, _] = lines.map { line =>
+      Json.parse(line).as[IsaAccount]
     }
 
-    val collectedReports: Future[Seq[ISAReport]] = parsedReports.runFold(Seq.empty[ISAReport])(_ :+ _)
+    val collectedReports: Future[Seq[IsaAccount]] = parsedReports.runFold(Seq.empty[IsaAccount])(_ :+ _)
 
     collectedReports.flatMap { reports =>
-      ndJsonRepository.insertBatch(isaMangagerId, reports).map { _ =>
+      ndJsonRepository.insertBatch(isaMangagerId, returnId, reports).map { _ =>
         Ok(s"Inserted ${reports.size} reports into MongoDB")
       }
     }.recover {

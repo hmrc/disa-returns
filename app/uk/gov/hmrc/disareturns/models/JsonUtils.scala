@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.disareturns.models
 
-import play.api.libs.json._
+import play.api.libs.json.{Format, Reads, Writes}
 
-case class PayloadMongoDocument(isaManagerId: String, isaReport: Seq[ISAReport])
+object JsonUtils {
 
-object PayloadMongoDocument {
-    implicit val format: OFormat[PayloadMongoDocument] = Json.format[PayloadMongoDocument]
+  def enumFormat[E <: Enumeration](e: E): Format[e.Value] =
+    Format(Reads.enumNameReads(e), Writes.enumNameWrites)
+
 }

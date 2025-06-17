@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.disareturns.mongoRepositories
 
-import uk.gov.hmrc.disareturns.models.{ISAReport, PayloadMongoDocument}
+import uk.gov.hmrc.disareturns.models.MonthlyReportDocument
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
@@ -24,17 +25,17 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class ReportingRepository @Inject()(mc: MongoComponent)(implicit ec: ExecutionContext)  extends
-  PlayMongoRepository[PayloadMongoDocument](
+  PlayMongoRepository[MonthlyReportDocument](
   mongoComponent = mc,
   collectionName = "reportingRepository",
-  domainFormat = PayloadMongoDocument.format,
+  domainFormat = MonthlyReportDocument.format,
   indexes = Seq.empty
 ) {
 
 
-  def insertBatch(isaManagerId: String, reports: Seq[ISAReport]): Future[Unit] = {
+  def insertBatch(isaManagerId: String, returnId: String, reports: Seq[IsaAccount]): Future[Unit] = {
     val wrapperJson =
-      PayloadMongoDocument(isaManagerId = isaManagerId, isaReport = reports)
+      MonthlyReportDocument(returnId = returnId, isaManagerReferenceNumber = isaManagerId, isaReport = reports)
 
     collection.insertOne(wrapperJson).toFuture().map(_ => ())
   }

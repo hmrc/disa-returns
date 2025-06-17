@@ -31,11 +31,11 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{contentAsString, defaultAwaitTimeout, status}
-import uk.gov.hmrc.disareturns.models.ISAReport
 import uk.gov.hmrc.disareturns.mongoRepositories.ReportingRepository
 
 import scala.concurrent.Future
 
+// MOVE TO UNIT test folder
 class NdJsonControllerSpec
   extends AnyWordSpec
      with Matchers
