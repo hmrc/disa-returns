@@ -15,7 +15,7 @@ lazy val microservice = Project("disa-returns", file("."))
   .settings(CodeCoverageSettings.settings *)
   .settings(
     Compile / unmanagedResourceDirectories += baseDirectory.value / "resources"
-  )
+   )
   .disablePlugins(JUnitXmlReportPlugin)
 
 addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck")
