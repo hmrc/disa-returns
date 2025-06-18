@@ -32,7 +32,7 @@ package uk.gov.hmrc.disareturns.controllers
  */
 
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Framing, Source}
+import org.apache.pekko.stream.scaladsl.{Flow, Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
@@ -100,5 +100,49 @@ class NdJsonController @Inject() (
       case ex =>
         BadRequest(s"Error processing NDJSON: ${ex.getMessage}")
     }
+  }
+
+
+  def uploadNdjsonStreamWithStreamIntoMongo(isaMangagerId: String, returnId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) { request =>
+    // Extract the streamed source of bytes from the request body
+    val source: Source[ByteString, _] = request.body
+
+    // Split the stream of bytes into lines based on newline delimiter
+    // maximumFrameLength limits the maximum size of a line/frame
+    //   - Prevents excessively large lines from consuming too much memory
+    //   - If allowTruncation = true, a line exceeding the limit will be truncated (might cause JSON parse errors)
+    //   - If allowTruncation = false, it will fail with a FramingException
+    val lines: Source[String, _] = source
+      .via(Framing.delimiter(
+        delimiter = ByteString("\n"),
+        maximumFrameLength = 65536, // 64 KB per line max
+        allowTruncation = true      // truncates lines that are too long instead of failing
+      ))
+      .map(_.utf8String)           // convert each ByteString line to a UTF-8 string
+      .filter(_.nonEmpty)          // ignore empty lines (e.g., blank lines in NDJSON)
+
+    // Parse each line of JSON into a IsaAccount case class
+    val parsedReports: Source[IsaAccount, _] = lines.map { line =>
+      Json.parse(line).as[IsaAccount]
+      // This will throw if parsing fails — consider using .validate or .asOpt for safer handling
+    }
+
+    // Flow that groups IsaAccounts into batches of 1000 and inserts them into MongoDB asynchronously
+    val insertFlow = Flow[IsaAccount]
+      .grouped(1000) // collect up to 1000 records before inserting
+      .mapAsync(1) { batch =>
+        ndJsonRepository.insertBatch(isaMangagerId, returnId, batch)
+        // Assuming insertBatch returns Future[Unit] or Future[Result]
+      }
+
+    // Connect the stream of parsed IsaAccounts to the insert flow and run it
+    parsedReports
+      .via(insertFlow)      // stream → batch → insert
+      .runWith(Sink.ignore) // we don't care about the result of each insert, just run the stream
+      .map(_ => Ok("NDJSON upload complete")) // send OK response when complete
+      .recover {
+        // If any part of the stream fails, return a BadRequest with the error message
+        case ex => BadRequest(s"Error processing NDJSON: ${ex.getMessage}")
+      }
   }
 }
