@@ -16,36 +16,70 @@
 
 package uk.gov.hmrc.disareturns.mongoRepositories
 
+import org.mongodb.scala.Document
 import org.mongodb.scala.model.Filters.equal
-import org.mongodb.scala.model.{UpdateOneModel, UpdateOptions}
-import org.mongodb.scala.model.Updates.{addEachToSet, addToSet}
+import org.mongodb.scala.model.Updates.{addEachToSet, combine, setOnInsert}
+import org.mongodb.scala.model.{FindOneAndUpdateOptions, IndexModel, IndexOptions, Indexes}
+import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.models.MonthlyReportDocument
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ReportingRepository @Inject()(mc: MongoComponent)(implicit ec: ExecutionContext)  extends
-  PlayMongoRepository[MonthlyReportDocument](
-  mongoComponent = mc,
-  collectionName = "reportingRepository",
-  domainFormat = MonthlyReportDocument.format,
-  indexes = Seq.empty
-) {
-
+class ReportingRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
+    extends PlayMongoRepository[MonthlyReportDocument](
+      mongoComponent = mc,
+      collectionName = "reportingRepository",
+      domainFormat = MonthlyReportDocument.format,
+      indexes = Seq(IndexModel(
+        keys = Indexes.ascending("returnId"),
+        indexOptions = IndexOptions().unique(true)
+      ))
+    ) {
 
   def insertBatch(isaManagerId: String, returnId: String, reports: Seq[IsaAccount]): Future[Unit] = {
-    val wrapperJson =
-      MonthlyReportDocument(returnId = returnId, isaManagerReferenceNumber = isaManagerId, isaReport = reports)
+    val wrapperJson = MonthlyReportDocument(
+      returnId = returnId,
+      isaManagerReferenceNumber = isaManagerId,
+      isaReport = reports)
+
     collection.insertOne(wrapperJson).toFuture().map(_ => ())
   }
 
   def insertOrUpdate(isaManagerId: String, returnId: String, reports: Seq[IsaAccount]): Future[Unit] = {
-    collection.updateOne(
-      filter = equal("returnId", returnId),
-      update = addEachToSet("isaReport", reports),
-      options = UpdateOptions().upsert(true)).toFuture().map(_ => ())
+    val documents: Seq[Document] = reports.map { isaAccount =>
+      Document(Json.stringify(Json.toJson(isaAccount)))
+    }
+
+    val update = combine(
+      addEachToSet("isaReport", documents: _*),
+      setOnInsert("returnId", returnId),
+      setOnInsert("isaManagerReferenceNumber", isaManagerId)
+    )
+
+    collection
+      .findOneAndUpdate(
+        filter = equal("returnId", returnId),
+        update = update,
+        options = FindOneAndUpdateOptions().upsert(true)
+      )
+      .toFuture()
+      .map(_ => ())
+  }
+
+  def getMonthlyReport(returnId: String): Future[Option[MonthlyReportDocument]] = {
+    collection.find(equal("returnId", returnId)).headOption()
+    }.recover {
+      case ex =>
+        logger.error(s"Failed to fetch report for returnId $returnId", ex)
+        None
+    }
+
+  def dropCollection(): Future[Unit] = {
+    collection.drop().toFuture().map(_ => ())
   }
 }

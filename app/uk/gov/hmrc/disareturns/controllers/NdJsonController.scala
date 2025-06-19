@@ -97,8 +97,11 @@ class NdJsonController @Inject() (
         Ok(s"Inserted ${reports.size} reports into MongoDB")
       }
     }.recover {
-      case ex =>
+      case ex =>{
+        println(Console.YELLOW + ex.getMessage + Console.RESET)
         BadRequest(s"Error processing NDJSON: ${ex.getMessage}")
+
+      }
     }
   }
 
@@ -132,7 +135,6 @@ class NdJsonController @Inject() (
       .grouped(1000) // collect up to 1000 records before inserting
       .mapAsync(1) { batch => // wait for the Future to complete before processing the next batch.
         ndJsonRepository.insertOrUpdate(isaMangagerId, returnId, batch)
-        // Assuming insertBatch returns Future[Unit] or Future[Result]
       }
 
     // Connect the stream of parsed IsaAccounts to the insert flow and run it

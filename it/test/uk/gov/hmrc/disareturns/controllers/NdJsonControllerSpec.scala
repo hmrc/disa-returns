@@ -20,6 +20,7 @@ import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import org.mockito.Mockito.when
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -30,7 +31,7 @@ import play.api.http.Status.{BAD_REQUEST, OK}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{contentAsString, defaultAwaitTimeout, status}
+import play.api.test.Helpers.{await, contentAsString, defaultAwaitTimeout, status}
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.mongoRepositories.ReportingRepository
 
@@ -42,15 +43,22 @@ class NdJsonControllerSpec
      with Matchers
      with ScalaFutures
      with IntegrationPatience
-     with GuiceOneServerPerSuite {
+     with GuiceOneServerPerSuite
+      with BeforeAndAfterEach {
 
   private val controller = app.injector.instanceOf[NdJsonController]
+  lazy val reportingRepository: ReportingRepository = app.injector.instanceOf[ReportingRepository]
   implicit val materializer: Materializer = app.materializer
-  private val baseUrl  = s"http://localhost:$port"
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .build()
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    await(reportingRepository.dropCollection())
+  }
+
 
   "NdJsonController" should {
     "parse valid NDJSON and return count" in {
@@ -88,14 +96,11 @@ class NdJsonControllerSpec
     }
   }
 
-  private val mockRepo = mock[ReportingRepository]
-
-
   "NdJsonController#uploadNdjsonStreamWithMongo" should {
-    lazy val isaManagerId = "some-manager-id"
-    lazy val returnId = "some-return-id"
 
     "stream and parse valid NDJSON and insert into Mongo" in {
+      lazy val isaManagerId = "some-manager-1"
+      lazy val returnId = "some-return-1"
 
       val reports =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}
@@ -107,13 +112,6 @@ class NdJsonControllerSpec
 
       val lines = reports.split("\n").toList.map(line => ByteString(line + "\n"))
       val body: Source[ByteString, _] = Source(lines)
-
-      // Stub the insertBatch method
-      when(mockRepo.insertBatch(
-        org.mockito.ArgumentMatchers.eq(isaManagerId),
-        org.mockito.ArgumentMatchers.eq(returnId),
-        org.mockito.ArgumentMatchers.any[Seq[IsaAccount]]
-      )).thenReturn(Future.successful(()))
 
       val request = FakeRequest()
         .withHeaders("Content-Type" -> "application/x-ndjson")
@@ -127,6 +125,7 @@ class NdJsonControllerSpec
 
     "return BadRequest on malformed NDJSON" in {
       val isaManagerId = "bad-manager-id"
+      lazy val returnId = "bad-return-id"
 
       val invalidJson =
         """{"isaAmount": 1000, "id": 1, "isaManager": "ManagerA"}
@@ -144,6 +143,171 @@ class NdJsonControllerSpec
 
       status(result) shouldBe BAD_REQUEST
       contentAsString(result) should include("Error processing NDJSON")
+    }
+  }
+
+  "NdJsonController#uploadNdjsonToMongoWithStream" should {
+
+    "insert 5 records into one mongo document" in {
+      lazy val isaManagerId = "some-manager-2"
+      lazy val returnId = "some-return-2"
+      val reports =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000002","nino":"AB000002C","firstName":"First2","middleName":"Middle2","lastName":"Last2","dateOfBirth":"1980-01-03","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000002","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000003","nino":"AB000003C","firstName":"First3","middleName":null,"lastName":"Last3","dateOfBirth":"1980-01-04","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000003","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000004","nino":"AB000004C","firstName":"First4","middleName":"Middle4","lastName":"Last4","dateOfBirth":"1980-01-05","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000004","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000005","nino":"AB000005C","firstName":"First5","middleName":null,"lastName":"Last5","dateOfBirth":"1980-01-06","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000005","amountTransferred":5000.00,"flexibleIsa":false}
+          |""".stripMargin
+
+      val lines = reports.split("\n").toList.map(line => ByteString(line + "\n"))
+      val body: Source[ByteString, _] = Source(lines)
+
+      val request = FakeRequest()
+        .withHeaders("Content-Type" -> "application/x-ndjson")
+        .withBody(body)
+
+      val result: Future[Result] = controller.uploadNdjsonWithStreamIntoMongo(isaManagerId, returnId)(request)
+
+      status(result) shouldBe OK
+      contentAsString(result) should include("NDJSON upload complete")
+
+      val cachedMonthlyReport = await(reportingRepository.getMonthlyReport(returnId))
+      cachedMonthlyReport.map { report =>
+        report.isaReport.length shouldBe 5
+      }
+    }
+
+    "insert 5 records in one request & then send same request again - should not add duplicates" in {
+      lazy val isaManagerId = "some-manager-3"
+      lazy val returnId = "some-return-3"
+      val reports =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000002","nino":"AB000002C","firstName":"First2","middleName":"Middle2","lastName":"Last2","dateOfBirth":"1980-01-03","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000002","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000003","nino":"AB000003C","firstName":"First3","middleName":null,"lastName":"Last3","dateOfBirth":"1980-01-04","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000003","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000004","nino":"AB000004C","firstName":"First4","middleName":"Middle4","lastName":"Last4","dateOfBirth":"1980-01-05","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000004","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000005","nino":"AB000005C","firstName":"First5","middleName":null,"lastName":"Last5","dateOfBirth":"1980-01-06","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000005","amountTransferred":5000.00,"flexibleIsa":false}
+          |""".stripMargin
+
+      val lines = reports.split("\n").toList.map(line => ByteString(line + "\n"))
+      val body: Source[ByteString, _] = Source(lines)
+
+      val request = FakeRequest()
+        .withHeaders("Content-Type" -> "application/x-ndjson")
+        .withBody(body)
+
+      val result: Future[Result] = controller.uploadNdjsonWithStreamIntoMongo(isaManagerId, returnId)(request)
+
+      status(result) shouldBe OK
+      contentAsString(result) should include("NDJSON upload complete")
+
+      val cachedMonthlyReport = await(reportingRepository.getMonthlyReport(returnId))
+      cachedMonthlyReport.map { report =>
+        report.isaReport.length shouldBe 5
+      }
+
+      status(result) shouldBe OK
+      contentAsString(result) should include("NDJSON upload complete")
+
+      val cachedMonthlyReport2 = await(reportingRepository.getMonthlyReport(returnId))
+      cachedMonthlyReport2.map { report =>
+        report.isaReport.length shouldBe 5
+      }
+    }
+
+    "insert 5 records in one request & then send more new reports - should add to existing document" in {
+      lazy val isaManagerId = "some-manager-3"
+      lazy val returnId = "some-return-3"
+      val reports =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000002","nino":"AB000002C","firstName":"First2","middleName":"Middle2","lastName":"Last2","dateOfBirth":"1980-01-03","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000002","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000003","nino":"AB000003C","firstName":"First3","middleName":null,"lastName":"Last3","dateOfBirth":"1980-01-04","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000003","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000004","nino":"AB000004C","firstName":"First4","middleName":"Middle4","lastName":"Last4","dateOfBirth":"1980-01-05","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000004","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000005","nino":"AB000005C","firstName":"First5","middleName":null,"lastName":"Last5","dateOfBirth":"1980-01-06","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000005","amountTransferred":5000.00,"flexibleIsa":false}
+          |""".stripMargin
+
+      val lines = reports.split("\n").toList.map(line => ByteString(line + "\n"))
+      val body: Source[ByteString, _] = Source(lines)
+
+      val request = FakeRequest()
+        .withHeaders("Content-Type" -> "application/x-ndjson")
+        .withBody(body)
+
+      val result: Future[Result] = controller.uploadNdjsonWithStreamIntoMongo(isaManagerId, returnId)(request)
+
+      status(result) shouldBe OK
+      contentAsString(result) should include("NDJSON upload complete")
+
+      val cachedMonthlyReport = await(reportingRepository.getMonthlyReport(returnId))
+      cachedMonthlyReport.map { report =>
+        report.isaReport.length shouldBe 5
+      }
+
+      val reports2 =
+        """{"accountNumber":"STD000006","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000007","nino":"AB000002C","firstName":"First2","middleName":"Middle2","lastName":"Last2","dateOfBirth":"1980-01-03","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000002","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000008","nino":"AB000003C","firstName":"First3","middleName":null,"lastName":"Last3","dateOfBirth":"1980-01-04","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000003","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000009","nino":"AB000004C","firstName":"First4","middleName":"Middle4","lastName":"Last4","dateOfBirth":"1980-01-05","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000004","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000010","nino":"AB000005C","firstName":"First5","middleName":null,"lastName":"Last5","dateOfBirth":"1980-01-06","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000005","amountTransferred":5000.00,"flexibleIsa":false}
+          |""".stripMargin
+
+      val lines2 = reports2.split("\n").toList.map(line => ByteString(line + "\n"))
+      val body2: Source[ByteString, _] = Source(lines2)
+
+      val request2 = FakeRequest()
+        .withHeaders("Content-Type" -> "application/x-ndjson")
+        .withBody(body2)
+
+      val result2: Future[Result] = controller.uploadNdjsonWithStreamIntoMongo(isaManagerId, returnId)(request2)
+
+
+      status(result2) shouldBe OK
+      contentAsString(result2) should include("NDJSON upload complete")
+
+      val cachedMonthlyReport2 = await(reportingRepository.getMonthlyReport(returnId))
+      cachedMonthlyReport2.map { report =>
+        report.isaReport.length shouldBe 10
+      }
+    }
+
+    "insert 5 records in one request for one returnId & 5 for a second reportId - should add two documents" in {
+      lazy val isaManagerId = "some-manager-3"
+      lazy val returnId = "some-return-3"
+      lazy val secondIsaManagerId = "some-manager-4"
+      lazy val secondReturnId = "some-return-4"
+      val reports =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000002","nino":"AB000002C","firstName":"First2","middleName":"Middle2","lastName":"Last2","dateOfBirth":"1980-01-03","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000002","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000003","nino":"AB000003C","firstName":"First3","middleName":null,"lastName":"Last3","dateOfBirth":"1980-01-04","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000003","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000004","nino":"AB000004C","firstName":"First4","middleName":"Middle4","lastName":"Last4","dateOfBirth":"1980-01-05","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000004","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000005","nino":"AB000005C","firstName":"First5","middleName":null,"lastName":"Last5","dateOfBirth":"1980-01-06","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000005","amountTransferred":5000.00,"flexibleIsa":false}
+          |""".stripMargin
+
+      val lines = reports.split("\n").toList.map(line => ByteString(line + "\n"))
+      val body: Source[ByteString, _] = Source(lines)
+
+      val request = FakeRequest()
+        .withHeaders("Content-Type" -> "application/x-ndjson")
+        .withBody(body)
+
+      val result: Future[Result] = controller.uploadNdjsonWithStreamIntoMongo(isaManagerId, returnId)(request)
+
+      status(result) shouldBe OK
+      contentAsString(result) should include("NDJSON upload complete")
+
+      val cachedMonthlyReport = await(reportingRepository.getMonthlyReport(returnId))
+      cachedMonthlyReport.map { report =>
+        report.isaReport.length shouldBe 5
+      }
+
+      val result2: Future[Result] = controller.uploadNdjsonWithStreamIntoMongo(secondIsaManagerId, secondReturnId)(request)
+
+      status(result2) shouldBe OK
+      contentAsString(result2) should include("NDJSON upload complete")
+
+      val cachedMonthlyReport2 = await(reportingRepository.getMonthlyReport(secondReturnId))
+      cachedMonthlyReport2.map { report =>
+        report.isaReport.length shouldBe 5
+      }
     }
   }
 }
