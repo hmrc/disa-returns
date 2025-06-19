@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.disareturns.mongoRepositories
 
+import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model.{UpdateOneModel, UpdateOptions}
+import org.mongodb.scala.model.Updates.{addEachToSet, addToSet}
 import uk.gov.hmrc.disareturns.models.MonthlyReportDocument
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.mongo.MongoComponent
@@ -36,7 +39,13 @@ class ReportingRepository @Inject()(mc: MongoComponent)(implicit ec: ExecutionCo
   def insertBatch(isaManagerId: String, returnId: String, reports: Seq[IsaAccount]): Future[Unit] = {
     val wrapperJson =
       MonthlyReportDocument(returnId = returnId, isaManagerReferenceNumber = isaManagerId, isaReport = reports)
-
     collection.insertOne(wrapperJson).toFuture().map(_ => ())
+  }
+
+  def insertOrUpdate(isaManagerId: String, returnId: String, reports: Seq[IsaAccount]): Future[Unit] = {
+    collection.updateOne(
+      filter = equal("returnId", returnId),
+      update = addEachToSet("isaReport", reports),
+      options = UpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 }

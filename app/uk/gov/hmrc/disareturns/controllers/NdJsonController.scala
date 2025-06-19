@@ -131,7 +131,7 @@ class NdJsonController @Inject() (
     val insertFlow = Flow[IsaAccount]
       .grouped(1000) // collect up to 1000 records before inserting
       .mapAsync(1) { batch => // wait for the Future to complete before processing the next batch.
-        ndJsonRepository.insertBatch(isaMangagerId, returnId, batch)
+        ndJsonRepository.insertOrUpdate(isaMangagerId, returnId, batch)
         // Assuming insertBatch returns Future[Unit] or Future[Result]
       }
 
