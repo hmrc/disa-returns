@@ -77,12 +77,12 @@ class NdJsonController @Inject() (
   }
 
 
-  def uploadNdjsonStreamWithMongo(isaMangagerId: String, returnId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) { request =>
+  def uploadNdjsonStreamWithMongo(isaManagerId: String, returnId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) { request =>
     val source: Source[ByteString, _] = request.body
 
     // why is maximumFrameLength needed? any side effects of exceeding or not enforcing this?
     val lines: Source[String, _] = source
-      .via(Framing.delimiter(delimiter = ByteString("\n"), maximumFrameLength = 65536, allowTruncation = true))
+      .via(Framing.delimiter(delimiter = ByteString("\n"), maximumFrameLength = 65536, allowTruncation = false))
       .map(_.utf8String)
       .filter(_.nonEmpty)
 
@@ -93,7 +93,7 @@ class NdJsonController @Inject() (
     val collectedReports: Future[Seq[IsaAccount]] = parsedReports.runFold(Seq.empty[IsaAccount])(_ :+ _)
 
     collectedReports.flatMap { reports =>
-      ndJsonRepository.insertBatch(isaMangagerId, returnId, reports).map { _ =>
+      ndJsonRepository.insertBatch(isaManagerId, returnId, reports).map { _ =>
         Ok(s"Inserted ${reports.size} reports into MongoDB")
       }
     }.recover {
@@ -103,7 +103,7 @@ class NdJsonController @Inject() (
   }
 
 
-  def uploadNdjsonStreamWithStreamIntoMongo(isaMangagerId: String, returnId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) { request =>
+  def uploadNdjsonWithStreamIntoMongo(isaMangagerId: String, returnId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) { request =>
     // Extract the streamed source of bytes from the request body
     val source: Source[ByteString, _] = request.body
 
@@ -130,7 +130,7 @@ class NdJsonController @Inject() (
     // Flow that groups IsaAccounts into batches of 1000 and inserts them into MongoDB asynchronously
     val insertFlow = Flow[IsaAccount]
       .grouped(1000) // collect up to 1000 records before inserting
-      .mapAsync(1) { batch =>
+      .mapAsync(1) { batch => // wait for the Future to complete before processing the next batch.
         ndJsonRepository.insertBatch(isaMangagerId, returnId, batch)
         // Assuming insertBatch returns Future[Unit] or Future[Result]
       }

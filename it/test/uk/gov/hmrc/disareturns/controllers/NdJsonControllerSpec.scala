@@ -31,6 +31,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{contentAsString, defaultAwaitTimeout, status}
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.mongoRepositories.ReportingRepository
 
 import scala.concurrent.Future
@@ -91,14 +92,18 @@ class NdJsonControllerSpec
 
 
   "NdJsonController#uploadNdjsonStreamWithMongo" should {
+    lazy val isaManagerId = "some-manager-id"
+    lazy val returnId = "some-return-id"
 
     "stream and parse valid NDJSON and insert into Mongo" in {
-      val isaManagerId = "some-manager-id"
 
       val reports =
-        """{"isaAmount": 1000, "id": 1, "isaManager": "ManagerA"}
-          |{"isaAmount": 2000, "id": 2, "isaManager": "ManagerB"}
-          |{"isaAmount": 3000, "id": 3, "isaManager": "ManagerC"}""".stripMargin
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000002","nino":"AB000002C","firstName":"First2","middleName":"Middle2","lastName":"Last2","dateOfBirth":"1980-01-03","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000002","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000003","nino":"AB000003C","firstName":"First3","middleName":null,"lastName":"Last3","dateOfBirth":"1980-01-04","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000003","amountTransferred":5000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000004","nino":"AB000004C","firstName":"First4","middleName":"Middle4","lastName":"Last4","dateOfBirth":"1980-01-05","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000004","amountTransferred":5000.00,"flexibleIsa":true}
+          |{"accountNumber":"STD000005","nino":"AB000005C","firstName":"First5","middleName":null,"lastName":"Last5","dateOfBirth":"1980-01-06","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000005","amountTransferred":5000.00,"flexibleIsa":false}
+          |""".stripMargin
 
       val lines = reports.split("\n").toList.map(line => ByteString(line + "\n"))
       val body: Source[ByteString, _] = Source(lines)
@@ -106,17 +111,18 @@ class NdJsonControllerSpec
       // Stub the insertBatch method
       when(mockRepo.insertBatch(
         org.mockito.ArgumentMatchers.eq(isaManagerId),
-        org.mockito.ArgumentMatchers.any[Seq[ISAReport]]
+        org.mockito.ArgumentMatchers.eq(returnId),
+        org.mockito.ArgumentMatchers.any[Seq[IsaAccount]]
       )).thenReturn(Future.successful(()))
 
       val request = FakeRequest()
         .withHeaders("Content-Type" -> "application/x-ndjson")
         .withBody(body)
 
-      val result: Future[Result] = controller.uploadNdjsonStreamWithMongo(isaManagerId)(request)
+      val result: Future[Result] = controller.uploadNdjsonStreamWithMongo(isaManagerId, returnId)(request)
 
       status(result) shouldBe OK
-      contentAsString(result) should include("Inserted 3 reports into MongoDB")
+      contentAsString(result) should include("Inserted 5 reports into MongoDB")
     }
 
     "return BadRequest on malformed NDJSON" in {
@@ -134,7 +140,7 @@ class NdJsonControllerSpec
         .withHeaders("Content-Type" -> "application/x-ndjson")
         .withBody(body)
 
-      val result: Future[Result] = controller.uploadNdjsonStreamWithMongo(isaManagerId)(request)
+      val result: Future[Result] = controller.uploadNdjsonStreamWithMongo(isaManagerId, returnId)(request)
 
       status(result) shouldBe BAD_REQUEST
       contentAsString(result) should include("Error processing NDJSON")
