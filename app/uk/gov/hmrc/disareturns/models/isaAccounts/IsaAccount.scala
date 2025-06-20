@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.disareturns.models.isaAccounts
 
-import play.api.libs.json.{JsError, JsValue, Json, OFormat, Reads, Writes}
+import play.api.libs.json._
 
 trait IsaAccount {
   def accountNumber: String
+  def nino: String
 }
 
 object IsaAccount {

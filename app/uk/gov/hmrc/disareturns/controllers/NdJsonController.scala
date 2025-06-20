@@ -38,17 +38,19 @@ import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
-import uk.gov.hmrc.disareturns.mongoRepositories.ReportingRepository
+import uk.gov.hmrc.disareturns.mongoRepositories.{InvalidIsaAccountRepository, ReportingRepository}
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class NdJsonController @Inject() (
-                                   val controllerComponents: ControllerComponents,
-                                   implicit val mat: Materializer,
-                                   ndJsonRepository: ReportingRepository
-                                 )(implicit ec: ExecutionContext) extends BaseController {
+  val controllerComponents:    ControllerComponents,
+  implicit val mat:            Materializer,
+  ndJsonRepository:            ReportingRepository,
+  invalidIsaAccountRepository: InvalidIsaAccountRepository
+)(implicit ec:                 ExecutionContext)
+    extends BaseController {
 
   // Define custom play BodyParser that returns a stream of raw bytes from the incoming HTTP request body
   // Is there a play in built ndJson parser??
@@ -70,12 +72,12 @@ class NdJsonController @Inject() (
     }
 
     // Return a Future[Result]
-    processing.map(_ => Ok("NDJSON streamed successfully"))
-      .recover {
-        case ex => InternalServerError(s"Streaming failed: ${ex.getMessage}")
+    processing
+      .map(_ => Ok("NDJSON streamed successfully"))
+      .recover { case ex =>
+        InternalServerError(s"Streaming failed: ${ex.getMessage}")
       }
   }
-
 
   def uploadNdjsonStreamWithMongo(isaManagerId: String, returnId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) { request =>
     val source: Source[ByteString, _] = request.body
@@ -92,59 +94,103 @@ class NdJsonController @Inject() (
 
     val collectedReports: Future[Seq[IsaAccount]] = parsedReports.runFold(Seq.empty[IsaAccount])(_ :+ _)
 
-    collectedReports.flatMap { reports =>
-      ndJsonRepository.insertBatch(isaManagerId, returnId, reports).map { _ =>
-        Ok(s"Inserted ${reports.size} reports into MongoDB")
+    collectedReports
+      .flatMap { reports =>
+        ndJsonRepository.insertBatch(isaManagerId, returnId, reports).map { _ =>
+          Ok(s"Inserted ${reports.size} reports into MongoDB")
+        }
       }
-    }.recover {
-      case ex =>{
+      .recover { case ex =>
         println(Console.YELLOW + ex.getMessage + Console.RESET)
         BadRequest(s"Error processing NDJSON: ${ex.getMessage}")
 
       }
-    }
   }
 
+  def uploadNdjsonWithStreamIntoMongo(isaManagerId: String, returnId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) {
+    request =>
+      // Extract the streamed source of bytes from the request body
+      val source: Source[ByteString, _] = request.body
 
-  def uploadNdjsonWithStreamIntoMongo(isaMangagerId: String, returnId: String): Action[Source[ByteString, _]] = Action.async(streamingParser) { request =>
-    // Extract the streamed source of bytes from the request body
-    val source: Source[ByteString, _] = request.body
+      // Split the stream of bytes into lines based on newline delimiter
+      // maximumFrameLength limits the maximum size of a line/frame
+      //   - Prevents excessively large lines from consuming too much memory
+      //   - If allowTruncation = true, a line exceeding the limit will be truncated (might cause JSON parse errors)
+      //   - If allowTruncation = false, it will fail with a FramingException
+      val lines: Source[String, _] = source
+        .via(
+          Framing.delimiter(
+            delimiter = ByteString("\n"),
+            maximumFrameLength = 65536, // 64 KB per line max
+            allowTruncation = false // truncates lines that are too long instead of failing
+          )
+        )
+        .map(_.utf8String) // convert each ByteString line to a UTF-8 string
+        .filter(_.nonEmpty) // ignore empty lines (e.g., blank lines in NDJSON)
 
-    // Split the stream of bytes into lines based on newline delimiter
-    // maximumFrameLength limits the maximum size of a line/frame
-    //   - Prevents excessively large lines from consuming too much memory
-    //   - If allowTruncation = true, a line exceeding the limit will be truncated (might cause JSON parse errors)
-    //   - If allowTruncation = false, it will fail with a FramingException
-    val lines: Source[String, _] = source
-      .via(Framing.delimiter(
-        delimiter = ByteString("\n"),
-        maximumFrameLength = 65536, // 64 KB per line max
-        allowTruncation = true      // truncates lines that are too long instead of failing
-      ))
-      .map(_.utf8String)           // convert each ByteString line to a UTF-8 string
-      .filter(_.nonEmpty)          // ignore empty lines (e.g., blank lines in NDJSON)
-
-    // Parse each line of JSON into a IsaAccount case class
-    val parsedReports: Source[IsaAccount, _] = lines.map { line =>
-      Json.parse(line).as[IsaAccount]
+      // Parse each line of JSON into a IsaAccount case class
+      val parsedReports: Source[IsaAccount, _] = lines.map { line =>
+        Json.parse(line).as[IsaAccount]
       // This will throw if parsing fails — consider using .validate or .asOpt for safer handling
-    }
-
-    // Flow that groups IsaAccounts into batches of 1000 and inserts them into MongoDB asynchronously
-    val insertFlow = Flow[IsaAccount]
-      .grouped(1000) // collect up to 1000 records before inserting
-      .mapAsync(1) { batch => // wait for the Future to complete before processing the next batch.
-        ndJsonRepository.insertOrUpdate(isaMangagerId, returnId, batch)
       }
 
-    // Connect the stream of parsed IsaAccounts to the insert flow and run it
-    parsedReports
-      .via(insertFlow)      // stream → batch → insert
-      .runWith(Sink.ignore) // we don't care about the result of each insert, just run the stream
-      .map(_ => Ok("NDJSON upload complete")) // send OK response when complete
-      .recover {
-        // If any part of the stream fails, return a BadRequest with the error message
-        case ex => BadRequest(s"Error processing NDJSON: ${ex.getMessage}")
+      // Flow that groups IsaAccounts into batches of 1000 and inserts them into MongoDB asynchronously
+      val insertFlow = Flow[IsaAccount]
+        .grouped(1000) // collect up to 1000 records before inserting
+        .mapAsync(1) { batch => // wait for the Future to complete before processing the next batch.
+          ndJsonRepository.insertOrUpdate(isaManagerId, returnId, batch)
+        }
+
+      // Connect the stream of parsed IsaAccounts to the insert flow and run it
+      parsedReports
+        .via(insertFlow) // stream → batch → insert
+        .runWith(Sink.ignore) // we don't care about the result of each insert, just run the stream
+        .map(_ => Ok("NDJSON upload complete")) // send OK response when complete
+        .recover {
+          // If any part of the stream fails, return a BadRequest with the error message
+          case ex => BadRequest(s"Error processing NDJSON: ${ex.getMessage}")
+        }
+  }
+
+  def uploadNdjsonWithStreamValidation(isaManagerId: String, returnId: String): Action[Source[ByteString, _]] =
+    Action.async(streamingParser) { request =>
+      val source: Source[ByteString, _] = request.body
+
+      val ninoRegex = """^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$""".r
+
+      val lines = source
+        .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = false))
+        .map(_.utf8String.trim)
+        .filter(_.nonEmpty)
+        .map { line =>
+          Json.parse(line).validate[IsaAccount].asOpt match {
+            case Some(account) =>
+              if (ninoRegex.matches(account.nino)) Right(account)
+              else Left(account)
+            case None =>
+              throw new IllegalArgumentException(s"Invalid JSON line: $line")
+          }
+        }
+
+      val validAccounts = lines.collect { case Right(acc) => acc }
+      val invalidAccounts = lines.collect { case Left(acc) => acc }
+
+      val validInsertFut = validAccounts
+        .grouped(1000)
+        .mapAsync(1)(batch => ndJsonRepository.insertOrUpdate(isaManagerId, returnId, batch))
+        .runWith(Sink.ignore)
+
+      val invalidInsertFut = invalidAccounts
+        .grouped(1000)
+        .mapAsync(1)(batch => invalidIsaAccountRepository.insertBatch(isaManagerId, returnId, batch))
+        .runWith(Sink.ignore)
+
+      for {
+        _ <- validInsertFut
+        _ <- invalidInsertFut
+      } yield {
+        // respond here, but you lose total invalid count unless you track it separately
+        Ok("NDJSON upload complete")
       }
   }
 }

@@ -3,3 +3,5 @@
 POST /monthly/:isaManagerId/submission/:returnId   uk.gov.hmrc.disareturns.controllers.NdJsonController.uploadNdjsonStreamWithMongo(isaManagerId: String, returnId: String)
 
 POST /monthly-v2/:isaManagerId/submission/:returnId   uk.gov.hmrc.disareturns.controllers.NdJsonController.uploadNdjsonWithStreamIntoMongo(isaManagerId: String, returnId: String)
+
+POST /monthly-v3/:isaManagerId/submission/:returnId   uk.gov.hmrc.disareturns.controllers.NdJsonController.uploadNdjsonWithStreamValidation(isaManagerId: String, returnId: String)
