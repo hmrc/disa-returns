@@ -102,9 +102,7 @@ class NdJsonController @Inject() (
         }
       }
       .recover { case ex =>
-        println(Console.YELLOW + ex.getMessage + Console.RESET)
         BadRequest(s"Error processing NDJSON: ${ex.getMessage}")
-
       }
   }
 
@@ -171,8 +169,8 @@ class NdJsonController @Inject() (
         .mapAsync(1) { batch =>
           // Separate valid and invalid records
           val (invalid, valid) = batch.partition(_.isLeft)
-          val validBatch = valid.collect { case Right(acc) => acc }
-          val invalidBatch = invalid.collect { case Left(acc) => acc }
+          val validBatch: Seq[IsaAccount] = valid.collect { case Right(acc) => acc }
+          val invalidBatch: Seq[IsaAccount] = invalid.collect { case Left(acc) => acc }
 
           // Store valid and invalid records
           for {
