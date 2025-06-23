@@ -41,6 +41,7 @@ import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.mongoRepositories.{InvalidIsaAccountRepository, ReportingRepository}
 
 import javax.inject._
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -112,11 +113,6 @@ class NdJsonController @Inject() (
       // Extract the streamed source of bytes from the request body
       val source: Source[ByteString, _] = request.body
 
-      // Split the stream of bytes into lines based on newline delimiter
-      // maximumFrameLength limits the maximum size of a line/frame
-      //   - Prevents excessively large lines from consuming too much memory
-      //   - If allowTruncation = true, a line exceeding the limit will be truncated (might cause JSON parse errors)
-      //   - If allowTruncation = false, it will fail with a FramingException
       val lines: Source[String, _] = source
         .via(
           Framing.delimiter(
@@ -125,19 +121,16 @@ class NdJsonController @Inject() (
             allowTruncation = false // truncates lines that are too long instead of failing
           )
         )
-        .map(_.utf8String) // convert each ByteString line to a UTF-8 string
-        .filter(_.nonEmpty) // ignore empty lines (e.g., blank lines in NDJSON)
+        .map(_.utf8String)
+        .filter(_.nonEmpty)
 
-      // Parse each line of JSON into a IsaAccount case class
       val parsedReports: Source[IsaAccount, _] = lines.map { line =>
         Json.parse(line).as[IsaAccount]
-      // This will throw if parsing fails — consider using .validate or .asOpt for safer handling
       }
 
-      // Flow that groups IsaAccounts into batches of 1000 and inserts them into MongoDB asynchronously
       val insertFlow = Flow[IsaAccount]
-        .grouped(1000) // collect up to 1000 records before inserting
-        .mapAsync(1) { batch => // wait for the Future to complete before processing the next batch.
+        .grouped(1000)
+        .mapAsync(1) { batch =>
           ndJsonRepository.insertOrUpdate(isaManagerId, returnId, batch)
         }
 
@@ -163,6 +156,7 @@ class NdJsonController @Inject() (
         .map(_.utf8String.trim)
         .filter(_.nonEmpty)
         .map { line =>
+          // Parse each line to IsaAccount and validate NINO
           Json.parse(line).validate[IsaAccount].asOpt match {
             case Some(account) =>
               if (ninoRegex.matches(account.nino)) Right(account)
@@ -172,25 +166,22 @@ class NdJsonController @Inject() (
           }
         }
 
-      val validAccounts = lines.collect { case Right(acc) => acc }
-      val invalidAccounts = lines.collect { case Left(acc) => acc }
+      val handleStreamedAccounts = lines
+        .grouped(3000)
+        .mapAsync(1) { batch =>
+          // Separate valid and invalid records
+          val (invalid, valid) = batch.partition(_.isLeft)
+          val validBatch = valid.collect { case Right(acc) => acc }
+          val invalidBatch = invalid.collect { case Left(acc) => acc }
 
-      val validInsertFut = validAccounts
-        .grouped(1000)
-        .mapAsync(1)(batch => ndJsonRepository.insertOrUpdate(isaManagerId, returnId, batch))
-        .runWith(Sink.ignore)
+          // Store valid and invalid records
+          for {
+            _ <- ndJsonRepository.insertOrUpdate(isaManagerId, returnId, validBatch)
+            _ <- invalidIsaAccountRepository.insertOrUpdate(isaManagerId, returnId, invalidBatch)
+          } yield ()
+        }
+        .runWith(Sink.ignore) // Run stream
 
-      val invalidInsertFut = invalidAccounts
-        .grouped(1000)
-        .mapAsync(1)(batch => invalidIsaAccountRepository.insertBatch(isaManagerId, returnId, batch))
-        .runWith(Sink.ignore)
-
-      for {
-        _ <- validInsertFut
-        _ <- invalidInsertFut
-      } yield {
-        // respond here, but you lose total invalid count unless you track it separately
-        Ok("NDJSON upload complete")
-      }
+      handleStreamedAccounts.map(_ => Ok("NDJSON upload complete"))
   }
 }
