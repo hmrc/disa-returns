@@ -24,7 +24,6 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.models.MonthlyReportDocument
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import javax.inject.Inject
@@ -41,14 +40,7 @@ class ReportingRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionC
       ))
     ) {
 
-  def insertBatch(isaManagerId: String, returnId: String, reports: Seq[IsaAccount]): Future[Unit] = {
-    val wrapperJson = MonthlyReportDocument(
-      returnId = returnId,
-      isaManagerReferenceNumber = isaManagerId,
-      isaReport = reports)
 
-    collection.insertOne(wrapperJson).toFuture().map(_ => ())
-  }
 
   def insertOrUpdate(isaManagerId: String, returnId: String, reports: Seq[IsaAccount]): Future[Unit] = {
     val documents: Seq[Document] = reports.map { isaAccount =>
@@ -71,13 +63,6 @@ class ReportingRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionC
       .map(_ => ())
   }
 
-  def getMonthlyReport(returnId: String): Future[Option[MonthlyReportDocument]] = {
-    collection.find(equal("returnId", returnId)).headOption()
-    }.recover {
-      case ex =>
-        logger.error(s"Failed to fetch report for returnId $returnId", ex)
-        None
-    }
 
   def dropCollection(): Future[Unit] = {
     collection.drop().toFuture().map(_ => ())
