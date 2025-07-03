@@ -25,9 +25,10 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class PpnsService @Inject() (connector: PpnsConnector)(implicit ec: ExecutionContext) {
 
-  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, String]] = connector.getBoxId(clientId).map {
-    case Left(error) => Left(error)
-    case Right(box)  => Right(box.boxId)
-  }
+  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, String]] = Future.successful(Right("5"))
+
+  //connector.getBoxId(clientId).map {
+  //    case Left(error) => Left(error)
+  //    case Right(box)  => Right(box.boxId)
 
 }

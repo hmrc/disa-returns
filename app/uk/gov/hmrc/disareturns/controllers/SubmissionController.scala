@@ -21,16 +21,24 @@ import jakarta.inject.Singleton
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents, Request}
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.disareturns.models.common.SubmissionRequest
-import uk.gov.hmrc.disareturns.services.EtmpService
+import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
+import uk.gov.hmrc.disareturns.models.common.{InitiateSubmission, SubmissionRequest}
+import uk.gov.hmrc.disareturns.services.{EtmpService, MongoJourneyAnswersService, PpnsService}
+import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class SubmissionController @Inject() (cc: ControllerComponents, val authConnector: AuthConnector, etmpService: EtmpService)(implicit
-  ec:                                     ExecutionContext
+class SubmissionController @Inject() (
+  cc:                         ControllerComponents,
+  val authConnector:          AuthConnector,
+  etmpService:                EtmpService,
+  ppnsService:                PpnsService,
+  mongoJourneyAnswersService: MongoJourneyAnswersService
+)(implicit
+  ec: ExecutionContext
 ) extends BackendController(cc)
     with AuthorisedFunctions {
 
@@ -40,12 +48,22 @@ class SubmissionController @Inject() (cc: ControllerComponents, val authConnecto
         case Success(jsResult) =>
           jsResult match {
             case JsSuccess(submission, _) =>
-              etmpService.checkReportingWindowStatus().flatMap {
-                case Left(value) => Future.successful(InternalServerError)
-                case Right(value) =>
-                  Future.successful(
-                    Ok(Json.obj("message" -> "Submission accepted", "data" -> Json.toJson(submission)))
-                  )
+              val clientId = hc.trueClientIp.getOrElse("X5ZasuQLH0xqKooV_IEw6yjQNfEa")
+
+              logic(isManagerReferenceNumber, clientId).flatMap {
+                case Left(_) =>
+                  Future.successful(InternalServerError(Json.obj("message" -> "Downstream call failed")))
+
+                case Right((obligation, reportingWindow, boxId)) =>
+                  if (obligation.obligationAlreadyMet) {
+                    Future.successful(BadRequest(Json.obj("message" -> "Obligation already met")))
+                  } else if (!reportingWindow.reportingWindowOpen) {
+                    Future.successful(BadRequest(Json.obj("message" -> "Reporting window is closed")))
+                  } else {
+                    mongoJourneyAnswersService
+                      .save(InitiateSubmission.create(boxId, submission, isManagerReferenceNumber))
+                      .map(returnId => Ok(Json.obj("journeyId" -> returnId)))
+                  }
               }
 
             case JsError(errors) =>
@@ -63,10 +81,27 @@ class SubmissionController @Inject() (cc: ControllerComponents, val authConnecto
           Future.successful(
             BadRequest(Json.obj("message" -> "Unable to parse JSON", "error" -> ex.getMessage))
           )
-
       }
     }
   }
+
+  private def logic(isaManagerReference: String, clientId: String)(implicit
+    hc:                                  HeaderCarrier,
+    ec:                                  ExecutionContext
+  ): Future[Either[UpstreamErrorResponse, (EtmpObligations, EtmpReportingWindow, String)]] =
+    etmpService.checkObligationStatus(isaManagerReference).flatMap {
+      case Left(err) => Future.successful(Left(err))
+      case Right(obligations) =>
+        etmpService.checkReportingWindowStatus().flatMap {
+          case Left(err) => Future.successful(Left(err))
+          case Right(reportingWindow) =>
+            ppnsService.getBoxId(clientId).map {
+              case Left(err) => Left(err)
+              case Right(boxId) =>
+                Right((obligations, reportingWindow, boxId))
+            }
+        }
+    }
 
   private def parseBody[A: Reads](request: Request[JsValue]): Try[JsResult[A]] =
     Try {

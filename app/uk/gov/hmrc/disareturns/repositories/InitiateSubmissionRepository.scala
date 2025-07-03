@@ -37,8 +37,8 @@ class InitiateSubmissionRepository @Inject() (mc: MongoComponent)(implicit ec: E
       )
     ) {
 
-  def insert(initiateSubmission: InitiateSubmission): Future[Unit] =
-    collection.insertOne(initiateSubmission).toFuture().map(_ => ())
+  def insert(initiateSubmission: InitiateSubmission): Future[String] =
+    collection.insertOne(initiateSubmission).toFuture().map(_ => initiateSubmission.returnId)
 
   def dropCollection(): Future[Unit] =
     collection.drop().toFuture().map(_ => ())
