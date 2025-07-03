@@ -55,14 +55,15 @@ class SubmissionController @Inject() (
                   Future.successful(InternalServerError(Json.obj("message" -> "Downstream call failed")))
 
                 case Right((obligation, reportingWindow, boxId)) =>
-                  if (obligation.obligationAlreadyMet) {
-                    Future.successful(BadRequest(Json.obj("message" -> "Obligation already met")))
-                  } else if (!reportingWindow.reportingWindowOpen) {
-                    Future.successful(BadRequest(Json.obj("message" -> "Reporting window is closed")))
-                  } else {
-                    mongoJourneyAnswersService
-                      .save(InitiateSubmission.create(boxId, submission, isManagerReferenceNumber))
-                      .map(returnId => Ok(Json.obj("journeyId" -> returnId)))
+                  (obligation.obligationAlreadyMet, reportingWindow.reportingWindowOpen) match {
+                    case (true, _) =>
+                      Future.successful(BadRequest(Json.obj("message" -> "Obligation already met")))
+                    case (_, false) =>
+                      Future.successful(BadRequest(Json.obj("message" -> "Reporting window is closed")))
+                    case (false, true) =>
+                      mongoJourneyAnswersService
+                        .save(InitiateSubmission.create(boxId, submission, isManagerReferenceNumber))
+                        .map(returnId => Ok(Json.obj("journeyId" -> returnId)))
                   }
               }
 
