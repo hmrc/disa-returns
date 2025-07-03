@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.service
+package uk.gov.hmrc.disareturns.services
 
 import uk.gov.hmrc.disareturns.connectors.PpnsConnector
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}

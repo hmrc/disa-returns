@@ -22,7 +22,7 @@ import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents, Request}
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.disareturns.models.common.SubmissionRequest
-import uk.gov.hmrc.disareturns.service.EtmpService
+import uk.gov.hmrc.disareturns.services.EtmpService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
