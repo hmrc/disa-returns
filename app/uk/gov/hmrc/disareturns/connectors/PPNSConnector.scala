@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.disareturns.connectors
 
-
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.response.ppns.Box
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -25,18 +24,15 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class PPNSConnector @Inject()(http: HttpClientV2, appConfig: AppConfig)(implicit
-                                                  ec:                                ExecutionContext
+class PPNSConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit
+  ec:                                ExecutionContext
 ) {
 
   def getBoxId(
     clientId:    String
   )(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, Box]] = {
 
-
-
     val url = s"${appConfig.ppnsBaseUrl}/box?clientId=$clientId&boxName=test"
-
 
     http
       .get(url"$url")

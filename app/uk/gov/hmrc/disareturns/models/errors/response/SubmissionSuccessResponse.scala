@@ -23,4 +23,3 @@ case class SubmissionSuccessResponse(returnId: String, action: SubmissionAction,
 object SubmissionSuccessResponse {
   implicit val format: OFormat[SubmissionSuccessResponse] = Json.format[SubmissionSuccessResponse]
 }
-

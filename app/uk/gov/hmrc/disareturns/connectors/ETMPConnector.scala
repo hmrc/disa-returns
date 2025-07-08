@@ -24,18 +24,15 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ETMPConnector @Inject()(http: HttpClientV2, appConfig: AppConfig)(implicit
-                                                                        ec:                                ExecutionContext
+class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit
+  ec:                                ExecutionContext
 ) {
 
   def checkReturnsObligationStatus(
     isaManagerReferenceNumber: String
   )(implicit hc:               HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpObligations]] = {
 
-
     val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-obligation-status/$isaManagerReferenceNumber"
-
-
 
     http
       .get(url"$url")

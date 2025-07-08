@@ -47,7 +47,7 @@ class ETMPConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       val testUrl = "http://localhost:1204"
       when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-obligation-status/123456"))
         .thenReturn(mockRequestBuilder)
-      when(mockRequestBuilder.execute[EtmpObligations](any(),any()))
+      when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
         .thenReturn(Future.successful(expectedResponse))
 
       val connector = new ETMPConnector(mockHttpClient, appConfig)

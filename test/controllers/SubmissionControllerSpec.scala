@@ -33,9 +33,9 @@ class SubmissionControllerSpec
     with IntegrationPatience
     with GuiceOneServerPerSuite {
 
-  val mockAuthConnector:              AuthConnector              = mock[AuthConnector]
-  val mockEtmpService:                ETMPService                = mock[ETMPService]
-  val mockPpnsService:                PPNSService                = mock[PPNSService]
+  val mockAuthConnector:              AuthConnector                 = mock[AuthConnector]
+  val mockEtmpService:                ETMPService                   = mock[ETMPService]
+  val mockPpnsService:                PPNSService                   = mock[PPNSService]
   val mockMongoJourneyAnswersService: InitiateSubmissionDataService = mock[InitiateSubmissionDataService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
