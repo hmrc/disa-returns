@@ -26,8 +26,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit ec: ExecutionContext) {
 
-  def checkReturnsObligationStatus(isaManagerReferenceNumber: String)
-                                  (implicit hc:HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpObligations]] = {
+  def checkReturnsObligationStatus(
+    isaManagerReferenceNumber: String
+  )(implicit hc:               HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpObligations]] = {
 
     val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-obligation-status/$isaManagerReferenceNumber"
     http

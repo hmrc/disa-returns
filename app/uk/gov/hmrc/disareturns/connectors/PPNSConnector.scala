@@ -24,7 +24,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class PPNSConnector @Inject()(http: HttpClientV2, appConfig: AppConfig)(implicit ec: ExecutionContext) {
+class PPNSConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit ec: ExecutionContext) {
 
   def getBoxId(
     clientId:    String

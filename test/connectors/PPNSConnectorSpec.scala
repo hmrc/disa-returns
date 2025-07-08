@@ -31,13 +31,12 @@ class PPNSConnectorSpec extends BaseUnitSpec {
 
     "return Right(Box) when call to PPNS returns a Box successfully" in new TestSetup {
       val expectedResponse: Box = Box(
-        boxId = "boxId1" ,
+        boxId = "boxId1",
         boxName = "Test_Box",
-        boxCreator =
-          BoxCreator(
-            clientId = testClientId),
+        boxCreator = BoxCreator(clientId = testClientId),
         applicationId = Some("applicationId"),
-        subscriber = None)
+        subscriber = None
+      )
 
       when(mockRequestBuilder.execute[Box](any(), any()))
         .thenReturn(Future.successful(expectedResponse))

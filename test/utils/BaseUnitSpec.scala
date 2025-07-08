@@ -29,14 +29,21 @@ import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 import scala.concurrent.ExecutionContext
 
 abstract class BaseUnitSpec
-    extends AnyWordSpec with Matchers with BeforeAndAfterEach with BeforeAndAfterAll with EitherValues with ScalaFutures with MockitoSugar with DefaultAwaitTimeout {
+    extends AnyWordSpec
+    with Matchers
+    with BeforeAndAfterEach
+    with BeforeAndAfterAll
+    with EitherValues
+    with ScalaFutures
+    with MockitoSugar
+    with DefaultAwaitTimeout {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  implicit val hc: HeaderCarrier    = HeaderCarrier()
 
   //MOCKS
-  val mockHttpClient: HttpClientV2 = mock[HttpClientV2]
-  val mockAppConfig: AppConfig = mock[AppConfig]
+  val mockHttpClient:     HttpClientV2   = mock[HttpClientV2]
+  val mockAppConfig:      AppConfig      = mock[AppConfig]
   val mockRequestBuilder: RequestBuilder = mock[RequestBuilder]
 
 }
