@@ -24,13 +24,20 @@ object SubmissionErrorDetail {
 }
 
 case class MultipleSubmissionErrorResponse(
-  code:    String,
-  message: String,
-  errors:  Seq[SubmissionErrorDetail]
-)
+  errors: Seq[SubmissionErrorDetail]
+) {
+  val code    = "FORBIDDEN"
+  val message = "Multiple issues found regarding your submission"
+}
 
 object MultipleSubmissionErrorResponse {
-  implicit val writes: Writes[MultipleSubmissionErrorResponse] = Json.writes[MultipleSubmissionErrorResponse]
+  implicit val writes: Writes[MultipleSubmissionErrorResponse] = Writes { obj =>
+    Json.obj(
+      "code"    -> obj.code,
+      "message" -> obj.message,
+      "errors"  -> obj.errors
+    )
+  }
 
   def toErrorDetail(error: SubmissionError): SubmissionErrorDetail = error match {
     case ObligationClosed =>

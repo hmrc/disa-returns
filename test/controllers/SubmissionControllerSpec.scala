@@ -19,7 +19,7 @@ import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.controllers.SubmissionController
-import uk.gov.hmrc.disareturns.services.{ETMPService, MongoJourneyAnswersService, PPNSService}
+import uk.gov.hmrc.disareturns.services.{ETMPService, InitiateSubmissionDataService, PPNSService}
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,14 +36,14 @@ class SubmissionControllerSpec
   val mockAuthConnector:              AuthConnector              = mock[AuthConnector]
   val mockEtmpService:                ETMPService                = mock[ETMPService]
   val mockPpnsService:                PPNSService                = mock[PPNSService]
-  val mockMongoJourneyAnswersService: MongoJourneyAnswersService = mock[MongoJourneyAnswersService]
+  val mockMongoJourneyAnswersService: InitiateSubmissionDataService = mock[InitiateSubmissionDataService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .overrides(
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[PPNSService].toInstance(mockPpnsService),
       bind[ETMPService].toInstance(mockEtmpService),
-      bind[MongoJourneyAnswersService].toInstance(mockMongoJourneyAnswersService)
+      bind[InitiateSubmissionDataService].toInstance(mockMongoJourneyAnswersService)
     )
     .build()
 

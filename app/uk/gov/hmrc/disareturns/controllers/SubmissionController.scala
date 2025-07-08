@@ -27,7 +27,7 @@ import uk.gov.hmrc.disareturns.models.errors
 import uk.gov.hmrc.disareturns.models.errors._
 import uk.gov.hmrc.disareturns.models.errors.MultipleSubmissionErrorResponse.toErrorDetail
 import uk.gov.hmrc.disareturns.models.errors.response.{SubmissionSuccessResponse, SubmitReturnToPaginatedApi}
-import uk.gov.hmrc.disareturns.services.{ETMPService, MongoJourneyAnswersService, PPNSService}
+import uk.gov.hmrc.disareturns.services.{ETMPService, InitiateSubmissionDataService, PPNSService}
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -36,11 +36,11 @@ import scala.util.{Failure, Success, Try}
 
 @Singleton
 class SubmissionController @Inject() (
-                                       cc:                         ControllerComponents,
-                                       val authConnector:          AuthConnector,
-                                       etmpService: ETMPService,
-                                       ppnsService: PPNSService,
-                                       mongoJourneyAnswersService: MongoJourneyAnswersService
+  cc:                         ControllerComponents,
+  val authConnector:          AuthConnector,
+  etmpService:                ETMPService,
+  ppnsService:                PPNSService,
+  mongoJourneyAnswersService: InitiateSubmissionDataService
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc)
@@ -61,12 +61,8 @@ class SubmissionController @Inject() (
                 case Right((obligation, reportingWindow, boxId)) =>
                   (obligation.obligationAlreadyMet, reportingWindow.reportingWindowOpen) match {
                     case (true, false) =>
-                      val errors = Seq(ObligationClosed, ReportingWindowClosed).map(toErrorDetail)
-                      val response = MultipleSubmissionErrorResponse(
-                        code = "FORBIDDEN",
-                        message = "Multiple issues found regarding your submission",
-                        errors = errors
-                      )
+                      val errors   = Seq(ObligationClosed, ReportingWindowClosed).map(toErrorDetail)
+                      val response = MultipleSubmissionErrorResponse(errors)
                       Future.successful(Forbidden(Json.toJson(response)))
 
                     case (true, _) =>
@@ -113,7 +109,7 @@ class SubmissionController @Inject() (
       obligationsResult     <- etmpService.checkObligationStatus(isaManagerReference)
       reportingWindowResult <- etmpService.checkReportingWindowStatus()
       //move this call elsewhere maybe ??
-      boxIdResult           <- ppnsService.getBoxId(clientId)
+      boxIdResult <- ppnsService.getBoxId(clientId)
     } yield for {
       obligations     <- obligationsResult
       reportingWindow <- reportingWindowResult

@@ -24,7 +24,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 
-class MongoJourneyAnswersService @Inject() (
+class InitiateSubmissionDataService @Inject()(
                                              repository: InitiateSubmissionRepository
                                            )(implicit ec: ExecutionContext) {
 
