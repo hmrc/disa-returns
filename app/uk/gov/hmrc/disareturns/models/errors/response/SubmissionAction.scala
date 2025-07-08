@@ -14,12 +14,26 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.connectors.response
+package uk.gov.hmrc.disareturns.models.errors.response
 
-import play.api.libs.json.{Json, Reads}
+import play.api.libs.json._
 
-case class EtmpReportingWindow(reportingWindowOpen: Boolean)
+sealed trait SubmissionAction {
+  def value: String
+}
 
-object EtmpReportingWindow {
-  implicit val etmpReportingWindowReads: Reads[EtmpReportingWindow] = Json.reads[EtmpReportingWindow]
+case object SubmitReturnToPaginatedApi extends SubmissionAction {
+  val value: String = "SUBMIT_RETURN_TO_PAGINATED_API"
+}
+
+object SubmissionAction {
+  implicit val writes: Writes[SubmissionAction] = Writes { action =>
+    JsString(action.value)
+  }
+
+  implicit val reads: Reads[SubmissionAction] = Reads { case JsString("SUBMIT_RETURN_TO_PAGINATED_API") =>
+    JsSuccess(SubmitReturnToPaginatedApi)
+
+  }
+
 }

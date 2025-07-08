@@ -16,19 +16,18 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import uk.gov.hmrc.disareturns.connectors.PpnsConnector
+import uk.gov.hmrc.disareturns.connectors.PPNSConnector
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PpnsService @Inject() (connector: PpnsConnector)(implicit ec: ExecutionContext) {
+class PPNSService @Inject()(connector: PPNSConnector)(implicit ec: ExecutionContext) {
 
-  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, String]] = Future.successful(Right("5"))
-
-  //connector.getBoxId(clientId).map {
-  //    case Left(error) => Left(error)
-  //    case Right(box)  => Right(box.boxId)
-
+  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, String]] =
+    connector.getBoxId(clientId).map {
+      case Left(error) => Left(error)
+      case Right(box)  => Right(box.boxId)
+    }
 }

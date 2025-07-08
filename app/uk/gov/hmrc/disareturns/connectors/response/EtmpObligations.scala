@@ -16,4 +16,10 @@
 
 package uk.gov.hmrc.disareturns.connectors.response
 
+import play.api.libs.json.{Json, OFormat}
+
 case class EtmpObligations(obligationAlreadyMet: Boolean)
+
+object EtmpObligations {
+  implicit val format: OFormat[EtmpObligations] = Json.format[EtmpObligations]
+}

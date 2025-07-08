@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import uk.gov.hmrc.disareturns.connectors.EtmpConnector
+import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 
@@ -24,7 +24,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class EtmpService @Inject() (connector: EtmpConnector)(implicit ec: ExecutionContext) {
+class ETMPService @Inject()(connector: ETMPConnector)(implicit ec: ExecutionContext) {
 
   def checkReportingWindowStatus()(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpReportingWindow]] =
     connector.checkReportingWindowStatus.map {

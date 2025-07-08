@@ -16,24 +16,26 @@
 
 package uk.gov.hmrc.disareturns.connectors
 
+import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.connectors.response.EtmpObligationsReads.httpReadsEtmpObligations
-import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class EtmpConnector @Inject() (http: HttpClientV2)(implicit
-  ec:                                ExecutionContext
+class ETMPConnector @Inject()(http: HttpClientV2, appConfig: AppConfig)(implicit
+                                                                        ec:                                ExecutionContext
 ) {
 
   def checkReturnsObligationStatus(
     isaManagerReferenceNumber: String
   )(implicit hc:               HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpObligations]] = {
 
-    //grab url from app config
-    val url = s"http://localhost:1204/disa-returns-stubs/etmp/check-obligation-status/$isaManagerReferenceNumber"
+
+    val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-obligation-status/$isaManagerReferenceNumber"
+
+
 
     http
       .get(url"$url")
@@ -46,7 +48,7 @@ class EtmpConnector @Inject() (http: HttpClientV2)(implicit
 
   def checkReportingWindowStatus(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpReportingWindow]] = {
 
-    val url = s"http://localhost:1204/disa-returns-stubs/etmp/check-reporting-window"
+    val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-reporting-window"
 
     http
       .get(url"$url")

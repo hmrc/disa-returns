@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.connectors.response
+package uk.gov.hmrc.disareturns.models.errors.response
 
-import play.api.libs.json.{Json, Reads}
+import play.api.libs.json.{Json, OFormat}
 
-case class EtmpReportingWindow(reportingWindowOpen: Boolean)
+case class SubmissionSuccessResponse(returnId: String, action: SubmissionAction, boxId: String)
 
-object EtmpReportingWindow {
-  implicit val etmpReportingWindowReads: Reads[EtmpReportingWindow] = Json.reads[EtmpReportingWindow]
+object SubmissionSuccessResponse {
+  implicit val format: OFormat[SubmissionSuccessResponse] = Json.format[SubmissionSuccessResponse]
 }
+

@@ -23,7 +23,11 @@ import play.api.mvc.{Action, ControllerComponents, Request}
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.models.common.{InitiateSubmission, SubmissionRequest}
-import uk.gov.hmrc.disareturns.services.{EtmpService, MongoJourneyAnswersService, PpnsService}
+import uk.gov.hmrc.disareturns.models.errors
+import uk.gov.hmrc.disareturns.models.errors._
+import uk.gov.hmrc.disareturns.models.errors.MultipleSubmissionErrorResponse.toErrorDetail
+import uk.gov.hmrc.disareturns.models.errors.response.{SubmissionSuccessResponse, SubmitReturnToPaginatedApi}
+import uk.gov.hmrc.disareturns.services.{ETMPService, MongoJourneyAnswersService, PPNSService}
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -32,39 +36,54 @@ import scala.util.{Failure, Success, Try}
 
 @Singleton
 class SubmissionController @Inject() (
-  cc:                         ControllerComponents,
-  val authConnector:          AuthConnector,
-  etmpService:                EtmpService,
-  ppnsService:                PpnsService,
-  mongoJourneyAnswersService: MongoJourneyAnswersService
+                                       cc:                         ControllerComponents,
+                                       val authConnector:          AuthConnector,
+                                       etmpService: ETMPService,
+                                       ppnsService: PPNSService,
+                                       mongoJourneyAnswersService: MongoJourneyAnswersService
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc)
     with AuthorisedFunctions {
 
-  def init(isManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def initiateSubmission(isManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     authorised() {
       parseBody[SubmissionRequest](request) match {
         case Success(jsResult) =>
           jsResult match {
             case JsSuccess(submission, _) =>
-              val clientId = hc.trueClientIp.getOrElse("X5ZasuQLH0xqKooV_IEw6yjQNfEa")
+              val clientId = request.headers.get("X-Client-ID").getOrElse("")
 
               logic(isManagerReferenceNumber, clientId).flatMap {
                 case Left(_) =>
-                  Future.successful(InternalServerError(Json.obj("message" -> "Downstream call failed")))
+                  Future.successful(InternalServerError(Json.toJson(errors.InternalServerError: SubmissionError)))
 
                 case Right((obligation, reportingWindow, boxId)) =>
                   (obligation.obligationAlreadyMet, reportingWindow.reportingWindowOpen) match {
+                    case (true, false) =>
+                      val errors = Seq(ObligationClosed, ReportingWindowClosed).map(toErrorDetail)
+                      val response = MultipleSubmissionErrorResponse(
+                        code = "FORBIDDEN",
+                        message = "Multiple issues found regarding your submission",
+                        errors = errors
+                      )
+                      Future.successful(Forbidden(Json.toJson(response)))
+
                     case (true, _) =>
-                      Future.successful(BadRequest(Json.obj("message" -> "Obligation already met")))
+                      Future.successful(Forbidden(Json.toJson(ObligationClosed: SubmissionError)))
+
                     case (_, false) =>
-                      Future.successful(BadRequest(Json.obj("message" -> "Reporting window is closed")))
+                      Future.successful(Forbidden(Json.toJson(ReportingWindowClosed: SubmissionError)))
+
                     case (false, true) =>
                       mongoJourneyAnswersService
                         .save(InitiateSubmission.create(boxId, submission, isManagerReferenceNumber))
-                        .map(returnId => Ok(Json.obj("journeyId" -> returnId)))
+                        .map { returnId =>
+                          val response = SubmissionSuccessResponse(returnId, SubmitReturnToPaginatedApi, boxId)
+                          Ok(Json.toJson(response))
+                        }
                   }
+
               }
 
             case JsError(errors) =>
@@ -86,23 +105,20 @@ class SubmissionController @Inject() (
     }
   }
 
-  private def logic(isaManagerReference: String, clientId: String)(implicit
-    hc:                                  HeaderCarrier,
-    ec:                                  ExecutionContext
-  ): Future[Either[UpstreamErrorResponse, (EtmpObligations, EtmpReportingWindow, String)]] =
-    etmpService.checkObligationStatus(isaManagerReference).flatMap {
-      case Left(err) => Future.successful(Left(err))
-      case Right(obligations) =>
-        etmpService.checkReportingWindowStatus().flatMap {
-          case Left(err) => Future.successful(Left(err))
-          case Right(reportingWindow) =>
-            ppnsService.getBoxId(clientId).map {
-              case Left(err) => Left(err)
-              case Right(boxId) =>
-                Right((obligations, reportingWindow, boxId))
-            }
-        }
-    }
+  private def logic(
+    isaManagerReference: String,
+    clientId:            String
+  )(implicit hc:         HeaderCarrier, ec: ExecutionContext): Future[Either[UpstreamErrorResponse, (EtmpObligations, EtmpReportingWindow, String)]] =
+    for {
+      obligationsResult     <- etmpService.checkObligationStatus(isaManagerReference)
+      reportingWindowResult <- etmpService.checkReportingWindowStatus()
+      //move this call elsewhere maybe ??
+      boxIdResult           <- ppnsService.getBoxId(clientId)
+    } yield for {
+      obligations     <- obligationsResult
+      reportingWindow <- reportingWindowResult
+      boxId           <- boxIdResult
+    } yield (obligations, reportingWindow, boxId)
 
   private def parseBody[A: Reads](request: Request[JsValue]): Try[JsResult[A]] =
     Try {

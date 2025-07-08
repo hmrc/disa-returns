@@ -18,9 +18,13 @@ package uk.gov.hmrc.disareturns.config
 
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 @Singleton
-class AppConfig @Inject() (config: Configuration) {
+class AppConfig @Inject() (config: ServicesConfig) {
 
-  val appName: String = config.get[String]("appName")
+  val appName: String = config.getString("appName")
+
+  lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
+
 }
