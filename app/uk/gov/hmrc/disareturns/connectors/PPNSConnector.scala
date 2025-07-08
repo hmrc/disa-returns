@@ -45,5 +45,4 @@ class PPNSConnector @Inject()(http: HttpClientV2)(implicit
         Left(throw UpstreamErrorResponse(e.message, e.statusCode))
       }
   }
-
 }

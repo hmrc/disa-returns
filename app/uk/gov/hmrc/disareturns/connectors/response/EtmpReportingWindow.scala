@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.disareturns.connectors.response
 
-import play.api.libs.json.{Json, Reads}
+import play.api.libs.json.{Json, OFormat}
 
 case class EtmpReportingWindow(reportingWindowOpen: Boolean)
 
 object EtmpReportingWindow {
-  implicit val etmpReportingWindowReads: Reads[EtmpReportingWindow] = Json.reads[EtmpReportingWindow]
+  implicit val format: OFormat[EtmpReportingWindow] = Json.format[EtmpReportingWindow]
 }

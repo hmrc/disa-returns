@@ -18,45 +18,127 @@ package connectors
 
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
-import uk.gov.hmrc.disareturns.connectors.response.EtmpObligations
+import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
-import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
+import uk.gov.hmrc.http.{StringContextOps, UpstreamErrorResponse}
+import utils.BaseUnitSpec
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ETMPConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures with MockitoSugar with GuiceOneServerPerSuite {
+class ETMPConnectorSpec extends BaseUnitSpec {
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  "EtmpConnector.checkReturnsObligationStatus" should {
 
-  "EtmpConnector#checkReturnsObligationStatus" should {
+    "return Right(EtmpObligations) when call to ETMP returns an obligation status successfully" in new TestSetup {
+      val expectedResponse: EtmpObligations = EtmpObligations(true)
 
-    "return Right(EtmpObligations) when the call is successful" in {
-      val mockHttpClient = mock[HttpClientV2]
-      val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
-      val mockRequestBuilder = mock[RequestBuilder]
-      val expectedResponse   = EtmpObligations(true)
-
-      val testUrl = "http://localhost:1204"
-      when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-obligation-status/123456"))
-        .thenReturn(mockRequestBuilder)
-      when(mockRequestBuilder.execute[EtmpObligations](any(),any()))
+      when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
         .thenReturn(Future.successful(expectedResponse))
 
-      val connector = new ETMPConnector(mockHttpClient, appConfig)
+      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
 
-      val result = connector.checkReturnsObligationStatus("123456")
+      val result: Either[UpstreamErrorResponse, EtmpObligations] = connector.checkReturnsObligationStatus("123456").futureValue
 
-      whenReady(result) { res =>
-        res shouldBe Right(expectedResponse)
-      }
+      result shouldBe Right(expectedResponse)
     }
+
+    "return Left(UpstreamErrorResponse) when the call to ETMP fails with an UpstreamErrorResponse" in new TestSetup {
+      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
+        message = "Not authorised to access this service",
+        statusCode = 401,
+        reportAs = 401,
+        headers = Map.empty
+      )
+      when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
+        .thenReturn(Future.failed(exception))
+
+      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
+
+      val result: Either[UpstreamErrorResponse, EtmpObligations] = connector.checkReturnsObligationStatus("123456").futureValue
+
+      result shouldBe Left(exception)
+    }
+
+    "return Left(UpstreamErrorResponse) when the call to ETMP fails with an unexpected Throwable exception" in new TestSetup {
+      val runtimeException = new RuntimeException("Connection timeout")
+
+      // Simulate a non-UpstreamErrorResponse exception
+      when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
+        .thenReturn(Future.failed(runtimeException))
+
+      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
+
+      val result: Either[UpstreamErrorResponse, EtmpObligations] =
+        connector.checkReturnsObligationStatus("123456").futureValue
+
+      result.isLeft shouldBe true
+      result.left.get.statusCode shouldBe 500
+      result.left.get.message should include("Unexpected error: Connection timeout")
+    }
+  }
+
+  "EtmpConnector.checkReportingWindowStatus" should {
+
+    "return Right(EtmpReportingWindow) when call to ETMP returns an obligation status successfully" in new TestSetup {
+      val expectedResponse: EtmpReportingWindow = EtmpReportingWindow(true)
+
+      when(mockRequestBuilder.execute[EtmpReportingWindow](any(), any()))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
+
+      val result: Either[UpstreamErrorResponse, EtmpReportingWindow] = connector.checkReportingWindowStatus.futureValue
+
+      result shouldBe Right(expectedResponse)
+    }
+
+    "return Left(UpstreamErrorResponse) when the call to ETMP fails with an UpstreamErrorResponse" in new TestSetup {
+      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
+        message = "Not authorised to access this service",
+        statusCode = 401,
+        reportAs = 401,
+        headers = Map.empty
+      )
+      when(mockRequestBuilder.execute[EtmpReportingWindow](any(), any()))
+        .thenReturn(Future.failed(exception))
+
+      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
+
+      val result: Either[UpstreamErrorResponse, EtmpReportingWindow] = connector.checkReportingWindowStatus.futureValue
+
+      result shouldBe Left(exception)
+    }
+
+    "return Left(UpstreamErrorResponse) when the call to ETMP fails with an unexpected Throwable exception" in new TestSetup {
+      val runtimeException = new RuntimeException("Connection timeout")
+
+      // Simulate a non-UpstreamErrorResponse exception
+      when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
+        .thenReturn(Future.failed(runtimeException))
+
+      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
+
+      val result: Either[UpstreamErrorResponse, EtmpObligations] =
+        connector.checkReturnsObligationStatus("123456").futureValue
+
+      result.isLeft shouldBe true
+      result.left.get.statusCode shouldBe 500
+      result.left.get.message should include("Unexpected error: Connection timeout")
+    }
+  }
+
+  trait TestSetup {
+    val endpointUrl: String = ""
+    val mockHttpClient: HttpClientV2 = mock[HttpClientV2]
+    val mockAppConfig: AppConfig = mock[AppConfig]
+    val mockRequestBuilder: RequestBuilder = mock[RequestBuilder]
+    val testUrl: String = "http://localhost:1204"
+    when(mockAppConfig.etmpBaseUrl).thenReturn(testUrl)
+    when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-obligation-status/123456"))
+      .thenReturn(mockRequestBuilder)
+    when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-reporting-window"))
+      .thenReturn(mockRequestBuilder)
   }
 }
