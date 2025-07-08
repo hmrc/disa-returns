@@ -18,7 +18,8 @@ package connectors
 
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import uk.gov.hmrc.disareturns.connectors.PPNSConnector
+import uk.gov.hmrc.disareturns.connectors.response.EtmpObligations
+import uk.gov.hmrc.disareturns.connectors.{ETMPConnector, PPNSConnector}
 import uk.gov.hmrc.disareturns.models.response.ppns.{Box, BoxCreator}
 import uk.gov.hmrc.http.{StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
@@ -41,7 +42,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Box](any(), any()))
         .thenReturn(Future.successful(expectedResponse))
 
-      val result: Either[UpstreamErrorResponse, Box] = connector.getBoxId(testClientId).futureValue
+      val result: Either[UpstreamErrorResponse, Box] = connector.getBox(testClientId).futureValue
 
       result shouldBe Right(expectedResponse)
     }
@@ -56,9 +57,26 @@ class PPNSConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Box](any(), any()))
         .thenReturn(Future.failed(exception))
 
-      val result: Either[UpstreamErrorResponse, Box] = connector.getBoxId(testClientId).futureValue
+      val result: Either[UpstreamErrorResponse, Box] = connector.getBox(testClientId).futureValue
 
       result shouldBe Left(exception)
+    }
+
+    "return Left(UpstreamErrorResponse) when the call to PPNS fails with an unexpected Throwable exception" in new TestSetup {
+      val runtimeException = new RuntimeException("Connection timeout")
+
+      when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
+        .thenReturn(Future.failed(runtimeException))
+
+      val result: Either[UpstreamErrorResponse, Box] = connector.getBox(testClientId).futureValue
+
+      result match {
+        case Left(error) =>
+          error.statusCode shouldBe 500
+          error.message should include("Unexpected error: Connection timeout")
+        case Right(_) =>
+          fail("Expected a Left, but got a Right")
+      }
     }
   }
 

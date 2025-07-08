@@ -26,7 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class PPNSConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit ec: ExecutionContext) {
 
-  def getBoxId(
+  def getBox(
     clientId:    String
   )(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, Box]] = {
 
@@ -36,10 +36,9 @@ class PPNSConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implici
       .get(url"$url")
       .execute[Box]
       .map(Right(_))
-      .recover {
+      .recover { // {Possible approach: Use a custom error handler at the controller or service layer
         case e:     UpstreamErrorResponse => Left(e)
         case other: Throwable             =>
-          // wrap unexpected errors into an UpstreamErrorResponse??
           Left(UpstreamErrorResponse(s"Unexpected error: ${other.getMessage}", 500))
       }
   }

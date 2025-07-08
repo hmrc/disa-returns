@@ -23,6 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.connectors.{ETMPConnector, PPNSConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
@@ -45,5 +46,7 @@ abstract class BaseUnitSpec
   val mockHttpClient:     HttpClientV2   = mock[HttpClientV2]
   val mockAppConfig:      AppConfig      = mock[AppConfig]
   val mockRequestBuilder: RequestBuilder = mock[RequestBuilder]
+  val mockPPNSConnector: PPNSConnector = mock[PPNSConnector]
+  val mockETMPConnector: ETMPConnector = mock[ETMPConnector]
 
 }

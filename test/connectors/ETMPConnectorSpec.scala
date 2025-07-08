@@ -35,9 +35,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
         .thenReturn(Future.successful(expectedResponse))
 
-      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
-
-      val result: Either[UpstreamErrorResponse, EtmpObligations] = connector.checkReturnsObligationStatus("123456").futureValue
+      val result: Either[UpstreamErrorResponse, EtmpObligations] = connector.checkReturnsObligationStatus(testIsaManagerReferenceNumber).futureValue
 
       result shouldBe Right(expectedResponse)
     }
@@ -52,9 +50,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
         .thenReturn(Future.failed(exception))
 
-      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
-
-      val result: Either[UpstreamErrorResponse, EtmpObligations] = connector.checkReturnsObligationStatus("123456").futureValue
+      val result: Either[UpstreamErrorResponse, EtmpObligations] = connector.checkReturnsObligationStatus(testIsaManagerReferenceNumber).futureValue
 
       result shouldBe Left(exception)
     }
@@ -65,8 +61,6 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       // Simulate a non-UpstreamErrorResponse exception
       when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
         .thenReturn(Future.failed(runtimeException))
-
-      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
 
       val result: Either[UpstreamErrorResponse, EtmpObligations] =
         connector.checkReturnsObligationStatus("123456").futureValue
@@ -89,8 +83,6 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[EtmpReportingWindow](any(), any()))
         .thenReturn(Future.successful(expectedResponse))
 
-      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
-
       val result: Either[UpstreamErrorResponse, EtmpReportingWindow] = connector.checkReportingWindowStatus.futureValue
 
       result shouldBe Right(expectedResponse)
@@ -106,8 +98,6 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[EtmpReportingWindow](any(), any()))
         .thenReturn(Future.failed(exception))
 
-      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
-
       val result: Either[UpstreamErrorResponse, EtmpReportingWindow] = connector.checkReportingWindowStatus.futureValue
 
       result shouldBe Left(exception)
@@ -116,14 +106,11 @@ class ETMPConnectorSpec extends BaseUnitSpec {
     "return Left(UpstreamErrorResponse) when the call to ETMP fails with an unexpected Throwable exception" in new TestSetup {
       val runtimeException = new RuntimeException("Connection timeout")
 
-      // Simulate a non-UpstreamErrorResponse exception
       when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
         .thenReturn(Future.failed(runtimeException))
 
-      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
-
-      val result: Either[UpstreamErrorResponse, EtmpObligations] =
-        connector.checkReturnsObligationStatus("123456").futureValue
+      val result: Either[UpstreamErrorResponse, EtmpReportingWindow] =
+        connector.checkReportingWindowStatus.futureValue
 
       result match {
         case Left(error) =>
@@ -136,9 +123,11 @@ class ETMPConnectorSpec extends BaseUnitSpec {
   }
 
   trait TestSetup {
+    val testIsaManagerReferenceNumber: String = "123456"
+    val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
     val testUrl: String = "http://localhost:1204"
     when(mockAppConfig.etmpBaseUrl).thenReturn(testUrl)
-    when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-obligation-status/123456"))
+    when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-obligation-status/$testIsaManagerReferenceNumber"))
       .thenReturn(mockRequestBuilder)
     when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-reporting-window"))
       .thenReturn(mockRequestBuilder)
