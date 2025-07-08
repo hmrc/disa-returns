@@ -17,25 +17,26 @@
 package utils
 
 import org.scalatest._
-import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.matchers.{BeMatcher, MatchResult}
-import org.scalatest.time.{Milliseconds, Second, Span}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.libs.json.JsNull
-import play.api.mvc.AnyContentAsEmpty
-import play.api.test.{DefaultAwaitTimeout, FakeRequest}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import play.api.test.DefaultAwaitTimeout
+import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
 import scala.concurrent.ExecutionContext
 
 abstract class BaseUnitSpec
-    extends AnyWordSpec with Matchers with BeforeAndAfterEach with BeforeAndAfterAll with Inspectors
-    with Inside with EitherValues with LoneElement with ScalaFutures with MockitoSugar
-    with PatienceConfiguration with DefaultAwaitTimeout {
+    extends AnyWordSpec with Matchers with BeforeAndAfterEach with BeforeAndAfterAll with EitherValues with ScalaFutures with MockitoSugar with DefaultAwaitTimeout {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   implicit val hc: HeaderCarrier = HeaderCarrier()
+
+  //MOCKS
+  val mockHttpClient: HttpClientV2 = mock[HttpClientV2]
+  val mockAppConfig: AppConfig = mock[AppConfig]
+  val mockRequestBuilder: RequestBuilder = mock[RequestBuilder]
 
 }

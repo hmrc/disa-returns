@@ -18,10 +18,8 @@ package connectors
 
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 import uk.gov.hmrc.http.{StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
@@ -73,9 +71,13 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       val result: Either[UpstreamErrorResponse, EtmpObligations] =
         connector.checkReturnsObligationStatus("123456").futureValue
 
-      result.isLeft shouldBe true
-      result.left.get.statusCode shouldBe 500
-      result.left.get.message should include("Unexpected error: Connection timeout")
+      result match {
+        case Left(error) =>
+          error.statusCode shouldBe 500
+          error.message should include("Unexpected error: Connection timeout")
+        case Right(_) =>
+          fail("Expected a Left, but got a Right")
+      }
     }
   }
 
@@ -123,17 +125,17 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       val result: Either[UpstreamErrorResponse, EtmpObligations] =
         connector.checkReturnsObligationStatus("123456").futureValue
 
-      result.isLeft shouldBe true
-      result.left.get.statusCode shouldBe 500
-      result.left.get.message should include("Unexpected error: Connection timeout")
+      result match {
+        case Left(error) =>
+          error.statusCode shouldBe 500
+          error.message should include("Unexpected error: Connection timeout")
+        case Right(_) =>
+          fail("Expected a Left, but got a Right")
+      }
     }
   }
 
   trait TestSetup {
-    val endpointUrl: String = ""
-    val mockHttpClient: HttpClientV2 = mock[HttpClientV2]
-    val mockAppConfig: AppConfig = mock[AppConfig]
-    val mockRequestBuilder: RequestBuilder = mock[RequestBuilder]
     val testUrl: String = "http://localhost:1204"
     when(mockAppConfig.etmpBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-obligation-status/123456"))

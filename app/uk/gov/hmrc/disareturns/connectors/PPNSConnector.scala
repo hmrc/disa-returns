@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.connectors
 
-
+import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.response.ppns.Box
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
@@ -24,25 +24,23 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class PPNSConnector @Inject()(http: HttpClientV2)(implicit
-                                                  ec:                                ExecutionContext
-) {
+class PPNSConnector @Inject()(http: HttpClientV2, appConfig: AppConfig)(implicit ec: ExecutionContext) {
 
   def getBoxId(
     clientId:    String
   )(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, Box]] = {
 
-
-
-    val url = s"http://localhost:6701/box?clientId=$clientId&boxName=test"
-
+    val url = s"${appConfig.ppnsBaseUrl}/box?clientId=$clientId"
 
     http
       .get(url"$url")
       .execute[Box]
-      .map(response => Right(response))
-      .recover { case e: UpstreamErrorResponse =>
-        Left(throw UpstreamErrorResponse(e.message, e.statusCode))
+      .map(Right(_))
+      .recover {
+        case e:     UpstreamErrorResponse => Left(e)
+        case other: Throwable             =>
+          // wrap unexpected errors into an UpstreamErrorResponse??
+          Left(UpstreamErrorResponse(s"Unexpected error: ${other.getMessage}", 500))
       }
   }
 }

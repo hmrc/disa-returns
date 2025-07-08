@@ -24,22 +24,19 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ETMPConnector @Inject()(httpClient: HttpClientV2, appConfig: AppConfig)(implicit
-                                                                              ec:                                ExecutionContext
-) {
+class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit ec: ExecutionContext) {
 
   def checkReturnsObligationStatus(isaManagerReferenceNumber: String)
-                                  (implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpObligations]] = {
+                                  (implicit hc:HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpObligations]] = {
 
     val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-obligation-status/$isaManagerReferenceNumber"
-
-    httpClient
+    http
       .get(url"$url")
       .execute[EtmpObligations]
       .map(Right(_)) // Successful HTTP response -> wrap in Right
       .recover {
-        case e: UpstreamErrorResponse => Left(e) //Failed HTTP response -> wrap error in Left
-        case other: Throwable =>
+        case e:     UpstreamErrorResponse => Left(e) //Failed HTTP response -> wrap error in Left
+        case other: Throwable             =>
           // wrap unexpected errors into an UpstreamErrorResponse??
           Left(UpstreamErrorResponse(s"Unexpected error: ${other.getMessage}", 500))
       }
@@ -49,13 +46,13 @@ class ETMPConnector @Inject()(httpClient: HttpClientV2, appConfig: AppConfig)(im
 
     val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-reporting-window"
 
-    httpClient
+    http
       .get(url"$url")
       .execute[EtmpReportingWindow]
       .map(Right(_))
       .recover {
-        case e: UpstreamErrorResponse => Left(e)
-        case other: Throwable =>
+        case e:     UpstreamErrorResponse => Left(e)
+        case other: Throwable             =>
           // wrap unexpected errors into an UpstreamErrorResponse??
           Left(UpstreamErrorResponse(s"Unexpected error: ${other.getMessage}", 500))
       }

@@ -18,15 +18,11 @@ package connectors
 
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.connectors.{ETMPConnector, PPNSConnector}
-import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.models.response.ppns.{Box, BoxCreator, Subscriber}
-import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
+import uk.gov.hmrc.disareturns.connectors.PPNSConnector
+import uk.gov.hmrc.disareturns.models.response.ppns.{Box, BoxCreator}
 import uk.gov.hmrc.http.{StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
-import java.time.Instant
 import scala.concurrent.Future
 
 class PPNSConnectorSpec extends BaseUnitSpec {
@@ -46,9 +42,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Box](any(), any()))
         .thenReturn(Future.successful(expectedResponse))
 
-      val connector: PPNSConnector = new PPNSConnector(mockHttpClient)
-
-      val result: Either[UpstreamErrorResponse, Box] = connector.getBoxId("123456").futureValue
+      val result: Either[UpstreamErrorResponse, Box] = connector.getBoxId(testClientId).futureValue
 
       result shouldBe Right(expectedResponse)
     }
@@ -60,28 +54,21 @@ class PPNSConnectorSpec extends BaseUnitSpec {
         reportAs = 401,
         headers = Map.empty
       )
-      when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
+      when(mockRequestBuilder.execute[Box](any(), any()))
         .thenReturn(Future.failed(exception))
 
-      val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
-
-      val result: Either[UpstreamErrorResponse, EtmpObligations] = connector.checkReturnsObligationStatus("123456").futureValue
+      val result: Either[UpstreamErrorResponse, Box] = connector.getBoxId(testClientId).futureValue
 
       result shouldBe Left(exception)
     }
   }
 
   trait TestSetup {
-    val endpointUrl: String = ""
+    val connector: PPNSConnector = new PPNSConnector(mockHttpClient, mockAppConfig)
     val testClientId = "test-client-id-12345"
-    val mockHttpClient: HttpClientV2 = mock[HttpClientV2]
-    val mockAppConfig: AppConfig = mock[AppConfig]
-    val mockRequestBuilder: RequestBuilder = mock[RequestBuilder]
-    val testUrl: String = "http://localhost:1204"
-    when(mockAppConfig.etmpBaseUrl).thenReturn(testUrl)
+    val testUrl: String = "http://localhost:6701"
+    when(mockAppConfig.ppnsBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.get(url"$testUrl/box?clientId=$testClientId"))
-      .thenReturn(mockRequestBuilder)
-    when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-reporting-window"))
       .thenReturn(mockRequestBuilder)
   }
 }

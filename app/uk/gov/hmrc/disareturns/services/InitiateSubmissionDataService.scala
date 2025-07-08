@@ -22,12 +22,9 @@ import uk.gov.hmrc.disareturns.repositories.InitiateSubmissionRepository
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-
-
-class MongoJourneyAnswersService @Inject() (
-                                             repository: InitiateSubmissionRepository
-                                           )(implicit ec: ExecutionContext) {
-
+class InitiateSubmissionDataService @Inject() (
+  repository:  InitiateSubmissionRepository
+)(implicit ec: ExecutionContext) {
 
   def save(initiateSubmission: InitiateSubmission): Future[String] = repository.insert(initiateSubmission)
 }

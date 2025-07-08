@@ -23,7 +23,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PPNSService @Inject()(connector: PPNSConnector)(implicit ec: ExecutionContext) {
+class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionContext) {
 
   def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, String]] =
     connector.getBoxId(clientId).map {
