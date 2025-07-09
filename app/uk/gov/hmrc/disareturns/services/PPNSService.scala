@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.disareturns.services
 
+import cats.data.EitherT
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
-import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
+import uk.gov.hmrc.disareturns.models.response.ppns.Box
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -25,9 +27,6 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionContext) {
 
-  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, String]] =
-    connector.getBox(clientId).map {
-      case Left(error) => Left(error)
-      case Right(box)  => Right(box.boxId)
-    }
+  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, String] =
+    connector.getBox(clientId).map(_.json.as[Box].boxId)
 }

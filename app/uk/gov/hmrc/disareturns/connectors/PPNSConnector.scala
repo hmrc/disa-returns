@@ -16,30 +16,26 @@
 
 package uk.gov.hmrc.disareturns.connectors
 
+import cats.data.EitherT
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.response.ppns.Box
+import uk.gov.hmrc.http.HttpReadsInstances.readEitherOf
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class PPNSConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit ec: ExecutionContext) {
+class PPNSConnector @Inject() (http: HttpClientV2,
+                               appConfig: AppConfig,
+                               httpClientResponse: HttpClientResponse)(implicit ec: ExecutionContext) {
 
-  def getBox(
-    clientId:    String
-  )(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, Box]] = {
-
+  def getBox(clientId: String)
+            (implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.ppnsBaseUrl}/box?clientId=$clientId"
-
+    httpClientResponse.read(
     http
       .get(url"$url")
-      .execute[Box]
-      .map(Right(_))
-      .recover { // {Possible approach: Use a custom error handler at the controller or service layer
-        case e:     UpstreamErrorResponse => Left(e)
-        case other: Throwable =>
-          Left(UpstreamErrorResponse(s"Unexpected error: ${other.getMessage}", 500))
-      }
+      .execute[Either[UpstreamErrorResponse, HttpResponse]]
+    )
   }
 }

@@ -43,82 +43,23 @@ class SubmissionController @Inject() (
   mongoJourneyAnswersService: InitiateSubmissionDataService
 )(implicit
   ec: ExecutionContext
-) extends BackendController(cc)
-    with AuthorisedFunctions {
+) extends BackendController(cc) with AuthorisedJsonActions {
 
-  def initiateSubmission(isManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    authorised() {
-      parseBody[SubmissionRequest](request) match {
-        case Success(jsResult) =>
-          jsResult match {
-            case JsSuccess(submission, _) =>
-              val clientId = request.headers.get("X-Client-ID").getOrElse("")
-
-              logic(isManagerReferenceNumber, clientId).flatMap {
-                case Left(_) =>
-                  Future.successful(InternalServerError(Json.toJson(errors.InternalServerError: SubmissionError)))
-
-                case Right((obligation, reportingWindow, boxId)) =>
-                  (obligation.obligationAlreadyMet, reportingWindow.reportingWindowOpen) match {
-                    case (true, false) =>
-                      val errors   = Seq(ObligationClosed, ReportingWindowClosed).map(toErrorDetail)
-                      val response = MultipleSubmissionErrorResponse(errors)
-                      Future.successful(Forbidden(Json.toJson(response)))
-
-                    case (true, _) =>
-                      Future.successful(Forbidden(Json.toJson(ObligationClosed: SubmissionError)))
-
-                    case (_, false) =>
-                      Future.successful(Forbidden(Json.toJson(ReportingWindowClosed: SubmissionError)))
-
-                    case (false, true) =>
-                      mongoJourneyAnswersService
-                        .save(InitiateSubmission.create(boxId, submission, isManagerReferenceNumber))
-                        .map { returnId =>
-                          val response = SubmissionSuccessResponse(returnId, SubmitReturnToPaginatedApi, boxId)
-                          Ok(Json.toJson(response))
-                        }
-                  }
-
-              }
-
-            case JsError(errors) =>
-              Future.successful(
-                BadRequest(
-                  Json.obj(
-                    "message" -> "Invalid request",
-                    "errors"  -> JsError.toJson(errors)
-                  )
-                )
-              )
-          }
-
-        case Failure(ex) =>
-          Future.successful(
-            BadRequest(Json.obj("message" -> "Unable to parse JSON", "error" -> ex.getMessage))
-          )
-      }
+  def initiateSubmission(isaManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    val clientId = request.headers.get("X-Client-ID").getOrElse("")
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    authorisedEitherAction()(
+      (for {
+//          boxId <- ppnsService.getBoxId(clientId)
+          reportingWindow <- etmpService.checkReportingWindowStatus()
+          obligations <- etmpService.checkObligationStatus(isaManagerReferenceNumber)
+        } yield (reportingWindow, obligations))
+        .value) { case (reportingWindow, obligations) =>
+      Ok(Json.obj(
+//        "boxId" -> boxId,
+        "reportingWindow" -> Json.toJson(reportingWindow),
+        "obligations" -> Json.toJson(obligations)
+      ))
     }
   }
-
-  private def logic(
-    isaManagerReference: String,
-    clientId:            String
-  )(implicit hc:         HeaderCarrier, ec: ExecutionContext): Future[Either[UpstreamErrorResponse, (EtmpObligations, EtmpReportingWindow, String)]] =
-    for {
-      obligationsResult     <- etmpService.checkObligationStatus(isaManagerReference)
-      reportingWindowResult <- etmpService.checkReportingWindowStatus()
-      //move this call elsewhere maybe ??
-      boxIdResult <- ppnsService.getBoxId(clientId)
-    } yield for {
-      obligations     <- obligationsResult
-      reportingWindow <- reportingWindowResult
-      boxId           <- boxIdResult
-    } yield (obligations, reportingWindow, boxId)
-
-  private def parseBody[A: Reads](request: Request[JsValue]): Try[JsResult[A]] =
-    Try {
-      request.body.validate[A]
-    }
-
 }

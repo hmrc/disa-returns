@@ -16,45 +16,38 @@
 
 package uk.gov.hmrc.disareturns.connectors
 
+import cats.data.EitherT
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
+import uk.gov.hmrc.http.HttpReadsInstances.readEitherOf
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit ec: ExecutionContext) {
+class ETMPConnector @Inject() (http: HttpClientV2,
+                               appConfig: AppConfig,
+                               httpClientResponse: HttpClientResponse)(implicit ec: ExecutionContext) {
 
   def checkReturnsObligationStatus(
     isaManagerReferenceNumber: String
-  )(implicit hc:               HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpObligations]] = {
+  )(implicit hc:               HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
 
     val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-obligation-status/$isaManagerReferenceNumber"
-    http
+    httpClientResponse.read(
+      http
       .get(url"$url")
-      .execute[EtmpObligations]
-      .map(Right(_))
-      .recover { // Possible approach: Use a custom error handler at the controller or service layer
-        case e:     UpstreamErrorResponse => Left(e)
-        case other: Throwable =>
-          Left(UpstreamErrorResponse(s"Unexpected error: ${other.getMessage}", 500))
-      }
+      .execute[Either[UpstreamErrorResponse, HttpResponse]]
+    )
   }
 
-  def checkReportingWindowStatus(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpReportingWindow]] = {
+  def checkReportingWindowStatus(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
 
     val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-reporting-window"
-
+    httpClientResponse.read(
     http
       .get(url"$url")
-      .execute[EtmpReportingWindow]
-      .map(Right(_))
-      .recover {
-        case e:     UpstreamErrorResponse => Left(e)
-        case other: Throwable             =>
-          // wrap unexpected errors into an UpstreamErrorResponse??
-          Left(UpstreamErrorResponse(s"Unexpected error: ${other.getMessage}", 500))
-      }
+      .execute[Either[UpstreamErrorResponse, HttpResponse]]
+    )
   }
 }

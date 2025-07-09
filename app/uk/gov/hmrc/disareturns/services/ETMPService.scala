@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.disareturns.services
 
+import cats.data.EitherT
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
+import uk.gov.hmrc.disareturns.models.response.ppns.Box
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 
 import javax.inject.{Inject, Singleton}
@@ -26,16 +28,9 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionContext) {
 
-  def checkReportingWindowStatus()(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpReportingWindow]] =
-    connector.checkReportingWindowStatus.map {
-      case Left(error)            => Left(error)
-      case Right(reportingWindow) => Right(reportingWindow)
-    }
+  def checkReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, EtmpReportingWindow] =
+    connector.checkReportingWindowStatus.map(_.json.as[EtmpReportingWindow])
 
-  def checkObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpObligations]] =
-    connector.checkReturnsObligationStatus(isaManagerReferenceNumber).map {
-      case Left(error)        => Left(error)
-      case Right(obligations) => Right(obligations)
-    }
-
+  def checkObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, EtmpObligations] =
+    connector.checkReturnsObligationStatus(isaManagerReferenceNumber).map(_.json.as[EtmpObligations])
 }
