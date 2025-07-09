@@ -46,7 +46,7 @@ abstract class BaseUnitSpec
   val mockHttpClient:     HttpClientV2   = mock[HttpClientV2]
   val mockAppConfig:      AppConfig      = mock[AppConfig]
   val mockRequestBuilder: RequestBuilder = mock[RequestBuilder]
-  val mockPPNSConnector: PPNSConnector = mock[PPNSConnector]
-  val mockETMPConnector: ETMPConnector = mock[ETMPConnector]
+  val mockPPNSConnector:  PPNSConnector  = mock[PPNSConnector]
+  val mockETMPConnector:  ETMPConnector  = mock[ETMPConnector]
 
 }

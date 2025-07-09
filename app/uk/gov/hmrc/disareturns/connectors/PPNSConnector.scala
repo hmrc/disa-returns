@@ -38,7 +38,7 @@ class PPNSConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implici
       .map(Right(_))
       .recover { // {Possible approach: Use a custom error handler at the controller or service layer
         case e:     UpstreamErrorResponse => Left(e)
-        case other: Throwable             =>
+        case other: Throwable =>
           Left(UpstreamErrorResponse(s"Unexpected error: ${other.getMessage}", 500))
       }
   }

@@ -123,9 +123,9 @@ class ETMPConnectorSpec extends BaseUnitSpec {
   }
 
   trait TestSetup {
-    val testIsaManagerReferenceNumber: String = "123456"
-    val connector: ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
-    val testUrl: String = "http://localhost:1204"
+    val testIsaManagerReferenceNumber: String        = "123456"
+    val connector:                     ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
+    val testUrl:                       String        = "http://localhost:1204"
     when(mockAppConfig.etmpBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-obligation-status/$testIsaManagerReferenceNumber"))
       .thenReturn(mockRequestBuilder)

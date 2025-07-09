@@ -73,7 +73,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
       result match {
         case Left(error) =>
           error.statusCode shouldBe 500
-          error.message should include("Unexpected error: Connection timeout")
+          error.message      should include("Unexpected error: Connection timeout")
         case Right(_) =>
           fail("Expected a Left, but got a Right")
       }

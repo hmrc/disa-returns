@@ -27,7 +27,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit ec: ExecutionContext) {
 
   def checkReturnsObligationStatus(
-    isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpObligations]] = {
+    isaManagerReferenceNumber: String
+  )(implicit hc:               HeaderCarrier): Future[Either[UpstreamErrorResponse, EtmpObligations]] = {
 
     val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-obligation-status/$isaManagerReferenceNumber"
     http
@@ -36,7 +37,7 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implici
       .map(Right(_))
       .recover { // Possible approach: Use a custom error handler at the controller or service layer
         case e:     UpstreamErrorResponse => Left(e)
-        case other: Throwable             =>
+        case other: Throwable =>
           Left(UpstreamErrorResponse(s"Unexpected error: ${other.getMessage}", 500))
       }
   }

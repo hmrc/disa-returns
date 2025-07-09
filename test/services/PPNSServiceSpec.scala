@@ -27,8 +27,8 @@ import scala.concurrent.Future
 
 class PPNSServiceSpec extends BaseUnitSpec {
 
-  val testClientId: String = "123456"
-  val service: PPNSService = new PPNSService(mockPPNSConnector)
+  val testClientId: String      = "123456"
+  val service:      PPNSService = new PPNSService(mockPPNSConnector)
 
   "PPNSService.getBoxId" should {
 

@@ -82,7 +82,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
   }
 
   trait TestSetup {
-    val testIsaManagerReferenceNumber: String = "123456"
-    val service: ETMPService = new ETMPService(mockETMPConnector)
+    val testIsaManagerReferenceNumber: String      = "123456"
+    val service:                       ETMPService = new ETMPService(mockETMPConnector)
   }
 }
