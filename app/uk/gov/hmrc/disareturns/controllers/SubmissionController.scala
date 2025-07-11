@@ -21,10 +21,10 @@ import com.google.inject.Inject
 import jakarta.inject.Singleton
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.models.common.SubmissionRequest
 import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, ValidationFailureResponse}
-import uk.gov.hmrc.disareturns.models.errors.response.{ResponseAction, SuccessResponse}
+import uk.gov.hmrc.disareturns.models.errors.response.SuccessResponse
 import uk.gov.hmrc.disareturns.services.{ETMPService, InitiateSubmissionDataService, PPNSService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -40,22 +40,10 @@ class SubmissionController @Inject() (
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc)
-    with AuthorisedFunctions {
+    with HeaderCheckedAuthorisedFunctions {
 
   def initiateSubmission(isaManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    authorised() {
-      etmpService.checkEtmpSubmissionStatuses(isaManagerReferenceNumber).value.map {
-        case Right((_, _)) =>
-          Ok(Json.toJson(SuccessResponse(returnId = "", action = ResponseAction.SUBMIT_RETURN_TO_PAGINATED_API, boxId = "")))
-        case Left(error) =>
-          // Map ValidationError to HTTP response
-          Forbidden(Json.toJson(error))
-      }
-    }
-  }
-
-  def initiateSubmission2(isaManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    authorised() {
+    authorisedWithClientIdCheck { clientId =>
       request.body
         .validate[SubmissionRequest]
         .fold(
@@ -67,7 +55,7 @@ class SubmissionController @Inject() (
           submissionRequest =>
             (for {
               _     <- etmpService.checkEtmpSubmissionStatuses(isaManagerReferenceNumber)
-              boxId <- ppnsService.getBoxId(isaManagerReferenceNumber) // swap to clientId, build into authorisedAction
+              boxId <- ppnsService.getBoxId(clientId)
               returnId <- EitherT.right[ErrorResponse](mongoJourneyAnswersService
                 .saveInitiateSubmission(
                   boxId = boxId,
@@ -75,7 +63,7 @@ class SubmissionController @Inject() (
                   isaManagerReference = isaManagerReferenceNumber))
             } yield SuccessResponse(
               returnId = returnId,
-              action = ResponseAction.SUBMIT_RETURN_TO_PAGINATED_API, //Update for Nil Return
+              action = SubmissionRequest.setAction(totalRecords = submissionRequest.totalRecords),
               boxId = boxId
             )).value.map {
               case Right(response) => Ok(Json.toJson(response))

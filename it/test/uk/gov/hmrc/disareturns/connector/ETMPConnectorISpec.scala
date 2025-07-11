@@ -16,51 +16,46 @@
 
 package uk.gov.hmrc.disareturns.connector
 
-import play.api.http.Status.{FORBIDDEN, OK, UNAUTHORIZED}
+import play.api.http.Status.{FORBIDDEN, NOT_FOUND, OK, UNAUTHORIZED}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
-import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 
 class ETMPConnectorISpec extends BaseIntegrationSpec {
 
   val testIsaManagerReferenceNumber = "123456"
-  val obligationsUrl = s"/disa-returns-stubs/etmp/check-obligation-status/$testIsaManagerReferenceNumber"
-  val reportingWindowUrl = "/disa-returns-stubs/etmp/check-reporting-window"
+  val obligationsUrl                = s"/disa-returns-stubs/etmp/check-obligation-status/$testIsaManagerReferenceNumber"
+  val reportingWindowUrl            = "/disa-returns-stubs/etmp/check-reporting-window"
 
   val connector: ETMPConnector = app.injector.instanceOf[ETMPConnector]
 
   "ETMPConnector.checkReturnsObligationStatus" should {
-
-    "return Right(EtmpObligations) when ETMP returns a successful response" in {
+    "return Right(HttpResponse) when ETMP returns a successful response" in {
       val responseBody = """{ "obligationAlreadyMet": true }"""
 
       stubGet(obligationsUrl, OK, responseBody)
 
-      val result = await(connector.checkReturnsObligationStatus(testIsaManagerReferenceNumber))
+      val Right(response) = await(connector.checkReturnsObligationStatus(testIsaManagerReferenceNumber).value)
 
-      result shouldBe Right(EtmpObligations(obligationAlreadyMet = true))
+      response.status                                      shouldBe OK
+      (response.json \ "obligationAlreadyMet").as[Boolean] shouldBe true
     }
 
     "return Left(UpstreamErrorResponse) when ETMP returns an error status" in {
       stubGet(obligationsUrl, UNAUTHORIZED, """{"error": "Not authorised"}""")
 
-      val result = await(connector.checkReturnsObligationStatus(testIsaManagerReferenceNumber))
+      val Left(response) = await(connector.checkReturnsObligationStatus(testIsaManagerReferenceNumber).value)
 
-      result.left.toOption.get.statusCode shouldBe UNAUTHORIZED
+      response.statusCode shouldBe UNAUTHORIZED
+      response.message      should include("Not authorised")
     }
 
-    "return Left(UpstreamErrorResponse) when ETMP fails with unexpected exception" in {
-      // Simulate no stub = 404
-      val result = await(connector.checkReturnsObligationStatus("non-existent"))
+    "return Left(UpstreamErrorResponse) when ETMP fails with unexpected exception - No stub simulate 404" in {
+      val Left(response) = await(connector.checkReturnsObligationStatus("non-existent").value)
 
-      result match {
-        case Left(error) =>
-          error.statusCode shouldBe 500
-          error.message should include("Unexpected error")
-        case Right(_) => fail("Expected Left")
-      }
+      response.statusCode shouldBe NOT_FOUND
+      response.message should include("No response could be served as there are no stub mappings in this WireMock instance.")
     }
   }
 
@@ -71,28 +66,26 @@ class ETMPConnectorISpec extends BaseIntegrationSpec {
 
       stubGet(reportingWindowUrl, OK, responseBody)
 
-      val result = await(connector.checkReportingWindowStatus)
+      val Right(response) = await(connector.checkReportingWindowStatus.value)
 
-      result shouldBe Right(EtmpReportingWindow(reportingWindowOpen = true))
+      response.status shouldBe OK
+      (response.json \ "reportingWindowOpen").as[Boolean] shouldBe true
     }
 
     "return Left(UpstreamErrorResponse) when ETMP returns an error status" in {
       stubGet(reportingWindowUrl, FORBIDDEN, """{"error": "Forbidden"}""")
 
-      val result = await(connector.checkReportingWindowStatus)
+      val Left(response) = await(connector.checkReportingWindowStatus.value)
 
-      result.left.toOption.get.statusCode shouldBe FORBIDDEN
+      response.statusCode shouldBe FORBIDDEN
+      response.message should include("Forbidden")
     }
 
     "return Left(UpstreamErrorResponse) when ETMP call fails with unexpected exception" in {
-      val result = await(connector.checkReportingWindowStatus)
+      val Left(response) = await(connector.checkReportingWindowStatus.value)
 
-      result match {
-        case Left(error) =>
-          error.statusCode shouldBe 500
-          error.message should include("Unexpected error")
-        case Right(_) => fail("Expected a Left")
-      }
+      response.statusCode shouldBe NOT_FOUND
+      response.message should include("No response could be served as there are no stub mappings in this WireMock instance.")
     }
   }
 }

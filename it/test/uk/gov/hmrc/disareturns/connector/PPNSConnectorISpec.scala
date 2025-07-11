@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,11 @@
 
 package uk.gov.hmrc.disareturns.connector
 
-import play.api.http.Status.{OK, UNAUTHORIZED}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
-import uk.gov.hmrc.disareturns.models.response.ppns.{Box, BoxCreator}
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 import uk.gov.hmrc.disareturns.utils.WiremockHelper._
-import uk.gov.hmrc.http.UpstreamErrorResponse
 
 class PPNSConnectorISpec extends BaseIntegrationSpec {
 
@@ -46,46 +44,30 @@ class PPNSConnectorISpec extends BaseIntegrationSpec {
 
       stubGet(url = s"/box?clientId=$testClientId", status = OK, body = boxJson)
 
-      val result = await(connector.getBox(testClientId))
+      val Right(response) = await(connector.getBox(testClientId).value)
 
-      result shouldBe Right(
-        Box(
-          boxId = "boxId1",
-          boxName = "Test_Box",
-          boxCreator = BoxCreator(testClientId),
-          applicationId = Some("applicationId"),
-          subscriber = None
-        )
-      )
+      response.status shouldBe OK
+      (response.json \ "boxId").as[String] shouldBe "boxId1"
+      (response.json \ "boxName").as[String] shouldBe "Test_Box"
+      (response.json \ "boxCreator" \ "clientId").as[String] shouldBe testClientId
+      (response.json \ "applicationId").as[String] shouldBe "applicationId"
     }
 
     "return Left(UpstreamErrorResponse) when PPNS returns a 401" in {
 
       stubGet(url = s"/box?clientId=$testClientId", status = UNAUTHORIZED, body = "Unauthorized")
 
-      val result = await(connector.getBox(testClientId))
-
-      result match {
-        case Left(error: UpstreamErrorResponse) =>
-          error.statusCode shouldBe 401
-          error.message should include("Unauthorized")
-        case _ =>
-          fail("Expected Left(UpstreamErrorResponse), got something else")
-      }
+      val Left(response) = await(connector.getBox(testClientId).value)
+      response.statusCode shouldBe UNAUTHORIZED
+      response.message should include("Unauthorized")
     }
 
     "return Left(UpstreamErrorResponse) when the call fails with unexpected exception" in {
       stopWiremock() // simulate connection failure
 
-      val result = await(connector.getBox(testClientId))
-
-      result match {
-        case Left(error: UpstreamErrorResponse) =>
-          error.statusCode shouldBe 500
-          error.message should include("Unexpected error")
-        case _ =>
-          fail("Expected Left(UpstreamErrorResponse), got something else")
-      }
+      val Left(response) = await(connector.getBox(testClientId).value)
+      response.statusCode shouldBe INTERNAL_SERVER_ERROR
+      response.message should include("Unexpected error:")
     }
   }
 }

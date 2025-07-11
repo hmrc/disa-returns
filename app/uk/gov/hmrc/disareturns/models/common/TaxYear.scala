@@ -18,17 +18,26 @@ package uk.gov.hmrc.disareturns.models.common
 
 import play.api.libs.json._
 
+import java.time.LocalDate
+
 final case class TaxYear(endYear: Int) extends AnyVal {
 
   override def toString: String = endYear.toString
 }
 
 object TaxYear {
+  private def now: LocalDate = LocalDate.now()
+
+  private def currentTaxYear: Int = {
+    val cutoff = LocalDate.of(now.getYear, 4, 6) // new tax year starts on April 6
+    if (now.isBefore(cutoff)) now.getYear - 1 else now.getYear
+  }
+
   implicit val reads: Reads[TaxYear] = Reads {
     case JsNumber(num) if num.isValidInt =>
       val year = num.toInt
-      if (year == 2024) JsSuccess(TaxYear(year))
-      else JsError(JsonValidationError("Year must be current"))
+      if (year == currentTaxYear) JsSuccess(TaxYear(year))
+      else JsError(JsonValidationError(s"Year must be the current tax year: $currentTaxYear"))
     case _ =>
       JsError(JsonValidationError("Invalid tax year format"))
   }

@@ -31,7 +31,8 @@ class PPNSConnector @Inject() (http: HttpClientV2,
 
   def getBox(clientId: String)
             (implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.ppnsBaseUrl}/box?clientId=cIcYFuUnCvPxchXzv6vFuBmYS2TV&boxName=boxName1"
+    val url = s"${appConfig.ppnsBaseUrl}/box?clientId=$clientId"
+//    val url = s"${appConfig.ppnsBaseUrl}/box?clientId=$clientId&boxName=boxName1"
     httpClientResponse.read(
     http
       .get(url"$url")

@@ -18,6 +18,8 @@ package uk.gov.hmrc.disareturns.models.common
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import uk.gov.hmrc.disareturns.models.common.Month.Month
+import uk.gov.hmrc.disareturns.models.errors.response.ResponseAction
 
 case class SubmissionRequest(
   totalRecords:     Int,
@@ -38,5 +40,10 @@ object SubmissionRequest {
       "submissionPeriod" -> request.submissionPeriod,
       "taxYear"          -> request.taxYear
     )
+  }
+
+  def setAction(totalRecords: Int): ResponseAction.Value = {
+    if(totalRecords == 0) ResponseAction.NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION
+    else ResponseAction.SUBMIT_RETURN_TO_PAGINATED_API
   }
 }
