@@ -19,28 +19,29 @@ package uk.gov.hmrc.disareturns.connectors
 import cats.data.EitherT
 import com.google.inject.Inject
 import play.api.Logging
-import play.api.http.Status.{BAD_GATEWAY, LOCKED, NOT_FOUND, TOO_MANY_REQUESTS}
+import play.api.http.Status.INTERNAL_SERVER_ERROR
 import uk.gov.hmrc.http.{HttpException, UpstreamErrorResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class HttpClientResponse @Inject() ()(implicit ec: ExecutionContext) extends Logging {
 
-  def read[A](
-               response: Future[Either[UpstreamErrorResponse, A]]
-             ): EitherT[Future, UpstreamErrorResponse, A] =
-    EitherT(response.map {
-      case Right(response) =>
-        Right(response)
-      case Left(error) =>
+  def read[A](response: Future[Either[UpstreamErrorResponse, A]]): EitherT[Future, UpstreamErrorResponse, A] = {
+    val recoveredResponse: Future[Either[UpstreamErrorResponse, A]] = response.recover {
+      case ex: HttpException =>
+        logger.error(ex.message)
+        Left(UpstreamErrorResponse(ex.message, INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
+      case ex =>
+        logger.error(s"Unexpected error: ${ex.getMessage}", ex)
+        Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
+    }
+
+    EitherT(recoveredResponse.map {
+      case Right(value) => Right(value)
+      case Left(error)  =>
         logger.error(error.message, error)
         Left(error)
-    } recover {
-      case exception: HttpException =>
-        logger.error(exception.message)
-        Left(UpstreamErrorResponse(exception.message, BAD_GATEWAY, BAD_GATEWAY))
-      case exception =>
-        throw exception
     })
+  }
 
 }

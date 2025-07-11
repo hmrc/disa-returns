@@ -16,11 +16,13 @@
 
 package services
 
+import cats.data.EitherT
 import org.mockito.Mockito._
-import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
+import play.api.libs.json.Json
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, Unauthorised}
 import uk.gov.hmrc.disareturns.models.response.ppns.{Box, BoxCreator}
-import uk.gov.hmrc.disareturns.services.{ETMPService, PPNSService}
-import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.disareturns.services.PPNSService
+import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -40,10 +42,13 @@ class PPNSServiceSpec extends BaseUnitSpec {
         applicationId = Some("applicationId"),
         subscriber = None
       )
-      when(mockPPNSConnector.getBox(testClientId))
-        .thenReturn(Future.successful(Right(expectedResponse)))
+      val boxJson = Json.toJson(expectedResponse)
+      val httpResponse = HttpResponse(200, boxJson.toString())
 
-      val result: Either[UpstreamErrorResponse, String] = service.getBoxId(testClientId).futureValue
+      when(mockPPNSConnector.getBox(testClientId))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).value.futureValue
 
       result shouldBe Right(expectedResponse.boxId)
     }
@@ -57,11 +62,11 @@ class PPNSServiceSpec extends BaseUnitSpec {
       )
 
       when(mockPPNSConnector.getBox(testClientId))
-        .thenReturn(Future.successful(Left(exception)))
+        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      val result: Either[UpstreamErrorResponse, String] = service.getBoxId(testClientId).futureValue
+      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).value.futureValue
 
-      result shouldBe Left(exception)
+      result shouldBe Left(Unauthorised)
     }
   }
 }

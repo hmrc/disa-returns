@@ -16,10 +16,13 @@
 
 package services
 
+import cats.data.EitherT
 import org.mockito.Mockito._
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, Unauthorised}
 import uk.gov.hmrc.disareturns.services.ETMPService
-import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -30,11 +33,13 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
     "return Right(EtmpObligations) when call to ETMP connector returns an obligation status" in new TestSetup {
       val expectedResponse: EtmpObligations = EtmpObligations(true)
+      val etmpObligationsJson: JsValue = Json.toJson(expectedResponse)
+      val httpResponse: HttpResponse = HttpResponse(200, etmpObligationsJson.toString())
 
       when(mockETMPConnector.checkReturnsObligationStatus(testIsaManagerReferenceNumber))
-        .thenReturn(Future.successful(Right(expectedResponse)))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result: Either[UpstreamErrorResponse, EtmpObligations] = service.checkObligationStatus(testIsaManagerReferenceNumber).futureValue
+      val result: Either[ErrorResponse, EtmpObligations] = service.checkObligationStatus(testIsaManagerReferenceNumber).value.futureValue
 
       result shouldBe Right(expectedResponse)
     }
@@ -46,12 +51,13 @@ class ETMPServiceSpec extends BaseUnitSpec {
         reportAs = 401,
         headers = Map.empty
       )
+
       when(mockETMPConnector.checkReturnsObligationStatus(testIsaManagerReferenceNumber))
-        .thenReturn(Future.successful(Left(exception)))
+        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      val result: Either[UpstreamErrorResponse, EtmpObligations] = service.checkObligationStatus(testIsaManagerReferenceNumber).futureValue
+      val result: Either[ErrorResponse, EtmpObligations] = service.checkObligationStatus(testIsaManagerReferenceNumber).value.futureValue
 
-      result shouldBe Left(exception)
+      result shouldBe Left(Unauthorised)
     }
   }
 
@@ -59,9 +65,14 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
     "return Right(EtmpReportingWindow) when call to ETMP connector returns a reporting window status" in new TestSetup {
       val expectedResponse: EtmpReportingWindow = EtmpReportingWindow(true)
+      val etmpReportingWindowJson: JsValue = Json.toJson(expectedResponse)
+      val httpResponse: HttpResponse = HttpResponse(200, etmpReportingWindowJson.toString())
 
-      when(mockETMPConnector.checkReportingWindowStatus).thenReturn(Future.successful(Right(expectedResponse)))
-      val result: Either[UpstreamErrorResponse, EtmpReportingWindow] = service.checkReportingWindowStatus().futureValue
+
+      when(mockETMPConnector.checkReportingWindowStatus)
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val result: Either[ErrorResponse, EtmpReportingWindow] = service.checkReportingWindowStatus().value.futureValue
 
       result shouldBe Right(expectedResponse)
     }
@@ -73,11 +84,13 @@ class ETMPServiceSpec extends BaseUnitSpec {
         reportAs = 401,
         headers = Map.empty
       )
-      when(mockETMPConnector.checkReportingWindowStatus).thenReturn(Future.successful(Left(exception)))
 
-      val result: Either[UpstreamErrorResponse, EtmpReportingWindow] = service.checkReportingWindowStatus().futureValue
+      when(mockETMPConnector.checkReportingWindowStatus)
+        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      result shouldBe Left(exception)
+      val result: Either[ErrorResponse, EtmpReportingWindow] = service.checkReportingWindowStatus().value.futureValue
+
+      result shouldBe Left(Unauthorised)
     }
   }
 

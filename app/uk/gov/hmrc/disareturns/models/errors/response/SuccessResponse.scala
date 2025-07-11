@@ -16,24 +16,11 @@
 
 package uk.gov.hmrc.disareturns.models.errors.response
 
-import play.api.libs.json._
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.disareturns.models.errors.response.ResponseAction.ResponseAction
 
-sealed trait SubmissionAction {
-  def value: String
-}
+case class SuccessResponse(returnId: String, action: ResponseAction, boxId: String)
 
-case object SubmitReturnToPaginatedApi extends SubmissionAction {
-  val value: String = "SUBMIT_RETURN_TO_PAGINATED_API"
-}
-
-object SubmissionAction {
-  implicit val writes: Writes[SubmissionAction] = Writes { action =>
-    JsString(action.value)
-  }
-
-  implicit val reads: Reads[SubmissionAction] = Reads { case JsString("SUBMIT_RETURN_TO_PAGINATED_API") =>
-    JsSuccess(SubmitReturnToPaginatedApi)
-
-  }
-
+object SuccessResponse {
+  implicit val format: OFormat[SuccessResponse] = Json.format[SuccessResponse]
 }

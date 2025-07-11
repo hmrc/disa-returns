@@ -18,8 +18,10 @@ package uk.gov.hmrc.disareturns.services
 
 import cats.data.EitherT
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.ErrorResponse
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.response.ppns.Box
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -27,6 +29,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionContext) {
 
-  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, String] =
-    connector.getBox(clientId).map(_.json.as[Box].boxId)
+  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, String] = {
+    println(Console.YELLOW + "Here" + Console.RESET)
+    connector.getBox(clientId).map(_.json.as[Box].boxId).leftMap(mapToErrorResponse)
+  }
 }

@@ -16,23 +16,19 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
+import cats.data.EitherT
 import com.google.inject.Inject
 import jakarta.inject.Singleton
 import play.api.libs.json._
-import play.api.mvc.{Action, ControllerComponents, Request}
+import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.models.common.{InitiateSubmission, SubmissionRequest}
-import uk.gov.hmrc.disareturns.models.errors
-import uk.gov.hmrc.disareturns.models.errors._
-import uk.gov.hmrc.disareturns.models.errors.MultipleSubmissionErrorResponse.toErrorDetail
-import uk.gov.hmrc.disareturns.models.errors.response.{SubmissionSuccessResponse, SubmitReturnToPaginatedApi}
+import uk.gov.hmrc.disareturns.models.common.SubmissionRequest
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, ValidationFailureResponse}
+import uk.gov.hmrc.disareturns.models.errors.response.{ResponseAction, SuccessResponse}
 import uk.gov.hmrc.disareturns.services.{ETMPService, InitiateSubmissionDataService, PPNSService}
-import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
 
 @Singleton
 class SubmissionController @Inject() (
@@ -43,23 +39,49 @@ class SubmissionController @Inject() (
   mongoJourneyAnswersService: InitiateSubmissionDataService
 )(implicit
   ec: ExecutionContext
-) extends BackendController(cc) with AuthorisedJsonActions {
+) extends BackendController(cc)
+    with AuthorisedFunctions {
 
   def initiateSubmission(isaManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    val clientId = request.headers.get("X-Client-ID").getOrElse("")
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-    authorisedEitherAction()(
-      (for {
-//          boxId <- ppnsService.getBoxId(clientId)
-          reportingWindow <- etmpService.checkReportingWindowStatus()
-          obligations <- etmpService.checkObligationStatus(isaManagerReferenceNumber)
-        } yield (reportingWindow, obligations))
-        .value) { case (reportingWindow, obligations) =>
-      Ok(Json.obj(
-//        "boxId" -> boxId,
-        "reportingWindow" -> Json.toJson(reportingWindow),
-        "obligations" -> Json.toJson(obligations)
-      ))
+    authorised() {
+      etmpService.checkEtmpSubmissionStatuses(isaManagerReferenceNumber).value.map {
+        case Right((_, _)) =>
+          Ok(Json.toJson(SuccessResponse(returnId = "", action = ResponseAction.SUBMIT_RETURN_TO_PAGINATED_API, boxId = "")))
+        case Left(error) =>
+          // Map ValidationError to HTTP response
+          Forbidden(Json.toJson(error))
+      }
+    }
+  }
+
+  def initiateSubmission2(isaManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    authorised() {
+      request.body
+        .validate[SubmissionRequest]
+        .fold(
+          errors => {
+              val jsError = JsError(errors)
+              val validationFailure = ValidationFailureResponse.convertErrors(jsError)
+              Future.successful(BadRequest(Json.toJson(validationFailure)))
+            },
+          submissionRequest =>
+            (for {
+              _     <- etmpService.checkEtmpSubmissionStatuses(isaManagerReferenceNumber)
+              boxId <- ppnsService.getBoxId(isaManagerReferenceNumber) // swap to clientId, build into authorisedAction
+              returnId <- EitherT.right[ErrorResponse](mongoJourneyAnswersService
+                .saveInitiateSubmission(
+                  boxId = boxId,
+                  submissionRequest = submissionRequest,
+                  isaManagerReference = isaManagerReferenceNumber))
+            } yield SuccessResponse(
+              returnId = returnId,
+              action = ResponseAction.SUBMIT_RETURN_TO_PAGINATED_API, //Update for Nil Return
+              boxId = boxId
+            )).value.map {
+              case Right(response) => Ok(Json.toJson(response))
+              case Left(error)     => Forbidden(Json.toJson(error))
+            }
+        )
     }
   }
 }

@@ -1,3 +1,5 @@
 # microservice specific routes
 
 POST /monthly/:isaManagerReferenceNumber/init       uk.gov.hmrc.disareturns.controllers.SubmissionController.initiateSubmission(isaManagerReferenceNumber:String)
+
+POST /monthly/:isaManagerReferenceNumber/init2      uk.gov.hmrc.disareturns.controllers.SubmissionController.initiateSubmission2(isaManagerReferenceNumber:String)

@@ -16,10 +16,15 @@
 
 package uk.gov.hmrc.disareturns.models.errors.response
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.Format
+import uk.gov.hmrc.disareturns.models.common.JsonUtils
 
-case class SubmissionSuccessResponse(returnId: String, action: SubmissionAction, boxId: String)
+object ResponseAction extends Enumeration {
+  type ResponseAction = Value
 
-object SubmissionSuccessResponse {
-  implicit val format: OFormat[SubmissionSuccessResponse] = Json.format[SubmissionSuccessResponse]
+  val SUBMIT_RETURN_TO_PAGINATED_API: Value = Value("SUBMIT_RETURN_TO_PAGINATED_API")
+  val NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION: Value = Value("NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION")
+
+  implicit val format: Format[ResponseAction.Value] = JsonUtils.enumFormat(ResponseAction)
+
 }

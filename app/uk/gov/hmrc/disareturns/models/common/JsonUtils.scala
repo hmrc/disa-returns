@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.errors.connector.responses
+package uk.gov.hmrc.disareturns.models.common
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Format, Reads, Writes}
 
-case class ErrorResponse(code: String, message: String)
+object JsonUtils {
 
-object ErrorResponse {
-  implicit val writes: OFormat[ErrorResponse] = Json.format[ErrorResponse]
+  def enumFormat[E <: Enumeration](e: E): Format[e.Value] =
+    Format(Reads.enumNameReads(e), Writes.enumNameWrites)
+
 }

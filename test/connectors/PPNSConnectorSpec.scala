@@ -16,12 +16,13 @@
 
 package connectors
 
+import cats.data.EitherT
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import uk.gov.hmrc.disareturns.connectors.response.EtmpObligations
-import uk.gov.hmrc.disareturns.connectors.{ETMPConnector, PPNSConnector}
+import play.api.libs.json.Json
+import uk.gov.hmrc.disareturns.connectors.PPNSConnector
 import uk.gov.hmrc.disareturns.models.response.ppns.{Box, BoxCreator}
-import uk.gov.hmrc.http.{StringContextOps, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -38,37 +39,56 @@ class PPNSConnectorSpec extends BaseUnitSpec {
         applicationId = Some("applicationId"),
         subscriber = None
       )
+      val httpResponse: HttpResponse = HttpResponse(200, Json.toJson(expectedResponse).toString())
 
-      when(mockRequestBuilder.execute[Box](any(), any()))
-        .thenReturn(Future.successful(expectedResponse))
+      when(mockHttpClientResponse.read(any()))
+        .thenAnswer { invocation =>
+          val future = invocation.getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
+          EitherT(future)
+        }
 
-      val result: Either[UpstreamErrorResponse, Box] = connector.getBox(testClientId).futureValue
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Right(httpResponse)))
 
-      result shouldBe Right(expectedResponse)
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getBox(testClientId).value.futureValue
+
+      result shouldBe Right(httpResponse)
     }
 
     "return Left(UpstreamErrorResponse) when the call to PPNS fails with an UpstreamErrorResponse" in new TestSetup {
-      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
+      val upstreamErrorResponse: UpstreamErrorResponse = UpstreamErrorResponse(
         message = "Not authorised to access this service",
         statusCode = 401,
         reportAs = 401,
         headers = Map.empty
       )
-      when(mockRequestBuilder.execute[Box](any(), any()))
-        .thenReturn(Future.failed(exception))
 
-      val result: Either[UpstreamErrorResponse, Box] = connector.getBox(testClientId).futureValue
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(upstreamErrorResponse)))
 
-      result shouldBe Left(exception)
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getBox(testClientId).value.futureValue
+
+      result shouldBe Left(upstreamErrorResponse)
     }
 
     "return Left(UpstreamErrorResponse) when the call to PPNS fails with an unexpected Throwable exception" in new TestSetup {
       val runtimeException = new RuntimeException("Connection timeout")
 
-      when(mockRequestBuilder.execute[EtmpObligations](any(), any()))
+      when(mockHttpClientResponse.read(any()))
+        .thenAnswer { invocation =>
+          val future = invocation.getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
+          EitherT(
+            future.recover {
+              case e =>
+                Left(UpstreamErrorResponse(s"Unexpected error: ${e.getMessage}", 500, 500))
+            }
+          )
+        }
+
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(runtimeException))
 
-      val result: Either[UpstreamErrorResponse, Box] = connector.getBox(testClientId).futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getBox(testClientId).value.futureValue
 
       result match {
         case Left(error) =>
@@ -81,7 +101,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
   }
 
   trait TestSetup {
-    val connector: PPNSConnector = new PPNSConnector(mockHttpClient, mockAppConfig)
+    val connector: PPNSConnector = new PPNSConnector(mockHttpClient, mockAppConfig, mockHttpClientResponse)
     val testClientId = "test-client-id-12345"
     val testUrl: String = "http://localhost:6701"
     when(mockAppConfig.ppnsBaseUrl).thenReturn(testUrl)

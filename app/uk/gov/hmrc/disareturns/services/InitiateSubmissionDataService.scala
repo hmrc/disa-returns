@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import uk.gov.hmrc.disareturns.models.common.InitiateSubmission
+import uk.gov.hmrc.disareturns.models.common.{InitiateSubmission, SubmissionRequest}
 import uk.gov.hmrc.disareturns.repositories.InitiateSubmissionRepository
 
 import javax.inject.Inject
@@ -26,5 +26,14 @@ class InitiateSubmissionDataService @Inject() (
   repository:  InitiateSubmissionRepository
 )(implicit ec: ExecutionContext) {
 
-  def save(initiateSubmission: InitiateSubmission): Future[String] = repository.insert(initiateSubmission)
+  def saveInitiateSubmission(boxId: String,
+           submissionRequest: SubmissionRequest,
+           isaManagerReference: String): Future[String] = {
+    val  initiateSubmission =
+      InitiateSubmission.create(
+        boxId = boxId,
+        submissionRequest = submissionRequest,
+        isaManagerReference = isaManagerReference)
+    repository.insert(initiateSubmission)
+  }
 }

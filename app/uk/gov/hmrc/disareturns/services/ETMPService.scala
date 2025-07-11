@@ -19,7 +19,8 @@ package uk.gov.hmrc.disareturns.services
 import cats.data.EitherT
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.models.response.ppns.Box
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.UpstreamErrorMapper.mapToErrorResponse
+import uk.gov.hmrc.disareturns.models.errors.connector.responses._
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 
 import javax.inject.{Inject, Singleton}
@@ -28,9 +29,33 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionContext) {
 
-  def checkReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, EtmpReportingWindow] =
-    connector.checkReportingWindowStatus.map(_.json.as[EtmpReportingWindow])
+  def checkReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] =
+    connector.checkReportingWindowStatus.map(_.json.as[EtmpReportingWindow]).leftMap(mapToErrorResponse)
 
-  def checkObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, EtmpObligations] =
-    connector.checkReturnsObligationStatus(isaManagerReferenceNumber).map(_.json.as[EtmpObligations])
+  def checkObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] =
+    connector.checkReturnsObligationStatus(isaManagerReferenceNumber).map(_.json.as[EtmpObligations]).leftMap(mapToErrorResponse)
+
+  def checkEtmpSubmissionStatuses(isaManagerReferenceNumber: String)
+                                 (implicit hc: HeaderCarrier, ec: ExecutionContext):
+  EitherT[Future, ErrorResponse, (EtmpReportingWindow, EtmpObligations)] = {
+
+    for {
+      reportingWindow <- checkReportingWindowStatus()
+      obligations <- checkObligationStatus(isaManagerReferenceNumber)
+      validated <- EitherT.fromEither[Future] {
+        val errors: Seq[ErrorResponse] = Seq(
+          if (!reportingWindow.reportingWindowOpen) Some(ReportingWindowClosed) else None,
+          if (obligations.obligationAlreadyMet) Some(ObligationClosed) else None
+        ).flatten
+
+        errors match {
+          case Nil => Right((reportingWindow, obligations))
+          case singleError :: Nil => Left(singleError: ErrorResponse)
+          case multipleErrors => Left(
+            MultipleErrorResponse(errors = multipleErrors): ErrorResponse
+          )
+        }
+      }
+    } yield validated
+  }
 }
