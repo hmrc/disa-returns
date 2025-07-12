@@ -2,15 +2,513 @@ openapi: "3.0.3"
 
 info:
   version: 1.0.0
-  title: Hello World
+  title: DISA Returns API
 
 servers:
-  - url: https://test-api.service.hmrc.gov.uk/hello-world
+  - url: https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return
     description: Sandbox
-  - url: https://api.service.hmrc.gov.uk/hello-world
+  - url: https://api.service.hmrc.gov.uk/obligations/declaration/isa/return
     description: Production
 
+paths:
+  /monthly/{isaManagerReferenceNumber}/init:
+    post:
+      summary: Initialise a bulk monthly returns submission.
+      description: |
+        An endpoint that checks if submission is allowed and returns return ID.
+      tags:
+        - Monthly Returns Submission
+      security:
+        - userRestricted:
+            - write:isa-returns
+      parameters:
+        - name: isaManagerReferenceNumber
+          in: path
+          description: The reference given to the ISA provider when they applied for
+            approval from HMRC, commonly referred as Z-Ref.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            type: string
+            example: Z1234
+        - $ref: '#/components/parameters/acceptHeader'
+        - $ref: '#/components/parameters/authorizationHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - totalRecords
+                - submissionPeriod
+                - taxYear
+              properties:
+                totalRecords:
+                  type: integer
+                  minimum: 0
+                  example: 10000
+                  description: 'Total number of records to be submitted'
+                submissionPeriod:
+                  type: string
+                  example: APR
+                  enum:
+                    - JAN
+                    - FEB
+                    - MAR
+                    - APR
+                    - MAY
+                    - JUN
+                    - JUL
+                    - AUG
+                    - SEP
+                    - OCT
+                    - NOV
+                    - DEC
+                taxYear:
+                  type: integer
+                  example: 2026
+                  description: 'The tax year of the monthly reporting information'
+      responses:
+        '200':
+          description: Submission is permitted and return id is generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  returnId:
+                    type: string
+                    format: uuid
+                    description: 'Unique identifier for this submission batch'
+                    example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+        '400':
+          description: Submission failed validation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - MISSING_FIELD
+                      - INVALID_YEAR
+                      - INVALID_MONTH
+                      - VALIDATION_FAILURE
+                  message:
+                    type: string
+        '401':
+          description: Unauthorised submission.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    type: string
+        '403':
+          description: Forbidden submission.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - FORBIDDEN
+                      - REPORTING_WINDOW_CLOSED
+                      - OBLIGATION_CLOSED
+                  message:
+                    type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/son:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+
+  /monthly/{isaManagerReferenceNumber}/{returnId}:
+    post:
+      summary: Submit a paginated bulk monthly return.
+      description: |
+        An endpoint to submit a paginated bulk monthly return.
+
+        Maximum of 10mb may be sent at a time.
+      tags:
+        - Monthly Returns Submission
+      security:
+        - userRestricted:
+            - write:isa-returns
+      parameters:
+        - name: isaManagerReferenceNumber
+          in: path
+          description: The reference given to the ISA provider when they applied for
+            approval from HMRC, commonly referred as Z-Ref.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            type: string
+            example: Z1234
+        - name: returnId
+          in: path
+          description: The unique identifier for this submission batch.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            format: uuid
+            example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+        - $ref: '#/components/parameters/acceptHeader'
+        - $ref: '#/components/parameters/authorizationHeader'
+      requestBody:
+        required: true
+        content:
+          application/x-ndjson:
+            schema:
+              items:
+                $ref: '#/components/schemas/investorDetails'
+      responses:
+        '204':
+          description: Submission is accepted.
+        '400':
+          description: Submission failed validation.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - VALIDATION_FAILURE
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/validationFailed'
+        '401':
+          description: Unauthorised submission.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - UNAUTHORISED
+                      - PREVIOUS_VALIDATION_FAILURE_OCCURRED
+                      - OBLIGATION_CLOSED
+                  message:
+                    type: string
+        '403':
+          description: Forbidden submission
+          content:
+            application/json:
+              schema:
+                type: obect
+                properties:
+                  code: Error Code Types
+                  type: string
+                  description: 'Error Code'
+                  enum:
+                    -
+
+
+  /monthly/{isaManagerReferenceNumber}/complete/{returnId}:
+    post:
+      summary: Complete a bulk monthly returns submission.
+      description: |
+        An endpoint to confirm return submission has completed.
+        Returns the confirmation of whether the submission was successful or not.
+      tags:
+        - Monthly Returns Submission
+      security:
+        - userRestricted:
+            - write:manage-individual-savings-accounts
+      parameters:
+        - name: isaManagerReferenceNumber
+          in: path
+          description: The reference given to the ISA provider when they applied for
+            approval from HMRC, commonly referred as Z-Ref.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            type: string
+            example: Z1234
+        - name: returnId
+          in: path
+          description: The unique identifier for this submission batch.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            format: uuid
+            example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+        - $ref: '#/components/parameters/acceptHeader'
+        - $ref: '#/components/parameters/authorizationHeader'
+      responses:
+        '200':
+          description: Submission is accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  returnResultsSummaryLocation:
+                    type: string
+                    format: uri
+                    description: 'Location to query the return results summary following the closure of the returns window'
+                    example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/results-summary/b4aba7b8-0d34-4936-923c-d9ef2747c099'
+        '400':
+          description: Submission was rejected.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - VALIDATION_FAILURE_OCCURRED
+                      - MISMATCH_EXPECTED_VS_RECEIVED
+                  # TODO: What will we supply alongside the code here?
+                  # Is a default message enough or do we need to provide more details?
+                  message:
+                    type: string
+        '401':
+          description: Submission is not permitted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - RETURN_WINDOW_CLOSED
+                      - RETURN_OBLIGATION_ALREADY_MET
+                  message:
+                    type: string
+
+  /monthly/{isaManagerReferenceNumber}/results-summary/{returnId}:
+    get:
+      summary: Query if the return results summary is available.
+      description: |
+        An endpoint to confirm if return results are available.
+
+        Returns the location to retrieve the return results if available, or not found.
+      tags:
+        - Monthly Return Results
+      security:
+        - userRestricted:
+            - write:manage-individual-savings-accounts
+      parameters:
+        - name: isaManagerReferenceNumber
+          in: path
+          description: The reference given to the ISA provider when they applied for
+            approval from HMRC, commonly referred as Z-Ref.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            type: string
+            example: Z1234
+        - name: returnId
+          in: path
+          description: The unique identifier for this submission batch.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            format: uuid
+            example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+        - $ref: '#/components/parameters/acceptHeader'
+        - $ref: '#/components/parameters/authorizationHeader'
+      responses:
+        '200':
+          description: Return results are available to collect.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  returnResultsLocation:
+                    type: string
+                    format: uri
+                    description: 'Location to retrieve the return results of the submitted in month return'
+                    example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/results/b4aba7b8-0d34-4936-923c-d9ef2747c099?page=1'
+                  totalRecords:
+                    type: integer
+                    description: 'Total number of records in the return results'
+                    example: 10000
+                  numberOfPages:
+                    type: integer
+                    description: 'Total number of pages to return all results'
+                    example: 2
+        '404':
+          description: Return results not available.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - RETURN_NOT_FOUND
+                      - RETURN_RESULTS_NOT_READY
+                  message:
+                    type: string
+
+  /monthly/{isaManagerReferenceNumber}/results/{returnId}:
+    get:
+      summary: Retrieve return results through paginated API.
+      description: |
+        An endpoint to retrieve the return results. 
+
+        Returns the results in paginated batches.
+      tags:
+        - Monthly Return Results
+      security:
+        - userRestricted:
+            - write:manage-individual-savings-accounts
+      parameters:
+        - name: isaManagerReferenceNumber
+          in: path
+          description: The reference given to the ISA provider when they applied for
+            approval from HMRC, commonly referred as Z-Ref.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            type: string
+            example: Z1234
+        - name: returnId
+          in: path
+          description: The unique identifier for this submission batch.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            format: uuid
+            example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+        - name: page
+          in: query
+          description: The page number to retrieve.
+          required: false
+          style: simple
+          explode: false
+          schema:
+            type: integer
+            example: 1
+        - $ref: '#/components/parameters/acceptHeader'
+        - $ref: '#/components/parameters/authorizationHeader'
+      responses:
+        '200':
+          description: Return results for specified page.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentPage:
+                    type: integer
+                    description: 'The page number of the results'
+                    example: 1
+                  recordsInPage:
+                    type: integer
+                    description: 'The number of records in the current page'
+                    example: 8000
+                  totalRecords:
+                    type: integer
+                    description: 'Total number of records in the return results'
+                    example: 10000
+                  totalNumberOfPages:
+                    type: integer
+                    description: 'Total number of pages to return all results'
+                    example: 2
+                  returnResults:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/returnResult'
+                    description: 'The return results for the specified page'
+        '404':
+          description: Return results not available.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Types
+                    type: string
+                    description: 'Types of errors encountered'
+                    enum:
+                      - RETURN_NOT_FOUND
+                      - RETURN_RESULTS_NOT_READY
+                  message:
+                    type: string
+
 components:
+  securitySchemes:
+    userRestricted:
+      type: oauth2
+      description: |
+        HMRC supports OAuth 2.0 for authenticating user restricted API requests using an OAuth 2.0 Bearer Token in the AUTHORIZATION header.
+        See https://developer.service.hmrc.gov.uk/api-documentation/docs/authorisation/user-restricted-endpoints for details.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://api.service.hmrc.gov.uk/oauth/authorize
+          tokenUrl: https://api.service.hmrc.gov.uk/oauth/token
+          refreshUrl: https://api.service.hmrc.gov.uk/oauth/refresh
+          scopes:
+            write:manage-individual-savings-accounts
+            read:manage-individual-savings-accounts
   parameters:
     acceptHeader:
       name: Accept
@@ -18,32 +516,366 @@ components:
       schema:
         type: string
         enum: [
-          "application/vnd.hmrc.1.0+json",
-          "application/vnd.hmrc.1.0+xml"
+          "application/vnd.hmrc.1.0+json"
         ]
+    authorizationHeader:
+      name: Authorization
+      in: header
       required: true
-
-paths:
-  /hello-world:
-    get:
-      summary: Placeholder hello world endpoint
-      description: |
-        An endpoint that returns "Hello world"
-      tags:
-        - disa-returns
-      parameters:
-        - $ref: '#/components/parameters/acceptHeader'
-      responses:
-        200:
-          description: "OK Response"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-              example:
-                "Hello world"
-      security:
-        - {}
+      schema:
+        type: string
+      description: Bearer token for authentication
+  schemas:
+    investorDetails:
+      type: object
+      anyOf:
+        - title: "Lifetime ISA - New Subscription"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
+                reportingATransfer:
+                  enum: [false]
+                dateOfFirstSubscription:
+                  type: string
+                  format: date
+                  description: 'The date of the first subscription to the ISA account'
+                  example: 2025-04-06
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                lisaQualifyingAddition:
+                  type: number
+                  format: double
+                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
+                lisaBonusClaim:
+                  type: number
+                  format: double
+                  description: The amount being claimed as a LISA bonus
+                  example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
+              required: [dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim]
+              not:
+                required: [closureDate, accountNumberOfTransferringAccount]
+        - title: "Lifetime ISA - Transfer"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
+                reportingATransfer:
+                  enum: [true]
+                accountNumberOfTransferringAccount:
+                  type: string
+                  description: 'The account number of the transferring ISA account'
+                  example: 87654321
+                amountTransferred:
+                  type: number
+                  format: double
+                  description: 'The amount transferred to the ISA account'
+                  example: 5000.00
+                  pattern: '^\d+\.\d{2}$'
+                dateOfFirstSubscription:
+                  type: string
+                  format: date
+                  description: 'The date of the first subscription to the ISA account'
+                  example: 2025-04-06
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                lisaQualifyingAddition:
+                  type: number
+                  format: double
+                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
+                lisaBonusClaim:
+                  type: number
+                  format: double
+                  description: The amount being claimed as a LISA bonus
+                  example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
+              required: [dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred, lisaQualifyingAddition, lisaBonusClaim]
+              not:
+                required: [closureDate]
+        - title: "Lifetime ISA - Closure"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
+                reportingATransfer:
+                  enum: [ false ]
+                dateOfFirstSubscription:
+                  type: string
+                  format: date
+                  description: 'The date of the first subscription to the ISA account'
+                  example: 2025-04-06
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                closureDate:
+                  type: string
+                  format: date
+                  description: 'The date the ISA account was closed'
+                  example: 2025-05-15
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                reasonForClosure:
+                  type: string
+                  description: 'The reason for the closure of the ISA account'
+                  example: ALL_FUNDS_WITHDRAWN
+                  enum:
+                    - CANCELLED
+                    - CLOSED
+                    - VOID
+                    - TRANSFERRED_IN_FULL
+                    - ALL_FUNDS_WITHDRAWN
+                lisaQualifyingAddition:
+                  type: number
+                  format: double
+                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
+                lisaBonusClaim:
+                  type: number
+                  format: double
+                  description: The amount being claimed as a LISA bonus
+                  example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
+              required: [dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim]
+        - title: "Lifetime ISA - Transfer & Closure"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
+                reportingATransfer:
+                  enum: [ true ]
+                accountNumberOfTransferringAccount:
+                  type: string
+                  description: 'The account number of the transferring ISA account'
+                  example: 87654321
+                amountTransferred:
+                  type: number
+                  format: double
+                  description: 'The amount transferred to the ISA account'
+                  example: 5000.00
+                  pattern: '^\d+\.\d{2}$'
+                dateOfFirstSubscription:
+                  type: string
+                  format: date
+                  description: 'The date of the first subscription to the ISA account'
+                  example: 2025-04-06
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                closureDate:
+                  type: string
+                  format: date
+                  description: 'The date the ISA account was closed'
+                  example: 2025-05-15
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                reasonForClosure:
+                  type: string
+                  description: 'The reason for the closure of the ISA account'
+                  example: ALL_FUNDS_WITHDRAWN
+                  enum:
+                    - CANCELLED
+                    - CLOSED
+                    - VOID
+                    - TRANSFERRED_IN_FULL
+                    - ALL_FUNDS_WITHDRAWN
+                lisaQualifyingAddition:
+                  type: number
+                  format: double
+                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
+                lisaBonusClaim:
+                  type: number
+                  format: double
+                  description: The amount being claimed as a LISA bonus
+                  example: 1000.00
+                  pattern: '^\d+\.\d{2}$'
+              required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim, accountNumberOfTransferringAccount, amountTransferred]
+        - title: "Standard ISA - New Subscription"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE]
+                reportingATransfer:
+                  enum: [false]
+                flexibleIsa:
+                  type: boolean
+                  description: 'Indicates if the ISA account is flexible'
+                  example: false
+              required: [flexibleIsa]
+              not:
+                required: [closureDate, accountNumberOfTransferringAccount, dateOfFirstSubscription]
+        - title: "Standard ISA - Transfer"
+          allOf:
+            - $ref: '#/components/schemas/investorDetailsBase'
+            - type: object
+              properties:
+                isaType:
+                  enum: [CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE]
+                reportingATransfer:
+                  enum: [true]
+                accountNumberOfTransferringAccount:
+                  type: string
+                  description: 'The account number of the transferring ISA account'
+                  example: 87654321
+                amountTransferred:
+                  type: number
+                  format: double
+                  description: 'The amount transferred to the ISA account'
+                  example: 5000.00
+                  pattern: '^\d+\.\d{2}$'
+                flexibleIsa:
+                  type: boolean
+                  description: 'Indicates if the ISA account is flexible'
+                  example: false
+              required: [accountNumberOfTransferringAccount, amountTransferred, flexibleIsa]
+              not:
+                required: [closureDate]
+    investorDetailsBase:
+      type: object
+      required:
+        - accountNumber
+        - nino
+        - firstName
+        - lastName
+        - dateOfBirth
+        - isaType
+        - reportingATransfer
+        - dateOfLastSubscription
+        - totalCurrentYearSubscriptionsToDate
+        - marketValueOfAccount
+      properties:
+        accountNumber:
+          type: string
+          description: 'The account number of the ISA account'
+          example: 12345678
+        nino:
+          type: string
+          description: 'The National Insurance Number of the account holder'
+          example: AB123456C
+          pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
+        firstName:
+          type: string
+          description: 'The first name of the account holder'
+          example: John
+        middleName:
+          type: string
+          description: 'The middle name of the account holder'
+          example: Michael
+        lastName:
+          type: string
+          description: 'The last name of the account holder'
+          example: Smith
+        dateOfBirth:
+          type: string
+          format: date
+          description: 'The date of birth of the account holder'
+          example: 1980-01-01
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        isaType:
+          type: string
+          description: 'The type of ISA account'
+          example: LIFETIME_CASH
+          enum:
+            - CASH
+            - STOCKS_AND_SHARES
+            - INNOVATIVE_FINANCE
+            - LIFETIME_CASH
+            - LIFETIME_STOCKS_AND_SHARES
+        reportingATransfer:
+          type: boolean
+          description: 'Indicates if the ISA account is a reporting transfer'
+          example: true
+        dateOfLastSubscription:
+          type: string
+          format: date
+          description: 'The date of the last subscription to the ISA account'
+          example: 2025-05-01
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        totalCurrentYearSubscriptionsToDate:
+          type: number
+          format: double
+          description: 'The total subscriptions to the ISA account for the current year'
+          example: 5000.00
+          pattern: '^\d+\.\d{2}$'
+        marketValueOfAccount:
+          type: number
+          format: double
+          description: 'The market value of the ISA account'
+          example: 10000.00
+          pattern: '^\d+\.\d{2}$'
+    validationFailed:
+      type: object
+      properties:
+        nino:
+          type: string
+          description: 'The National Insurance Number of the account holder'
+          example: AB123456C
+          pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
+        accountNumber:
+          type: string
+          description: 'The account number of the ISA account'
+          example: 12345678
+        code:
+          type: string
+          enum:
+            - INVALID_NINO
+            - INVALID_ACCOUNT_NUMBER
+            - INVALID_AMOUNT_SUBSCRIBED
+          example: INVALID_NINO
+        message:
+          type: string
+          description: 'A detailed message about the validation failure'
+          example: "The NINO provided is invalid"
+    returnResult:
+      type: object
+      properties:
+        accountNumber:
+          type: string
+          description: 'The account number of the ISA account'
+          example: 12345678
+        nino:
+          type: string
+          description: 'The National Insurance Number of the account holder'
+          example: AB123456C
+          pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
+        issueIdentified:
+          oneOf:
+            - $ref: '#/components/schemas/returnResultOverSubscribed'
+            - $ref: '#/components/schemas/returnResultUnableToIdentifyInvestor'
+    returnResultOverSubscribed:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 'The result of the return submission'
+          enum:
+            - OVER_SUBSCRIBED
+          example: OVER_SUBSCRIBED
+        overSubscribedAmount:
+          type: number
+          format: double
+          description: 'The amount that was over subscribed'
+          example: 1000.00
+          pattern: '^\d+\.\d{2}$'
+    returnResultUnableToIdentifyInvestor:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 'The result of the return submission'
+          enum:
+            - UNABLE_TO_IDENTIFY_INVESTOR
+          example: UNABLE_TO_IDENTIFY_INVESTOR
+        message:
+          type: string
+          description: 'The reason for the inability to identify the investor'
+          example: "The NINO provided does not match any records"
