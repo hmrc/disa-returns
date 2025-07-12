@@ -233,20 +233,40 @@ paths:
                   message:
                     type: string
         '403':
-          description: Forbidden submission
+          description: Forbidden submission.
           content:
             application/json:
               schema:
-                type: obect
+                type: object
                 properties:
-                  code: Error Code Types
-                  type: string
-                  description: 'Error Code'
-                  enum:
-                    -
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - FORBIDDEN
+                      - REPORTING_WINDOW_CLOSED
+                      - OBLIGATION_CLOSED
+                  message:
+                    type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/son:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
 
 
-  /monthly/{isaManagerReferenceNumber}/complete/{returnId}:
+  /monthly/{isaManagerReferenceNumber}/{returnId}/complete:
     post:
       summary: Complete a bulk monthly returns submission.
       description: |
@@ -256,7 +276,7 @@ paths:
         - Monthly Returns Submission
       security:
         - userRestricted:
-            - write:manage-individual-savings-accounts
+            - write:isa-returns
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -306,30 +326,58 @@ paths:
                     type: string
                     description: 'Types of errors encountered'
                     enum:
-                      - VALIDATION_FAILURE_OCCURRED
                       - MISMATCH_EXPECTED_VS_RECEIVED
-                  # TODO: What will we supply alongside the code here?
-                  # Is a default message enough or do we need to provide more details?
                   message:
                     type: string
         '401':
-          description: Submission is not permitted.
+          description: Unauthorised submission.
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   code:
-                    title: Error Code Types
+                    title: Error Code Type
                     type: string
-                    description: 'Types of errors encountered'
+                    description: 'Error Code'
                     enum:
-                      - RETURN_WINDOW_CLOSED
-                      - RETURN_OBLIGATION_ALREADY_MET
+                      - UNAUTHORISED
+                  message:
+                    type: string
+        '403':
+          description: Forbidden submission.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - FORBIDDEN
+                      - REPORTING_WINDOW_CLOSED
+                      - OBLIGATION_CLOSED
+                  message:
+                    type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/son:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - INTERNAL_SERVER_ERROR
                   message:
                     type: string
 
-  /monthly/{isaManagerReferenceNumber}/results-summary/{returnId}:
+  /monthly/{isaManagerReferenceNumber}/{returnId}/results/summary:
     get:
       summary: Query if the return results summary is available.
       description: |
@@ -340,7 +388,7 @@ paths:
         - Monthly Return Results
       security:
         - userRestricted:
-            - write:manage-individual-savings-accounts
+            - read:isa-returns
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -386,6 +434,21 @@ paths:
                     type: integer
                     description: 'Total number of pages to return all results'
                     example: 2
+        '401':
+          description: Unauthorised request.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    type: string
         '404':
           description: Return results not available.
           content:
@@ -402,8 +465,23 @@ paths:
                       - RETURN_RESULTS_NOT_READY
                   message:
                     type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/son:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
 
-  /monthly/{isaManagerReferenceNumber}/results/{returnId}:
+  /monthly/{isaManagerReferenceNumber}/{returnId}/results:
     get:
       summary: Retrieve return results through paginated API.
       description: |
@@ -441,7 +519,6 @@ paths:
           in: query
           description: The page number to retrieve.
           required: false
-          style: simple
           explode: false
           schema:
             type: integer
@@ -477,6 +554,21 @@ paths:
                     items:
                       $ref: '#/components/schemas/returnResult'
                     description: 'The return results for the specified page'
+        '401':
+          description: Unauthorised request.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    type: string
         '404':
           description: Return results not available.
           content:
@@ -491,6 +583,21 @@ paths:
                     enum:
                       - RETURN_NOT_FOUND
                       - RETURN_RESULTS_NOT_READY
+                  message:
+                    type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/son:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: 'Error Code'
+                    enum:
+                      - INTERNAL_SERVER_ERROR
                   message:
                     type: string
 
