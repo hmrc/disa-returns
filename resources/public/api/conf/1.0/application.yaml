@@ -85,7 +85,7 @@ paths:
                     description: 'Unique identifier for this submission batch'
                     example: b4aba7b8-0d34-4936-923c-d9ef2747c099
         '400':
-          description: Submission failed validation
+          description: Initialisation request failed validation
           content:
             application/json:
               schema:
@@ -103,7 +103,7 @@ paths:
                   message:
                     type: string
         '401':
-          description: Unauthorised submission.
+          description: Unauthorised request.
           content:
             application/json:
               schema:
@@ -118,7 +118,7 @@ paths:
                   message:
                     type: string
         '403':
-          description: Forbidden submission.
+          description: Forbidden request.
           content:
             application/json:
               schema:
@@ -216,7 +216,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/validationFailed'
         '401':
-          description: Unauthorised submission.
+          description: Unauthorised request.
           content:
             application/json:
               schema:
@@ -228,12 +228,10 @@ paths:
                     description: 'Error Code'
                     enum:
                       - UNAUTHORISED
-                      - PREVIOUS_VALIDATION_FAILURE_OCCURRED
-                      - OBLIGATION_CLOSED
                   message:
                     type: string
         '403':
-          description: Forbidden submission.
+          description: Forbidden request.
           content:
             application/json:
               schema:
@@ -303,7 +301,7 @@ paths:
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         '200':
-          description: Submission is accepted.
+          description: Submission is completed.
           content:
             application/json:
               schema:
@@ -315,7 +313,7 @@ paths:
                     description: 'Location to query the return results summary following the closure of the returns window'
                     example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/results-summary/b4aba7b8-0d34-4936-923c-d9ef2747c099'
         '400':
-          description: Submission was rejected.
+          description: Submission was unable to complete.
           content:
             application/json:
               schema:
@@ -330,7 +328,7 @@ paths:
                   message:
                     type: string
         '401':
-          description: Unauthorised submission.
+          description: Unauthorised request.
           content:
             application/json:
               schema:
@@ -345,7 +343,7 @@ paths:
                   message:
                     type: string
         '403':
-          description: Forbidden submission.
+          description: Forbidden request.
           content:
             application/json:
               schema:
@@ -492,7 +490,7 @@ paths:
         - Monthly Return Results
       security:
         - userRestricted:
-            - write:manage-individual-savings-accounts
+            - read:isa-returns
       parameters:
         - name: isaManagerReferenceNumber
           in: path
@@ -614,8 +612,8 @@ components:
           tokenUrl: https://api.service.hmrc.gov.uk/oauth/token
           refreshUrl: https://api.service.hmrc.gov.uk/oauth/refresh
           scopes:
-            write:manage-individual-savings-accounts
-            read:manage-individual-savings-accounts
+            write:isa-returns
+            read:isa-returns
   parameters:
     acceptHeader:
       name: Accept
@@ -642,9 +640,9 @@ components:
             - type: object
               properties:
                 isaType:
-                  enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
+                  enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
                 reportingATransfer:
-                  enum: [false]
+                  enum: [ false ]
                 dateOfFirstSubscription:
                   type: string
                   format: date
@@ -663,18 +661,18 @@ components:
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
                   pattern: '^\d+\.\d{2}$'
-              required: [dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim]
+              required: [ dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim ]
               not:
-                required: [closureDate, accountNumberOfTransferringAccount]
+                required: [ closureDate, accountNumberOfTransferringAccount ]
         - title: "Lifetime ISA - Transfer"
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
               properties:
                 isaType:
-                  enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
+                  enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
                 reportingATransfer:
-                  enum: [true]
+                  enum: [ true ]
                 accountNumberOfTransferringAccount:
                   type: string
                   description: 'The account number of the transferring ISA account'
@@ -703,16 +701,16 @@ components:
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
                   pattern: '^\d+\.\d{2}$'
-              required: [dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred, lisaQualifyingAddition, lisaBonusClaim]
+              required: [ dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred, lisaQualifyingAddition, lisaBonusClaim ]
               not:
-                required: [closureDate]
+                required: [ closureDate ]
         - title: "Lifetime ISA - Closure"
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
               properties:
                 isaType:
-                  enum: [LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES]
+                  enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
                 reportingATransfer:
                   enum: [ false ]
                 dateOfFirstSubscription:
@@ -749,7 +747,7 @@ components:
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
                   pattern: '^\d+\.\d{2}$'
-              required: [dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim]
+              required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim ]
         - title: "Lifetime ISA - Transfer & Closure"
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
@@ -803,32 +801,32 @@ components:
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
                   pattern: '^\d+\.\d{2}$'
-              required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim, accountNumberOfTransferringAccount, amountTransferred]
+              required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim, accountNumberOfTransferringAccount, amountTransferred ]
         - title: "Standard ISA - New Subscription"
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
               properties:
                 isaType:
-                  enum: [CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE]
+                  enum: [ CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE ]
                 reportingATransfer:
-                  enum: [false]
+                  enum: [ false ]
                 flexibleIsa:
                   type: boolean
                   description: 'Indicates if the ISA account is flexible'
                   example: false
-              required: [flexibleIsa]
+              required: [ flexibleIsa ]
               not:
-                required: [closureDate, accountNumberOfTransferringAccount, dateOfFirstSubscription]
+                required: [ closureDate, accountNumberOfTransferringAccount, dateOfFirstSubscription ]
         - title: "Standard ISA - Transfer"
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
               properties:
                 isaType:
-                  enum: [CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE]
+                  enum: [ CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE ]
                 reportingATransfer:
-                  enum: [true]
+                  enum: [ true ]
                 accountNumberOfTransferringAccount:
                   type: string
                   description: 'The account number of the transferring ISA account'
@@ -843,9 +841,9 @@ components:
                   type: boolean
                   description: 'Indicates if the ISA account is flexible'
                   example: false
-              required: [accountNumberOfTransferringAccount, amountTransferred, flexibleIsa]
+              required: [ accountNumberOfTransferringAccount, amountTransferred, flexibleIsa ]
               not:
-                required: [closureDate]
+                required: [ closureDate ]
     investorDetailsBase:
       type: object
       required:
