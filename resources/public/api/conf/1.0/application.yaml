@@ -100,8 +100,10 @@ paths:
                       - INVALID_YEAR
                       - INVALID_MONTH
                       - VALIDATION_FAILURE
+                    example: INVALID_YEAR
                   message:
                     type: string
+                    example: Tax year required
         '401':
           description: Unauthorised request.
           content:
@@ -117,6 +119,7 @@ paths:
                       - UNAUTHORISED
                   message:
                     type: string
+                    example: Unauthorised
         '403':
           description: Forbidden request.
           content:
@@ -134,6 +137,7 @@ paths:
                       - OBLIGATION_CLOSED
                   message:
                     type: string
+                    example: "Forbidden"
         '500':
           description: Internal Server Error
           content:
@@ -202,19 +206,18 @@ paths:
             application/json:
               schema:
                 type: object
-                properties:
-                  code:
-                    title: Error Code Types
-                    type: string
-                    description: 'Types of errors encountered'
-                    enum:
-                      - VALIDATION_FAILURE
-                  message:
-                    type: string
-                  errors:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/validationFailed'
+                oneOf:
+                  - title: 'Missing Identifiers'
+                    $ref: '#/components/schemas/identifiersMissing'
+                  - title: 'Invalid Model'
+                    $ref: '#/components/schemas/modelInvalid'
+                examples:
+                  identifierExample:
+                    summary: an example of the Missing Identifiers scenario
+                    value: { "code": "NINO_OR_ACC_NUM_MISSING", "message": "All models send must include an account number and nino in order to process correctly"}
+                  invalidModelExample:
+                    summary: an example of the Invalid Model scenario
+                    value: { "code": "VALIDATION_FAILURE", "message": "One or more models failed validation", "errors": [ { "code": "test", "message":"a"}, { "code": "test", "message":"b"}]}
         '401':
           description: Unauthorised request.
           content:
@@ -230,6 +233,7 @@ paths:
                       - UNAUTHORISED
                   message:
                     type: string
+                    example: 'Unauthorised'
         '403':
           description: Forbidden request.
           content:
@@ -247,6 +251,7 @@ paths:
                       - OBLIGATION_CLOSED
                   message:
                     type: string
+                    example: 'Forbidden'
         '500':
           description: Internal Server Error
           content:
@@ -327,6 +332,7 @@ paths:
                       - MISMATCH_EXPECTED_VS_RECEIVED
                   message:
                     type: string
+                    example: 'There has been a mismatch between number of records declared in header vs records submitted'
         '401':
           description: Unauthorised request.
           content:
@@ -335,13 +341,14 @@ paths:
                 type: object
                 properties:
                   code:
-                    title: Error Code Type
+                    title: Error Code Types
                     type: string
                     description: 'Error Code'
                     enum:
                       - UNAUTHORISED
                   message:
                     type: string
+                    example: 'Unauthorised'
         '403':
           description: Forbidden request.
           content:
@@ -359,6 +366,7 @@ paths:
                       - OBLIGATION_CLOSED
                   message:
                     type: string
+                    example: 'Forbidden'
         '500':
           description: Internal Server Error
           content:
@@ -440,13 +448,14 @@ paths:
                 type: object
                 properties:
                   code:
-                    title: Error Code Type
+                    title: Error Code Types
                     type: string
                     description: 'Error Code'
                     enum:
                       - UNAUTHORISED
                   message:
                     type: string
+                    example: 'Unauthorised'
         '404':
           description: Return results not available.
           content:
@@ -463,6 +472,9 @@ paths:
                       - RETURN_RESULTS_NOT_READY
                   message:
                     type: string
+                    enum:
+                      - 'Return not found for {returnId}'
+                      - 'Return results not ready for {returnId}'
         '500':
           description: Internal Server Error
           content:
@@ -560,13 +572,14 @@ paths:
                 type: object
                 properties:
                   code:
-                    title: Error Code Type
+                    title: Error Code Types
                     type: string
                     description: 'Error Code'
                     enum:
                       - UNAUTHORISED
                   message:
                     type: string
+                    example: 'Unauthorised'
         '404':
           description: Return results not available.
           content:
@@ -581,8 +594,13 @@ paths:
                     enum:
                       - RETURN_NOT_FOUND
                       - RETURN_RESULTS_NOT_READY
+                      - PAGE_NOT_FOUND
                   message:
                     type: string
+                    enum:
+                      - 'Return not found for {returnId}'
+                      - 'Return results not ready for {returnId}'
+                      - 'No page {page} found'
         '500':
           description: Internal Server Error
           content:
@@ -598,6 +616,7 @@ paths:
                       - INTERNAL_SERVER_ERROR
                   message:
                     type: string
+                    example: 'Internal Server Error'
 
 components:
   securitySchemes:
@@ -611,9 +630,10 @@ components:
           authorizationUrl: https://api.service.hmrc.gov.uk/oauth/authorize
           tokenUrl: https://api.service.hmrc.gov.uk/oauth/token
           refreshUrl: https://api.service.hmrc.gov.uk/oauth/refresh
-          scopes:
+          scopes: {
             write:isa-returns
             read:isa-returns
+          }
   parameters:
     acceptHeader:
       name: Accept
@@ -917,29 +937,56 @@ components:
           description: 'The market value of the ISA account'
           example: 10000.00
           pattern: '^\d+\.\d{2}$'
-    validationFailed:
+    identifiersMissing:
+      title: "Missing NINO or Account Number"
       type: object
       properties:
-        nino:
-          type: string
-          description: 'The National Insurance Number of the account holder'
-          example: AB123456C
-          pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
-        accountNumber:
-          type: string
-          description: 'The account number of the ISA account'
-          example: 12345678
         code:
           type: string
+          example: NINO_OR_ACC_NUM_MISSING
           enum:
-            - INVALID_NINO
-            - INVALID_ACCOUNT_NUMBER
-            - INVALID_AMOUNT_SUBSCRIBED
-          example: INVALID_NINO
+            - NINO_OR_ACC_NUM_MISSING
         message:
           type: string
-          description: 'A detailed message about the validation failure'
-          example: "The NINO provided is invalid"
+          example: 'All models send must include an account number and nino in order to process correctly'
+    modelInvalid:
+      title: "Invalid Model(s)"
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_FAILED
+          enum:
+            - VALIDATION_FAILED
+        message:
+          type: string
+          example: 'One or more models failed validation'
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              nino:
+                type: string
+                description: 'The National Insurance Number of the account holder'
+                example: AB123456C
+                pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
+              accountNumber:
+                type: string
+                description: 'The account number of the ISA account'
+                example: 12345678
+              code:
+                type: string
+                enum:
+                  - INVALID_NINO
+                  - INVALID_ACCOUNT_NUMBER
+                  - INVALID_AMOUNT_SUBSCRIBED
+                example: INVALID_NINO
+              message:
+                type: string
+                description: 'A detailed message about the validation failure'
+                example: "The NINO provided is invalid"
+
     returnResult:
       type: object
       properties:
