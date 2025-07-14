@@ -84,6 +84,11 @@ paths:
                     format: uuid
                     description: 'Unique identifier for this submission batch'
                     example: b4aba7b8-0d34-4936-923c-d9ef2747c099
+                  boxId:
+                    type: string
+                    format: uuid
+                    description: 'Unique identifier for the HMRC Push Pull Notification Service box'
+                    example: 1c5b9365-18a6-55a5-99c9-83a091ac7f26
         '400':
           description: Initialisation request failed validation
           content:
