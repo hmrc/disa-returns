@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import uk.gov.hmrc.disareturns.models.common.{InitiateSubmission, SubmissionRequest}
+import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.InitiateSubmission
+import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
 import uk.gov.hmrc.disareturns.repositories.InitiateSubmissionRepository
 
 import javax.inject.Inject

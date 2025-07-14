@@ -22,27 +22,24 @@ import jakarta.inject.Singleton
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.disareturns.models.common.SubmissionRequest
 import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, ValidationFailureResponse}
-import uk.gov.hmrc.disareturns.models.errors.response.SuccessResponse
+import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
+import uk.gov.hmrc.disareturns.models.initiate.response.SuccessResponse
 import uk.gov.hmrc.disareturns.services.{ETMPService, InitiateSubmissionDataService, PPNSService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class SubmissionController @Inject() (
+class InitiateSubmissionController @Inject()(
   cc:                         ControllerComponents,
   val authConnector:          AuthConnector,
   etmpService:                ETMPService,
   ppnsService:                PPNSService,
-  mongoJourneyAnswersService: InitiateSubmissionDataService
-)(implicit
-  ec: ExecutionContext
-) extends BackendController(cc)
+  mongoJourneyAnswersService: InitiateSubmissionDataService)(implicit ec: ExecutionContext) extends BackendController(cc)
     with HeaderCheckedAuthorisedFunctions {
 
-  def initiateSubmission(isaManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def initiate(isaManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     authorisedWithClientIdCheck { clientId =>
       request.body
         .validate[SubmissionRequest]
@@ -54,7 +51,7 @@ class SubmissionController @Inject() (
             },
           submissionRequest =>
             (for {
-              _     <- etmpService.checkEtmpSubmissionStatuses(isaManagerReferenceNumber)
+              _     <- etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
               boxId <- ppnsService.getBoxId(clientId)
               returnId <- EitherT.right[ErrorResponse](mongoJourneyAnswersService
                 .saveInitiateSubmission(

@@ -20,7 +20,7 @@ import cats.data.EitherT
 import org.mockito.Mockito._
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, Unauthorised}
-import uk.gov.hmrc.disareturns.models.response.ppns.{Box, BoxCreator}
+import uk.gov.hmrc.disareturns.models.ppns.response.{Box, BoxCreator}
 import uk.gov.hmrc.disareturns.services.PPNSService
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import utils.BaseUnitSpec

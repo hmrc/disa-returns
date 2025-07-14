@@ -24,8 +24,9 @@ sealed trait ErrorResponse {
 }
 
 case object ObligationClosed extends ErrorResponse {
-  val code = "OBLIGATION_CLOSED"
-  val message = "Obligation closed"
+  //Check this
+  val code = "RETURN_OBLIGATION_ALREADY_MET"
+  val message = "Return obligation already met"
 }
 
 case object ReportingWindowClosed extends ErrorResponse {
@@ -110,10 +111,12 @@ object ValidationFailureResponse {
     def mapCode(message: String): String = message match {
       case "error.path.missing" => "MISSING_FIELD"
       case "INVALID_YEAR" => "INVALID_YEAR"
+      case "INVALID_YEAR_FORMAT" => "INVALID_YEAR"
       case "MISSING_FIELD" => "MISSING_FIELD"
       case _ => "VALIDATION_ERROR"
     }
 
+    // TODO: check if this is the best way, Tap had an example JsPath used somewhere
     def formatPath(jsPath: JsPath): String = {
       val pathString = jsPath.path.map {
         case KeyPathNode(key) => s"/$key"
@@ -125,12 +128,17 @@ object ValidationFailureResponse {
 
     val fieldErrors: Seq[FieldValidationError] = jsError.errors.toSeq.flatMap { case (path, errs) =>
       errs.map { ve =>
+        println(Console.YELLOW + ve + Console.RESET)
         FieldValidationError(
           code = mapCode(ve.message),
           message = ve.message match {
             case "error.path.missing" => "This field is required"
             case "INVALID_YEAR" => "Year is in the past"
             case "MISSING_FIELD" => "This field is required"
+            case "error.min" => "This field must be greater than or equal to 0" //Review with team
+            case "INVALID_YEAR" => "Year must be the current tax year" //Review with team
+            case "error.expected.validenumvalue" => "Invalid month provided"
+            case "error.expected.jsnumber" => "This field must be greater than or equal to 0"
             case other => other
           },
           path = formatPath(path)

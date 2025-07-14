@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.disareturns.repositories
 
+import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
-import uk.gov.hmrc.disareturns.models.common.InitiateSubmission
+import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.InitiateSubmission
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
@@ -39,6 +40,10 @@ class InitiateSubmissionRepository @Inject() (mc: MongoComponent)(implicit ec: E
 
   def insert(initiateSubmission: InitiateSubmission): Future[String] =
     collection.insertOne(initiateSubmission).toFuture().map(_ => initiateSubmission.returnId)
+
+  def findByIsaManagerReference(isaManagerReference: String): Future[Option[InitiateSubmission]] = {
+    collection.find(equal("isaManagerReference", isaManagerReference)).headOption()
+  }
 
   def dropCollection(): Future[Unit] =
     collection.drop().toFuture().map(_ => ())

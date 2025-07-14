@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.errors.response
+package uk.gov.hmrc.disareturns.models.ppns.response
 
-import play.api.libs.json.Format
-import uk.gov.hmrc.disareturns.models.common.JsonUtils
+import play.api.libs.json.{Json, OFormat}
 
-object ResponseAction extends Enumeration {
-  type ResponseAction = Value
+case class Box(boxId: String,
+               boxName: String,
+               boxCreator: BoxCreator,
+               applicationId: Option[String] = None,
+               subscriber: Option[Subscriber] = None)
 
-  val SUBMIT_RETURN_TO_PAGINATED_API: Value = Value("SUBMIT_RETURN_TO_PAGINATED_API")
-  val NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION: Value = Value("NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION")
-
-  implicit val format: Format[ResponseAction.Value] = JsonUtils.enumFormat(ResponseAction)
-
+object Box {
+  implicit val format: OFormat[Box] = Json.format[Box]
 }

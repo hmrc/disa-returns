@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.response.ppns
+package uk.gov.hmrc.disareturns.models.ppns.response
 
 import play.api.libs.json.{Json, OFormat}
 

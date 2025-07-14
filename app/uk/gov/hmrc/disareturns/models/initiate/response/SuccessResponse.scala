@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.errors.response
+package uk.gov.hmrc.disareturns.models.initiate.response
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.disareturns.models.errors.response.ResponseAction.ResponseAction
+import ResponseAction.ResponseAction
 
 case class SuccessResponse(returnId: String, action: ResponseAction, boxId: String)
 

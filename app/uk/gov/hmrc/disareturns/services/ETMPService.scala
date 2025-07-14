@@ -29,19 +29,19 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionContext) {
 
-  def checkReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] =
-    connector.checkReportingWindowStatus.map(_.json.as[EtmpReportingWindow]).leftMap(mapToErrorResponse)
+  def getReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] =
+    connector.getReportingWindowStatus.map(_.json.as[EtmpReportingWindow]).leftMap(mapToErrorResponse)
 
-  def checkObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] =
-    connector.checkReturnsObligationStatus(isaManagerReferenceNumber).map(_.json.as[EtmpObligations]).leftMap(mapToErrorResponse)
+  def getObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] =
+    connector.getReturnsObligationStatus(isaManagerReferenceNumber).map(_.json.as[EtmpObligations]).leftMap(mapToErrorResponse)
 
-  def checkEtmpSubmissionStatuses(isaManagerReferenceNumber: String)
-                                 (implicit hc: HeaderCarrier, ec: ExecutionContext):
+  def validateEtmpSubmissionEligibility(isaManagerReferenceNumber: String)
+                                       (implicit hc: HeaderCarrier, ec: ExecutionContext):
   EitherT[Future, ErrorResponse, (EtmpReportingWindow, EtmpObligations)] = {
 
     for {
-      reportingWindow <- checkReportingWindowStatus()
-      obligations <- checkObligationStatus(isaManagerReferenceNumber)
+      reportingWindow <- getReportingWindowStatus()
+      obligations <- getObligationStatus(isaManagerReferenceNumber)
       validated <- EitherT.fromEither[Future] {
         val errors: Seq[ErrorResponse] = Seq(
           if (!reportingWindow.reportingWindowOpen) Some(ReportingWindowClosed) else None,

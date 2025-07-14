@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.common
+package uk.gov.hmrc.disareturns.models.initiate.inboundRequest
 
 import play.api.libs.json._
 
@@ -34,12 +34,22 @@ object TaxYear {
   }
 
   implicit val reads: Reads[TaxYear] = Reads {
-    case JsNumber(num) if num.isValidInt =>
-      val year = num.toInt
-      if (year == currentTaxYear) JsSuccess(TaxYear(year))
-      else JsError(JsonValidationError(s"Year must be the current tax year: $currentTaxYear"))
+    case JsNumber(num) =>
+      if (!num.isValidInt) {
+        JsError(JsonValidationError("Tax year must be a valid whole number"))
+      } else {
+        val year = num.toInt
+        if (year < currentTaxYear) {
+          JsError(JsonValidationError("Tax year cannot be in the past"))
+        } else if (year > currentTaxYear) {
+          JsError(JsonValidationError(s"Tax year must be the current tax year: $currentTaxYear"))
+        } else {
+          JsSuccess(TaxYear(year))
+        }
+      }
+
     case _ =>
-      JsError(JsonValidationError("Invalid tax year format"))
+      JsError(JsonValidationError("Tax year must be a number"))
   }
 
   implicit val writes: Writes[TaxYear] = Writes(t => JsNumber(t.endYear))

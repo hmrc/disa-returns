@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.common
+package uk.gov.hmrc.disareturns.models.initiate.inboundRequest
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
 
 import java.util.UUID
 
-case class InitiateSubmission(returnId: String, boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String)
+case class InitiateSubmission(returnId: String,
+                              boxId: String,
+                              submissionRequest: SubmissionRequest,
+                              isaManagerReference: String)
 
 object InitiateSubmission {
   implicit val format: OFormat[InitiateSubmission] = Json.format[InitiateSubmission]

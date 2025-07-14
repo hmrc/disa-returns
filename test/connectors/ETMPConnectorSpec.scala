@@ -48,7 +48,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(mockHttpResponse)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.checkReturnsObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getReturnsObligationStatus(testIsaManagerReferenceNumber).value.futureValue
 
       result shouldBe Right(mockHttpResponse)
     }
@@ -63,7 +63,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(upstreamErrorResponse)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.checkReturnsObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getReturnsObligationStatus(testIsaManagerReferenceNumber).value.futureValue
 
       result shouldBe Left(upstreamErrorResponse)
     }
@@ -87,7 +87,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
 
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.checkReturnsObligationStatus("123456").value.futureValue
+        connector.getReturnsObligationStatus("123456").value.futureValue
 
       result match {
         case Left(error) =>
@@ -111,7 +111,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(mockHttpResponse)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.checkReportingWindowStatus.value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getReportingWindowStatus.value.futureValue
 
       result shouldBe Right(mockHttpResponse)
     }
@@ -126,7 +126,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(upstreamErrorResponse)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.checkReportingWindowStatus.value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getReportingWindowStatus.value.futureValue
 
       result shouldBe Left(upstreamErrorResponse)
     }
@@ -138,7 +138,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.failed(runtimeException))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.checkReportingWindowStatus.value.futureValue
+        connector.getReportingWindowStatus.value.futureValue
 
       result match {
         case Left(error) =>
