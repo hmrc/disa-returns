@@ -41,7 +41,8 @@ class ETMPConnectorSpec extends BaseUnitSpec {
 
       when(mockHttpClientResponse.read(any()))
         .thenAnswer { invocation =>
-          val future = invocation.getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
+          val future = invocation
+            .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
           EitherT(future)
         }
 
@@ -73,29 +74,23 @@ class ETMPConnectorSpec extends BaseUnitSpec {
 
       when(mockHttpClientResponse.read(any()))
         .thenAnswer { invocation =>
-          val future = invocation.getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
+          val future = invocation
+            .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
           // Wrap with recover so that failures in Future are converted to Left
           EitherT(
-            future.recover {
-              case e =>
-                Left(UpstreamErrorResponse(s"Unexpected error: ${e.getMessage}", 500, 500))
+            future.recover { case e =>
+              Left(UpstreamErrorResponse(s"Unexpected error: ${e.getMessage}", 500, 500))
             }
           )
         }
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(runtimeException))
 
-
-      val result: Either[UpstreamErrorResponse, HttpResponse] =
+      val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
         connector.getReturnsObligationStatus("123456").value.futureValue
 
-      result match {
-        case Left(error) =>
-          error.statusCode shouldBe 500
-          error.message      should include("Unexpected error: Connection timeout")
-        case Right(_) =>
-          fail("Expected a Left, but got a Right")
-      }
+      result.statusCode shouldBe 500
+      result.message      should include("Unexpected error: Connection timeout")
     }
   }
 
@@ -103,10 +98,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
 
     "return Right(EtmpReportingWindow) when call to ETMP returns an obligation status successfully" in new TestSetup {
       val expectedResponse: EtmpReportingWindow = EtmpReportingWindow(true)
-      val mockHttpResponse: HttpResponse = HttpResponse(
-        status = 200,
-        json = Json.toJson(expectedResponse),
-        headers = Map.empty)
+      val mockHttpResponse: HttpResponse        = HttpResponse(status = 200, json = Json.toJson(expectedResponse), headers = Map.empty)
 
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(mockHttpResponse)))
@@ -137,16 +129,11 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(runtimeException))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] =
+      val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
         connector.getReportingWindowStatus.value.futureValue
 
-      result match {
-        case Left(error) =>
-          error.statusCode shouldBe 500
-          error.message      should include("Unexpected error: Connection timeout")
-        case Right(_) =>
-          fail("Expected a Left, but got a Right")
-      }
+      result.statusCode shouldBe 500
+      result.message      should include("Unexpected error: Connection timeout")
     }
   }
 

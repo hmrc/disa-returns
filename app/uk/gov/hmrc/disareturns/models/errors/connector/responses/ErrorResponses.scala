@@ -128,7 +128,6 @@ object ValidationFailureResponse {
 
     val fieldErrors: Seq[FieldValidationError] = jsError.errors.toSeq.flatMap { case (path, errs) =>
       errs.map { ve =>
-        println(Console.YELLOW + ve + Console.RESET)
         FieldValidationError(
           code = mapCode(ve.message),
           message = ve.message match {

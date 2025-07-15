@@ -36,7 +36,7 @@ class PPNSConnectorSpec extends BaseUnitSpec with RequestHelper {
     "return Right(Box) when call to PPNS returns a Box successfully" in new TestSetup {
       val expectedResponse: Box = Box(
         boxId = "boxId1",
-        boxName = "Test_Box",
+        boxName = Constants.BoxName,
         boxCreator = BoxCreator(clientId = testClientId),
         applicationId = Some("applicationId"),
         subscriber = None
@@ -91,28 +91,19 @@ class PPNSConnectorSpec extends BaseUnitSpec with RequestHelper {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(runtimeException))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getBox(testClientId).value.futureValue
+      val Left(result): Either[UpstreamErrorResponse, HttpResponse] = connector.getBox(testClientId).value.futureValue
 
-      result match {
-        case Left(error) =>
-          error.statusCode shouldBe 500
-          error.message      should include("Unexpected error: Connection timeout")
-        case Right(_) =>
-          fail("Expected a Left, but got a Right")
+      result.statusCode shouldBe 500
+      result.message      should include("Unexpected error: Connection timeout")
       }
-    }
   }
 
   trait TestSetup {
     val connector: PPNSConnector = new PPNSConnector(mockHttpClient, mockAppConfig, mockHttpClientResponse)
     val testClientId = "test-client-id-12345"
     val testUrl: String = "http://localhost:6701"
-    val query = makeQueryString(Seq("clientId" -> testClientId, "boxName" -> Constants.BoxName))
-
-
-    println(Console.GREEN + testUrl +url + Console.RESET)
     when(mockAppConfig.ppnsBaseUrl).thenReturn(testUrl)
-    when(mockHttpClient.get(url"$testUrl/box$url"))
+    when(mockHttpClient.get(url"$testUrl/box?clientId=test-client-id-12345&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"))
       .thenReturn(mockRequestBuilder)
   }
 }

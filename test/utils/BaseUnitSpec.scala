@@ -51,7 +51,4 @@ abstract class BaseUnitSpec
   val mockPPNSConnector:  PPNSConnector  = mock[PPNSConnector]
   val mockETMPConnector:  ETMPConnector  = mock[ETMPConnector]
   val mockHttpClientResponse:  HttpClientResponse  = mock[HttpClientResponse]
-  val url                   = "/box?clientId=test-client-id-12345&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"
-
-
 }

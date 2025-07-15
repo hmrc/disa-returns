@@ -69,7 +69,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
   def stubPPNSBoxId(): Unit =
     stubFor(
-      get(urlEqualTo(s"/box?clientId=$testClientId"))
+      get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations/declaration/isa/return%23%231.0%23%23callbackUrl"))
         .willReturn(ok(boxResponseJson))
     )
 
