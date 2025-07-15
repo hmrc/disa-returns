@@ -33,7 +33,7 @@ case class InitiateSubmission(returnId: String,
 
 object InitiateSubmission {
 
-  val reads = (
+  private val reads = (
     (__ \ "returnId").read[String] and
       (__ \ "boxId").read[String] and
       (__ \ "submissionRequest").read[SubmissionRequest] and
@@ -41,7 +41,7 @@ object InitiateSubmission {
       (__ \ "createdAt").read[Instant](MongoJavatimeFormats.instantFormat)
     )(InitiateSubmission.apply _)
 
-  val writes = (
+  private val writes = (
     (__ \ "returnId").write[String] and
       (__ \ "boxId").write[String] and
       (__ \ "submissionRequest").write[SubmissionRequest] and
@@ -51,6 +51,6 @@ object InitiateSubmission {
 
   implicit val format: OFormat[InitiateSubmission] = OFormat(reads, writes)
 
-  def create(boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String): InitiateSubmission =
-    InitiateSubmission(UUID.randomUUID().toString, boxId, submissionRequest, isaManagerReference)
+  def create(boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String, createdAt: Instant = Instant.now()): InitiateSubmission =
+    InitiateSubmission(UUID.randomUUID().toString, boxId, submissionRequest, isaManagerReference,createdAt = createdAt)
 }
