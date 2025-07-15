@@ -22,6 +22,7 @@ import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.InitiateSubmission
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -32,8 +33,10 @@ class InitiateSubmissionRepository @Inject() (mc: MongoComponent)(implicit ec: E
       domainFormat = InitiateSubmission.format,
       indexes = Seq(
         IndexModel(
-          keys = Indexes.ascending("returnId"),
-          indexOptions = IndexOptions().unique(true)
+          keys = Indexes.ascending("createdAt"),
+          indexOptions = IndexOptions()
+            .name("createdAtTtlIdx")
+            .expireAfter(30, TimeUnit.DAYS)
         )
       )
     ) {
@@ -41,9 +44,8 @@ class InitiateSubmissionRepository @Inject() (mc: MongoComponent)(implicit ec: E
   def insert(initiateSubmission: InitiateSubmission): Future[String] =
     collection.insertOne(initiateSubmission).toFuture().map(_ => initiateSubmission.returnId)
 
-  def findByIsaManagerReference(isaManagerReference: String): Future[Option[InitiateSubmission]] = {
+  def findByIsaManagerReference(isaManagerReference: String): Future[Option[InitiateSubmission]] =
     collection.find(equal("isaManagerReference", isaManagerReference)).headOption()
-  }
 
   def dropCollection(): Future[Unit] =
     collection.drop().toFuture().map(_ => ())

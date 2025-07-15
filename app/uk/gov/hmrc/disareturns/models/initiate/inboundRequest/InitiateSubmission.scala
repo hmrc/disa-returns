@@ -16,18 +16,40 @@
 
 package uk.gov.hmrc.disareturns.models.initiate.inboundRequest
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
+import play.api.libs.json.{Json, OFormat, __}
 import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
+import java.time.Instant
 import java.util.UUID
 
 case class InitiateSubmission(returnId: String,
                               boxId: String,
                               submissionRequest: SubmissionRequest,
-                              isaManagerReference: String)
+                              isaManagerReference: String,
+                              createdAt: Instant = Instant.now()
+                             )
 
 object InitiateSubmission {
-  implicit val format: OFormat[InitiateSubmission] = Json.format[InitiateSubmission]
+
+  val reads = (
+    (__ \ "returnId").read[String] and
+      (__ \ "boxId").read[String] and
+      (__ \ "submissionRequest").read[SubmissionRequest] and
+      (__ \ "isaManagerReference").read[String] and
+      (__ \ "createdAt").read[Instant](MongoJavatimeFormats.instantFormat)
+    )(InitiateSubmission.apply _)
+
+  val writes = (
+    (__ \ "returnId").write[String] and
+      (__ \ "boxId").write[String] and
+      (__ \ "submissionRequest").write[SubmissionRequest] and
+      (__ \ "isaManagerReference").write[String] and
+      (__ \ "createdAt").write[Instant](MongoJavatimeFormats.instantFormat)
+    )(unlift(InitiateSubmission.unapply))
+
+  implicit val format: OFormat[InitiateSubmission] = OFormat(reads, writes)
 
   def create(boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String): InitiateSubmission =
     InitiateSubmission(UUID.randomUUID().toString, boxId, submissionRequest, isaManagerReference)

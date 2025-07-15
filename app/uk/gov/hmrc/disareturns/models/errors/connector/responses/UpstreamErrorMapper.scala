@@ -31,11 +31,11 @@ object UpstreamErrorMapper extends Logging {
              UpstreamErrorResponse(_, 502, _, _) |
              UpstreamErrorResponse(_, 503, _, _) =>
           logger.error(s"Mapping ${err.statusCode} to InternalServerError")
-          InternalServerError
+          InternalServerErr
 
         case UpstreamErrorResponse(_, statusCode, _, _) if statusCode >= 400 =>
           logger.error(s"Unhandled upstream error with status=$statusCode, mapping to InternalServerError")
-          InternalServerError
+          InternalServerErr
         //???
       }
     }

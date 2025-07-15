@@ -36,20 +36,19 @@ object TaxYear {
   implicit val reads: Reads[TaxYear] = Reads {
     case JsNumber(num) =>
       if (!num.isValidInt) {
-        JsError(JsonValidationError("Tax year must be a valid whole number"))
+        JsError(JsonValidationError("error.taxYear.not.whole.integer"))
       } else {
         val year = num.toInt
         if (year < currentTaxYear) {
-          JsError(JsonValidationError("Tax year cannot be in the past"))
+          JsError(JsonValidationError("error.taxYear.in.past"))
         } else if (year > currentTaxYear) {
-          JsError(JsonValidationError(s"Tax year must be the current tax year: $currentTaxYear"))
+          JsError(JsonValidationError("error.taxYear.not.current"))
         } else {
           JsSuccess(TaxYear(year))
         }
       }
-
     case _ =>
-      JsError(JsonValidationError("Tax year must be a number"))
+      JsError(JsonValidationError("error.taxYear.not.integer"))
   }
 
   implicit val writes: Writes[TaxYear] = Writes(t => JsNumber(t.endYear))

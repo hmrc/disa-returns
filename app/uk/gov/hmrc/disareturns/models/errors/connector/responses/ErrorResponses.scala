@@ -39,7 +39,7 @@ case object Unauthorised extends ErrorResponse {
   val message = "Not authorised to access this service"
 }
 
-case object InternalServerError extends ErrorResponse {
+case object InternalServerErr extends ErrorResponse {
   val code = "INTERNAL_SERVER_ERROR"
   val message = "There has been an issue processing your request"
 }
@@ -53,7 +53,7 @@ object ErrorResponse {
     ObligationClosed.code -> ObligationClosed,
     ReportingWindowClosed.code -> ReportingWindowClosed,
     Unauthorised.code -> Unauthorised,
-    InternalServerError.code -> InternalServerError
+    InternalServerErr.code -> InternalServerErr
   )
 
 
@@ -111,12 +111,10 @@ object ValidationFailureResponse {
     def mapCode(message: String): String = message match {
       case "error.path.missing" => "MISSING_FIELD"
       case "INVALID_YEAR" => "INVALID_YEAR"
-      case "INVALID_YEAR_FORMAT" => "INVALID_YEAR"
       case "MISSING_FIELD" => "MISSING_FIELD"
       case _ => "VALIDATION_ERROR"
     }
 
-    // TODO: check if this is the best way, Tap had an example JsPath used somewhere
     def formatPath(jsPath: JsPath): String = {
       val pathString = jsPath.path.map {
         case KeyPathNode(key) => s"/$key"
@@ -132,10 +130,11 @@ object ValidationFailureResponse {
           code = mapCode(ve.message),
           message = ve.message match {
             case "error.path.missing" => "This field is required"
-            case "INVALID_YEAR" => "Year is in the past"
-            case "MISSING_FIELD" => "This field is required"
-            case "error.min" => "This field must be greater than or equal to 0" //Review with team
-            case "INVALID_YEAR" => "Year must be the current tax year" //Review with team
+            case "error.taxYear.not.whole.integer" => "Tax year must be a valid whole number"
+            case "error.taxYear.in.past" => "Tax year cannot be in the past"
+            case "error.taxYear.not.current" => "Tax year must be the current tax year"
+            case "error.taxYear.not.integer" => "Tax year must be a number"
+            case "error.min" => "This field must be greater than or equal to 0"
             case "error.expected.validenumvalue" => "Invalid month provided"
             case "error.expected.jsnumber" => "This field must be greater than or equal to 0"
             case other => other
