@@ -16,22 +16,12 @@
 
 package uk.gov.hmrc.disareturns.utils
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, stubFor}
-import play.api.http.Status.OK
+import java.net.URLEncoder
 
-trait CommonStubs {
+trait RequestHelper {
+  def makeQueryString(queryParams: Seq[(String, String)]): String = {
+    val paramPairs = queryParams.map { case (k, v) => s"$k=${URLEncoder.encode(v, "utf-8")}" }
+    if (paramPairs.isEmpty) "" else paramPairs.mkString("?", "&", "")
+  }
 
-  def stubAuth(): Unit =
-    stubFor {
-      post("/auth/authorise")
-        .willReturn {
-          aResponse.withStatus(OK).withBody("{}")
-        }
-    }
-
-  val testClientId = "test-client-id"
-  val testHeaders :Seq[(String, String)] = Seq(
-    "X-Client-ID"   -> testClientId,
-    "Authorization" -> "mock-bearer-token"
-  )
 }

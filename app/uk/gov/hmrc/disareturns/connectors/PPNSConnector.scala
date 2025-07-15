@@ -21,22 +21,29 @@ import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.http.HttpReadsInstances.readEitherOf
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
+import uk.gov.hmrc.disareturns.config.Constants
+import uk.gov.hmrc.disareturns.utils._
 
+import java.net.{URL, URLEncoder}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class PPNSConnector @Inject() (http: HttpClientV2,
-                               appConfig: AppConfig,
-                               httpClientResponse: HttpClientResponse)(implicit ec: ExecutionContext) {
+class PPNSConnector @Inject() (http: HttpClientV2, appConfig: AppConfig, httpClientResponse: HttpClientResponse)(implicit ec: ExecutionContext)
+    extends RequestHelper {
 
-  def getBox(clientId: String)
-            (implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.ppnsBaseUrl}/box?clientId=$clientId"
-//    val url = s"${appConfig.ppnsBaseUrl}/box?clientId=$clientId&boxName=boxName1"
+  def getBox(clientId: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+
+    val query = makeQueryString(Seq("clientId" -> clientId, "boxName" -> Constants.BoxName))
+
+    val url = s"${appConfig.ppnsBaseUrl}/box$query"
+
+    println(Console.BLUE + "connector url" +url + Console.RESET)
+
     httpClientResponse.read(
-    http
-      .get(url"$url")
-      .execute[Either[UpstreamErrorResponse, HttpResponse]]
+      http
+        .get(url"$url")
+        .execute[Either[UpstreamErrorResponse, HttpResponse]]
     )
+
   }
 }

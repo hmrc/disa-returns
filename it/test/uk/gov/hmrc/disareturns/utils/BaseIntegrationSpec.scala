@@ -37,17 +37,25 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.guice.{GuiceOneAppPerSuite, GuiceOneServerPerSuite}
 import play.api.Application
+import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.{DefaultWSCookie, WSClient, WSCookie}
 import play.api.mvc.{Cookie, Session, SessionCookieBaker}
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.crypto.PlainText
+import uk.gov.hmrc.disareturns.config.Constants
 import uk.gov.hmrc.disareturns.utils.WiremockHelper.{wiremockHost, wiremockPort}
 import uk.gov.hmrc.http.{HeaderCarrier, SessionKeys}
 
 trait BaseIntegrationSpec
-    extends AnyWordSpec with Matchers with GuiceOneServerPerSuite with BeforeAndAfterEach with BeforeAndAfterAll
-    with DefaultAwaitTimeout with WiremockHelper with CommonStubs {
+    extends AnyWordSpec
+    with Matchers
+    with GuiceOneServerPerSuite
+    with BeforeAndAfterEach
+    with BeforeAndAfterAll
+    with DefaultAwaitTimeout
+    with WiremockHelper
+    with CommonStubs {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -57,13 +65,13 @@ trait BaseIntegrationSpec
 
   def config: Map[String, String] =
     Map(
-      "auditing.enabled"                              -> "false",
+      "auditing.enabled"                -> "false",
       "microservice.services.etmp.host" -> wiremockHost,
       "microservice.services.etmp.port" -> wiremockPort.toString,
       "microservice.services.ppns.host" -> wiremockHost,
       "microservice.services.ppns.port" -> wiremockPort.toString,
       "microservice.services.auth.host" -> wiremockHost,
-      "microservice.services.auth.port" -> wiremockPort.toString,
+      "microservice.services.auth.port" -> wiremockPort.toString
     )
 
   override def beforeAll(): Unit = {

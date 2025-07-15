@@ -23,9 +23,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.config.Constants
 import uk.gov.hmrc.disareturns.connectors.{ETMPConnector, HttpClientResponse, PPNSConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
+
 
 import scala.concurrent.ExecutionContext
 
@@ -49,5 +51,7 @@ abstract class BaseUnitSpec
   val mockPPNSConnector:  PPNSConnector  = mock[PPNSConnector]
   val mockETMPConnector:  ETMPConnector  = mock[ETMPConnector]
   val mockHttpClientResponse:  HttpClientResponse  = mock[HttpClientResponse]
+  val url                   = "/box?clientId=test-client-id-12345&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"
+
 
 }

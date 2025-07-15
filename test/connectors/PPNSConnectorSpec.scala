@@ -20,14 +20,16 @@ import cats.data.EitherT
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import play.api.libs.json.Json
+import uk.gov.hmrc.disareturns.config.Constants
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
 import uk.gov.hmrc.disareturns.models.ppns.response.{Box, BoxCreator}
+import uk.gov.hmrc.disareturns.utils.RequestHelper
 import uk.gov.hmrc.http.{HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
 
-class PPNSConnectorSpec extends BaseUnitSpec {
+class PPNSConnectorSpec extends BaseUnitSpec with RequestHelper {
 
   "PPNSConnector.getBoxId" should {
 
@@ -43,7 +45,8 @@ class PPNSConnectorSpec extends BaseUnitSpec {
 
       when(mockHttpClientResponse.read(any()))
         .thenAnswer { invocation =>
-          val future = invocation.getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
+          val future = invocation
+            .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
           EitherT(future)
         }
 
@@ -76,11 +79,11 @@ class PPNSConnectorSpec extends BaseUnitSpec {
 
       when(mockHttpClientResponse.read(any()))
         .thenAnswer { invocation =>
-          val future = invocation.getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
+          val future = invocation
+            .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
           EitherT(
-            future.recover {
-              case e =>
-                Left(UpstreamErrorResponse(s"Unexpected error: ${e.getMessage}", 500, 500))
+            future.recover { case e =>
+              Left(UpstreamErrorResponse(s"Unexpected error: ${e.getMessage}", 500, 500))
             }
           )
         }
@@ -104,8 +107,12 @@ class PPNSConnectorSpec extends BaseUnitSpec {
     val connector: PPNSConnector = new PPNSConnector(mockHttpClient, mockAppConfig, mockHttpClientResponse)
     val testClientId = "test-client-id-12345"
     val testUrl: String = "http://localhost:6701"
+    val query = makeQueryString(Seq("clientId" -> testClientId, "boxName" -> Constants.BoxName))
+
+
+    println(Console.GREEN + testUrl +url + Console.RESET)
     when(mockAppConfig.ppnsBaseUrl).thenReturn(testUrl)
-    when(mockHttpClient.get(url"$testUrl/box?clientId=$testClientId"))
+    when(mockHttpClient.get(url"$testUrl/box$url"))
       .thenReturn(mockRequestBuilder)
   }
 }

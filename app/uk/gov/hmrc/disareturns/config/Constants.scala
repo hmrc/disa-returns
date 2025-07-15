@@ -14,24 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.utils
+package uk.gov.hmrc.disareturns.config
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, stubFor}
-import play.api.http.Status.OK
+object Constants {
 
-trait CommonStubs {
+  val BoxName = "obligations/declaration/isa/return##1.0##callbackUrl"
 
-  def stubAuth(): Unit =
-    stubFor {
-      post("/auth/authorise")
-        .willReturn {
-          aResponse.withStatus(OK).withBody("{}")
-        }
-    }
-
-  val testClientId = "test-client-id"
-  val testHeaders :Seq[(String, String)] = Seq(
-    "X-Client-ID"   -> testClientId,
-    "Authorization" -> "mock-bearer-token"
-  )
 }

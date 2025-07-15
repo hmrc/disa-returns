@@ -17,6 +17,7 @@ lazy val microservice = Project("disa-returns", file("."))
     Compile / unmanagedResourceDirectories += baseDirectory.value / "resources"
   )
   .disablePlugins(JUnitXmlReportPlugin)
+  .settings(PlayKeys.playDefaultPort := 1200)
 
 addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck")
 

@@ -18,14 +18,17 @@ package uk.gov.hmrc.disareturns.connector
 
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.test.Helpers.await
+import uk.gov.hmrc.disareturns.config.Constants
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
-import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 import uk.gov.hmrc.disareturns.utils.WiremockHelper._
+import uk.gov.hmrc.disareturns.utils.{BaseIntegrationSpec, RequestHelper}
 
-class PPNSConnectorISpec extends BaseIntegrationSpec {
+class PPNSConnectorISpec extends BaseIntegrationSpec with RequestHelper {
 
   lazy val connector: PPNSConnector = app.injector.instanceOf[PPNSConnector]
-  val testClientId = "test-client-id-12345"
+
+  override val testClientId = "test-client-id-12345"
+  val url                   = "/box?clientId=test-client-id-12345&boxName=obligations/declaration/isa/return%23%231.0%23%23callbackUrl"
 
   "PPNSConnector.getBoxId" should {
 
@@ -34,7 +37,7 @@ class PPNSConnectorISpec extends BaseIntegrationSpec {
         s"""
            |{
            |  "boxId": "boxId1",
-           |  "boxName": "Test_Box",
+           |  "boxName": "${Constants.BoxName}",
            |  "boxCreator": {
            |    "clientId": "$testClientId"
            |  },
@@ -42,24 +45,24 @@ class PPNSConnectorISpec extends BaseIntegrationSpec {
            |}
            |""".stripMargin
 
-      stubGet(url = s"/box?clientId=$testClientId", status = OK, body = boxJson)
-
+      stubGet(url = url, status = OK, body = boxJson)
       val Right(response) = await(connector.getBox(testClientId).value)
 
-      response.status shouldBe OK
-      (response.json \ "boxId").as[String] shouldBe "boxId1"
-      (response.json \ "boxName").as[String] shouldBe "Test_Box"
+      response.status                                        shouldBe OK
+      (response.json \ "boxId").as[String]                   shouldBe "boxId1"
+      (response.json \ "boxName").as[String]                 shouldBe s"${Constants.BoxName}"
       (response.json \ "boxCreator" \ "clientId").as[String] shouldBe testClientId
-      (response.json \ "applicationId").as[String] shouldBe "applicationId"
+      (response.json \ "applicationId").as[String]           shouldBe "applicationId"
+
     }
 
     "return Left(UpstreamErrorResponse) when PPNS returns a 401" in {
 
-      stubGet(url = s"/box?clientId=$testClientId", status = UNAUTHORIZED, body = "Unauthorized")
+      stubGet(url = url, status = UNAUTHORIZED, body = "Unauthorized")
 
       val Left(response) = await(connector.getBox(testClientId).value)
       response.statusCode shouldBe UNAUTHORIZED
-      response.message should include("Unauthorized")
+      response.message      should include("Unauthorized")
     }
 
     "return Left(UpstreamErrorResponse) when the call fails with unexpected exception" in {
@@ -67,7 +70,7 @@ class PPNSConnectorISpec extends BaseIntegrationSpec {
 
       val Left(response) = await(connector.getBox(testClientId).value)
       response.statusCode shouldBe INTERNAL_SERVER_ERROR
-      response.message should include("Unexpected error:")
+      response.message      should include("Unexpected error:")
     }
   }
 }
