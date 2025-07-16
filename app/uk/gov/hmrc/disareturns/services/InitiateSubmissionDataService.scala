@@ -21,11 +21,9 @@ import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
 import uk.gov.hmrc.disareturns.repositories.InitiateSubmissionRepository
 
 import javax.inject.Inject
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
-class InitiateSubmissionDataService @Inject() (
-  repository:  InitiateSubmissionRepository
-)(implicit ec: ExecutionContext) {
+class InitiateSubmissionDataService @Inject() (repository: InitiateSubmissionRepository) {
 
   def saveInitiateSubmission(boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String): Future[String] = {
     val initiateSubmission =

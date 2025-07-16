@@ -24,7 +24,6 @@ sealed trait ErrorResponse {
 }
 
 case object ObligationClosed extends ErrorResponse {
-  //Check this
   val code    = "RETURN_OBLIGATION_ALREADY_MET"
   val message = "Return obligation already met"
 }
@@ -66,19 +65,22 @@ object ErrorResponse {
           JsError(s"Unknown error code: $other")
       }
 
-    override def writes(o: ErrorResponse): JsValue = o match {
-      case singleton if singletons.values.toSet.contains(singleton) =>
-        Json.obj("code" -> singleton.code, "message" -> singleton.message)
-
+    override def writes(errorResponse: ErrorResponse): JsValue = errorResponse match {
+      case ObligationClosed =>
+        Json.obj("code" -> ObligationClosed.code, "message" -> ObligationClosed.message)
+      case ReportingWindowClosed =>
+        Json.obj("code" -> ReportingWindowClosed.code, "message" -> ReportingWindowClosed.message)
+      case Unauthorised =>
+        Json.obj("code" -> Unauthorised.code, "message" -> Unauthorised.message)
+      case InternalServerErr =>
+        Json.obj("code" -> InternalServerErr.code, "message" -> InternalServerErr.message)
       case m: MultipleErrorResponse =>
         Json.toJson(m)(MultipleErrorResponse.format)
-
       case v: FieldValidationError =>
-        Json.obj(
-          "code"    -> v.code,
-          "message" -> v.message,
-          "path"    -> v.path
-        )
+        Json.obj("code" -> v.code, "message" -> v.message, "path" -> v.path)
+      case other =>
+        // Optional: catch-all for future-proofing or logging
+        Json.obj("code" -> "UNKNOWN", "message" -> "Unknown error response")
     }
   }
 }

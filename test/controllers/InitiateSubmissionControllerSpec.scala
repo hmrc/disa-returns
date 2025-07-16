@@ -46,8 +46,10 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
     "taxYear"          -> 2025
   )
 
-  override def beforeEach(): Unit =
+  override def beforeEach(): Unit = {
+    super.beforeEach()
     reset(mockETMPService, mockPPNSService, mockInitiateSubmissionDataService)
+  }
 
   "InitiateSubmissionController.initiate" should {
 

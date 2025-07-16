@@ -17,7 +17,7 @@
 package uk.gov.hmrc.disareturns.models.initiate.inboundRequest
 
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
-import play.api.libs.json.{Json, OFormat, __}
+import play.api.libs.json.{OFormat, __}
 import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
