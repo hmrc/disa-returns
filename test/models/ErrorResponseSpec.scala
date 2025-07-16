@@ -17,7 +17,7 @@
 package models
 
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, FieldValidationError, MultipleErrorResponse, ObligationClosed}
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, FieldValidationError, MultipleErrorResponse, ObligationClosed, Unauthorised}
 import utils.BaseUnitSpec
 
 class ErrorResponseSpec extends BaseUnitSpec {
@@ -33,6 +33,16 @@ class ErrorResponseSpec extends BaseUnitSpec {
       val result = Json.fromJson[ErrorResponse](json)
 
       result shouldBe JsSuccess(ObligationClosed)
+    }
+    "deserialize a unauthorised error" in {
+      val json = Json.obj(
+        "code"    -> Unauthorised.code,
+        "message" -> Unauthorised.message
+      )
+
+      val result = Json.fromJson[ErrorResponse](json)
+
+      result shouldBe JsSuccess(Unauthorised)
     }
 
     "deserialize a MultipleErrorResponse with code FORBIDDEN" in {

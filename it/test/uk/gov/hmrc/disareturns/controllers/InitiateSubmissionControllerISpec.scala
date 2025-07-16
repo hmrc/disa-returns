@@ -166,7 +166,6 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
       errors.map(e => (e \ "message").as[String])(1) shouldBe "Return obligation already met"
     }
 
-    //submission period
     "return 400 Bad Request when request fails validation with invalid submissionPeriod" in {
       val result = initiateRequest(invalidRequestJson)
 
@@ -224,9 +223,9 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
     (result.json \ "message").as[String] shouldBe "Bad request"
 
     val errors = (result.json \ "errors").as[Seq[JsValue]]
-    errors.map(e => (e \ "code").as[String])(0)    shouldBe "INVALID_YEAR"
-    errors.map(e => (e \ "message").as[String])(0) shouldBe "Tax year must be a valid whole number"
-    errors.map(e => (e \ "path").as[String])(0)    shouldBe "/taxYear"
+    errors.map(e => (e \ "code").as[String]).head    shouldBe "INVALID_YEAR"
+    errors.map(e => (e \ "message").as[String]).head shouldBe "Tax year must be a valid whole number"
+    errors.map(e => (e \ "path").as[String]).head    shouldBe "/taxYear"
 
   }
 
@@ -283,9 +282,9 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
     (result.json \ "message").as[String] shouldBe "Bad request"
 
     val errors = (result.json \ "errors").as[Seq[JsValue]]
-    errors.map(e => (e \ "code").as[String] shouldBe "VALIDATION_ERROR")
-    errors.map(e => (e \ "path").as[String] shouldBe "/totalRecords")
-    errors.map(e => (e \ "message").as[String] shouldBe "This field must be greater than or equal to 0")
+    errors.map(e => (e \ "code").as[String]).head    shouldBe "VALIDATION_ERROR"
+    errors.map(e => (e \ "path").as[String]).head    shouldBe "/totalRecords"
+    errors.map(e => (e \ "message").as[String]).head shouldBe "This field must be greater than or equal to 0"
   }
 
   "return 400 Bad Request when request fails validation with a missing fields" in {

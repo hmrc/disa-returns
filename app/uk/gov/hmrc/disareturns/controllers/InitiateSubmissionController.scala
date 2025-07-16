@@ -22,7 +22,7 @@ import jakarta.inject.Singleton
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, InternalServerErr, ValidationFailureResponse}
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, InternalServerErr, Unauthorised, ValidationFailureResponse}
 import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
 import uk.gov.hmrc.disareturns.models.initiate.response.SuccessResponse
 import uk.gov.hmrc.disareturns.services.{ETMPService, InitiateSubmissionDataService, PPNSService}
@@ -67,6 +67,7 @@ class InitiateSubmissionController @Inject() (
             )).value.map {
               case Right(response)         => Ok(Json.toJson(response))
               case Left(InternalServerErr) => InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
+              case Left(Unauthorised)      => Unauthorized(Json.toJson(Unauthorised: ErrorResponse))
               case Left(error)             => Forbidden(Json.toJson(error))
             }
         )

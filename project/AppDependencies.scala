@@ -22,6 +22,6 @@ object AppDependencies {
 
   val it: Seq[ModuleID] = Seq(
     "org.typelevel"          %% "cats-core"                 % "2.13.0",
-    "org.scalatestplus.play" %% "scalatestplus-play"        % "7.0.1"   % Test,
+    "org.scalatestplus.play" %% "scalatestplus-play"        % "7.0.2"   % Test,
   )
 }

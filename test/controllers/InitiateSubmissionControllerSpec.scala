@@ -25,7 +25,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.controllers.InitiateSubmissionController
-import uk.gov.hmrc.disareturns.models.errors.connector.responses.{InternalServerErr, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed}
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.{InternalServerErr, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed, Unauthorised}
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -128,9 +128,9 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
 
       val result = controller.initiate(isaManagerRef)(request)
 
-      status(result)                               shouldBe BAD_REQUEST
-      (contentAsJson(result) \ "message").as[String] should include("Bad request")
-      (contentAsJson(result) \ "code").as[String]    should include("VALIDATION_FAILURE")
+      status(result)                                 shouldBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] shouldBe "Bad request"
+      (contentAsJson(result) \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
       val errors = (contentAsJson(result) \ "errors").as[Seq[JsValue]]
       errors.map(e => (e \ "code").as[String]).head    shouldBe "VALIDATION_ERROR"
       errors.map(e => (e \ "message").as[String]).head shouldBe "Invalid month provided"
@@ -223,6 +223,20 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
       status(result)                                 shouldBe INTERNAL_SERVER_ERROR
       (contentAsJson(result) \ "message").as[String] shouldBe "There has been an issue processing your request"
       (contentAsJson(result) \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
+    }
+    "return 401 Unauthorised  when ETMP responds with an unauthorised error" in {
+      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(EitherT.leftT(Unauthorised))
+      val request = FakeRequest("POST", s"/initiate/$isaManagerRef")
+        .withHeaders("X-Client-ID" -> "client-abc")
+        .withBody(validSubmissionJson)
+
+      val result = controller.initiate(isaManagerRef)(request)
+
+      status(result)                                 shouldBe UNAUTHORIZED
+      (contentAsJson(result) \ "message").as[String] shouldBe "Not authorised to access this service"
+      (contentAsJson(result) \ "code").as[String]    shouldBe "UNAUTHORISED"
     }
   }
 }
