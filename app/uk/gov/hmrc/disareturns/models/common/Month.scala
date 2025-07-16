@@ -18,7 +18,6 @@ package uk.gov.hmrc.disareturns.models.common
 
 import play.api.libs.json._
 
-
 object Month extends Enumeration {
 
   type Month = Value

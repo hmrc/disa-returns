@@ -24,12 +24,13 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import java.time.Instant
 import java.util.UUID
 
-case class InitiateSubmission(returnId: String,
-                              boxId: String,
-                              submissionRequest: SubmissionRequest,
-                              isaManagerReference: String,
-                              createdAt: Instant = Instant.now()
-                             )
+case class InitiateSubmission(
+  returnId:            String,
+  boxId:               String,
+  submissionRequest:   SubmissionRequest,
+  isaManagerReference: String,
+  createdAt:           Instant = Instant.now()
+)
 
 object InitiateSubmission {
 
@@ -39,7 +40,7 @@ object InitiateSubmission {
       (__ \ "submissionRequest").read[SubmissionRequest] and
       (__ \ "isaManagerReference").read[String] and
       (__ \ "createdAt").read[Instant](MongoJavatimeFormats.instantFormat)
-    )(InitiateSubmission.apply _)
+  )(InitiateSubmission.apply _)
 
   private val writes = (
     (__ \ "returnId").write[String] and
@@ -47,10 +48,15 @@ object InitiateSubmission {
       (__ \ "submissionRequest").write[SubmissionRequest] and
       (__ \ "isaManagerReference").write[String] and
       (__ \ "createdAt").write[Instant](MongoJavatimeFormats.instantFormat)
-    )(unlift(InitiateSubmission.unapply))
+  )(unlift(InitiateSubmission.unapply))
 
   implicit val format: OFormat[InitiateSubmission] = OFormat(reads, writes)
 
-  def create(boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String, createdAt: Instant = Instant.now()): InitiateSubmission =
-    InitiateSubmission(UUID.randomUUID().toString, boxId, submissionRequest, isaManagerReference,createdAt = createdAt)
+  def create(
+    boxId:               String,
+    submissionRequest:   SubmissionRequest,
+    isaManagerReference: String,
+    createdAt:           Instant = Instant.now()
+  ): InitiateSubmission =
+    InitiateSubmission(UUID.randomUUID().toString, boxId, submissionRequest, isaManagerReference, createdAt = createdAt)
 }

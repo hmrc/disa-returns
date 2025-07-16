@@ -55,17 +55,17 @@ class MonthSpec extends AnyWordSpec with Matchers {
 
     "fail to deserialize invalid month strings" in {
       val invalidJson = JsString("INVALID_MONTH")
-      val result = invalidJson.validate[Month.Value]
+      val result      = invalidJson.validate[Month.Value]
 
-      result.isError shouldBe true
+      result.isError                                          shouldBe true
       result.asEither.left.get.head._2.head.message.toLowerCase should include("error.expected.validenumvalue")
     }
 
     "fail to deserialize non-string JSON values" in {
       val nonStringJson = JsNumber(123)
-      val result = nonStringJson.validate[Month.Value]
+      val result        = nonStringJson.validate[Month.Value]
 
-      result.isError shouldBe true
+      result.isError                                          shouldBe true
       result.asEither.left.get.head._2.head.message.toLowerCase should include("error.expected.enumstring")
     }
   }

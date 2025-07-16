@@ -18,7 +18,7 @@ package uk.gov.hmrc.disareturns.models.initiate.inboundRequest
 
 import play.api.libs.json._
 
-import java.time.LocalDate
+import java.time.{Clock, LocalDate}
 
 final case class TaxYear(endYear: Int) extends AnyVal {
 
@@ -26,11 +26,12 @@ final case class TaxYear(endYear: Int) extends AnyVal {
 }
 
 object TaxYear {
-  private def now: LocalDate = LocalDate.now()
+  def now(clock: Clock = Clock.systemDefaultZone()): LocalDate = LocalDate.now(clock)
 
-  private def currentTaxYear: Int = {
-    val cutoff = LocalDate.of(now.getYear, 4, 6) // new tax year starts on April 6
-    if (now.isBefore(cutoff)) now.getYear - 1 else now.getYear
+  def currentTaxYear(clock: Clock = Clock.systemDefaultZone()): Int = {
+    val today  = now(clock) // renamed from 'now' to 'today'
+    val cutoff = LocalDate.of(today.getYear, 4, 6)
+    if (today.isBefore(cutoff)) today.getYear - 1 else today.getYear
   }
 
   implicit val reads: Reads[TaxYear] = Reads {
@@ -39,9 +40,9 @@ object TaxYear {
         JsError(JsonValidationError("error.taxYear.not.whole.integer"))
       } else {
         val year = num.toInt
-        if (year < currentTaxYear) {
+        if (year < currentTaxYear()) {
           JsError(JsonValidationError("error.taxYear.in.past"))
-        } else if (year > currentTaxYear) {
+        } else if (year > currentTaxYear()) {
           JsError(JsonValidationError("error.taxYear.not.current"))
         } else {
           JsSuccess(TaxYear(year))

@@ -33,6 +33,10 @@ class InitiateSubmissionRepository @Inject() (mc: MongoComponent)(implicit ec: E
       domainFormat = InitiateSubmission.format,
       indexes = Seq(
         IndexModel(
+          keys = Indexes.ascending("returnId"),
+          indexOptions = IndexOptions().unique(true).name("returnIdUniqueIdx")
+        ),
+        IndexModel(
           keys = Indexes.ascending("createdAt"),
           indexOptions = IndexOptions()
             .name("createdAtTtlIdx")

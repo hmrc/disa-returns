@@ -32,6 +32,7 @@ package uk.gov.hmrc.disareturns.utils
  * limitations under the License.
  */
 
+import org.apache.pekko.stream.Materializer
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
@@ -89,6 +90,7 @@ trait BaseIntegrationSpec
     super.beforeEach()
   }
 
-  implicit val ws: WSClient = app.injector.instanceOf[WSClient]
+  implicit def mat: Materializer = app.injector.instanceOf[Materializer]
+  implicit val ws:  WSClient     = app.injector.instanceOf[WSClient]
 
 }

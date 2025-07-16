@@ -31,12 +31,14 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class InitiateSubmissionController @Inject()(
+class InitiateSubmissionController @Inject() (
   cc:                         ControllerComponents,
   val authConnector:          AuthConnector,
   etmpService:                ETMPService,
   ppnsService:                PPNSService,
-  mongoJourneyAnswersService: InitiateSubmissionDataService)(implicit ec: ExecutionContext) extends BackendController(cc)
+  mongoJourneyAnswersService: InitiateSubmissionDataService
+)(implicit ec:                ExecutionContext)
+    extends BackendController(cc)
     with HeaderCheckedAuthorisedFunctions {
 
   def initiate(isaManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
@@ -45,27 +47,27 @@ class InitiateSubmissionController @Inject()(
         .validate[SubmissionRequest]
         .fold(
           errors => {
-              val jsError = JsError(errors)
-              val validationFailure = ValidationFailureResponse.convertErrors(jsError)
-              Future.successful(BadRequest(Json.toJson(validationFailure)))
-            },
+            val jsError           = JsError(errors)
+            val validationFailure = ValidationFailureResponse.convertErrors(jsError)
+            Future.successful(BadRequest(Json.toJson(validationFailure)))
+          },
           submissionRequest =>
             (for {
               _     <- etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
               boxId <- ppnsService.getBoxId(clientId)
-              returnId <- EitherT.right[ErrorResponse](mongoJourneyAnswersService
-                .saveInitiateSubmission(
-                  boxId = boxId,
-                  submissionRequest = submissionRequest,
-                  isaManagerReference = isaManagerReferenceNumber))
+              returnId <-
+                EitherT.right[ErrorResponse](
+                  mongoJourneyAnswersService
+                    .saveInitiateSubmission(boxId = boxId, submissionRequest = submissionRequest, isaManagerReference = isaManagerReferenceNumber)
+                )
             } yield SuccessResponse(
               returnId = returnId,
               action = SubmissionRequest.setAction(totalRecords = submissionRequest.totalRecords),
               boxId = boxId
             )).value.map {
-              case Right(response) => Ok(Json.toJson(response))
+              case Right(response)         => Ok(Json.toJson(response))
               case Left(InternalServerErr) => InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
-              case Left(error)     => Forbidden(Json.toJson(error))
+              case Left(error)             => Forbidden(Json.toJson(error))
             }
         )
     }

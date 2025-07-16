@@ -41,7 +41,7 @@ import org.scalatest.concurrent.{Eventually, IntegrationPatience}
 
 object WiremockHelper extends Eventually with IntegrationPatience {
 
-  val wiremockPort: Int = 11111
+  val wiremockPort: Int    = 11111
   val wiremockHost: String = "localhost"
 
   def verifyPost(uri: String, optBody: Option[String] = None): Unit = {
@@ -77,8 +77,8 @@ trait WiremockHelper {
 
   import WiremockHelper._
 
-  lazy val wmConfig: WireMockConfiguration = wireMockConfig().port(wiremockPort)
-  lazy val wireMockServer: WireMockServer = new WireMockServer(wmConfig)
+  lazy val wmConfig:       WireMockConfiguration = wireMockConfig().port(wiremockPort)
+  lazy val wireMockServer: WireMockServer        = new WireMockServer(wmConfig)
 
   def startWiremock(): Unit = {
     wireMockServer.start()

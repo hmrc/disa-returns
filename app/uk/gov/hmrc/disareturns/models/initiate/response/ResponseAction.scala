@@ -22,7 +22,7 @@ import uk.gov.hmrc.disareturns.models.common.JsonUtils
 object ResponseAction extends Enumeration {
   type ResponseAction = Value
 
-  val SUBMIT_RETURN_TO_PAGINATED_API: Value = Value("SUBMIT_RETURN_TO_PAGINATED_API")
+  val SUBMIT_RETURN_TO_PAGINATED_API:        Value = Value("SUBMIT_RETURN_TO_PAGINATED_API")
   val NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION: Value = Value("NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION")
 
   implicit val format: Format[ResponseAction.Value] = JsonUtils.enumFormat(ResponseAction)

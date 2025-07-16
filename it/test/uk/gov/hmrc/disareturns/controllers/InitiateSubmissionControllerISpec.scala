@@ -24,6 +24,9 @@ import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.InitiateSubmission
 import uk.gov.hmrc.disareturns.repositories.InitiateSubmissionRepository
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
+import java.time.temporal.ChronoField.YEAR
+
+import java.time.LocalDateTime
 
 class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
@@ -34,13 +37,13 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
   val validRequestJson: JsObject = Json.obj(
     "totalRecords"     -> 100,
     "submissionPeriod" -> "APR",
-    "taxYear"          -> 2025
+    "taxYear"          -> LocalDateTime.now().getYear
   )
 
   val invalidRequestJson: JsObject = Json.obj(
     "totalRecords"     -> 9000,
     "submissionPeriod" -> "InvalidMonth",
-    "taxYear"          -> 2025
+    "taxYear"          -> LocalDateTime.now().getYear
   )
 
   def stubEtmpReportingWindow(status: Int, body: JsObject): Unit =
@@ -73,21 +76,9 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
         .willReturn(ok(boxResponseJson))
     )
 
-  def stubPPNSInternalServerError(): Unit =
-    stubFor(
-      get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations/declaration/isa/return%23%231.0%23%23callbackUrl"))
-        .willReturn(serverError)
-    )
-
-  def stubMongoSave(): Unit =
-    stubFor(
-      post(urlEqualTo(s"/mongo/submissions"))
-        .willReturn(ok(boxResponseJson))
-    )
-
   "POST /monthly/:isaManagerRef/init" should {
 
-    "return 200 OK when the submission is valid and all services respond successfully" in {
+    "return 200 OK when a valid request body is provided and ETMP checks are successful" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false))
       stubPPNSBoxId()
@@ -103,13 +94,16 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
       (result.json \ "action").as[String]   shouldBe "SUBMIT_RETURN_TO_PAGINATED_API"
       (result.json \ "boxId").as[String]    shouldBe "boxId1"
     }
-    "return 200 OK when the submission is valid for a nil return" in {
+
+    "return 200 OK when a valid nil return request body is provided and ETMP checks are successful" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false))
       stubPPNSBoxId()
 
-      val result = initiateRequest(validRequestJson +
-        ("totalRecords"          -> JsNumber(0)))
+      val result = initiateRequest(
+        validRequestJson +
+          ("totalRecords" -> JsNumber(0))
+      )
 
       result.status shouldBe OK
 
@@ -121,7 +115,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
       (result.json \ "boxId").as[String]    shouldBe "boxId1"
     }
 
-    "return a 500 when clientId is missing from the request header" in {
+    "return a 500 Internal Server Error when clientId is missing from the request header" in {
       val headersWithoutClientId: Seq[(String, String)] = Seq(
         "Authorization" -> "mock-bearer-token"
       )
@@ -130,7 +124,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
       (result.json \ "message").as[String] shouldBe "Missing required header: X-Client-ID"
     }
 
-    "return 403 Forbidden when obligation has already been met" in {
+    "return 403 Forbidden when ETMP returns obligation already met" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true))
       stubPPNSBoxId()
@@ -142,7 +136,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
       (result.json \ "message").as[String] shouldBe "Return obligation already met"
     }
 
-    "return 403 Forbidden when reporting window is closed" in {
+    "return 403 Forbidden when ETMP returns reporting window closed" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false))
       stubPPNSBoxId()
@@ -154,178 +148,237 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
       (result.json \ "message").as[String] shouldBe "Reporting window has been closed"
     }
 
-    "return 403 Forbidden and multiple error response when reporting window is closed and obligation has already been met" in {
+    "return 403 Forbidden with correct errors when ETMP reporting window is closed and obligation already met" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true))
       stubPPNSBoxId()
 
       val result = initiateRequest(validRequestJson)
-
       result.status                        shouldBe FORBIDDEN
       (result.json \ "code").as[String]    shouldBe "FORBIDDEN"
       (result.json \ "message").as[String] shouldBe "Multiple issues found regarding your submission"
+
       val errors = (result.json \ "errors").as[Seq[JsValue]]
-      errors.exists(e => (e \ "code").as[String].contains("RETURN_OBLIGATION_ALREADY_MET")) shouldBe true
-      errors.exists(e => (e \ "code").as[String].contains("REPORTING_WINDOW_CLOSED"))       shouldBe true
+      errors.map(e => (e \ "code").as[String]).head    shouldBe "REPORTING_WINDOW_CLOSED"
+      errors.map(e => (e \ "message").as[String]).head shouldBe "Reporting window has been closed"
+
+      errors.map(e => (e \ "code").as[String])(1)    shouldBe "RETURN_OBLIGATION_ALREADY_MET"
+      errors.map(e => (e \ "message").as[String])(1) shouldBe "Return obligation already met"
     }
 
-    "return 400 Bad Request when request fails validation with invalid month" in {
+    //submission period
+    "return 400 Bad Request when request fails validation with invalid submissionPeriod" in {
       val result = initiateRequest(invalidRequestJson)
 
       result.status                        shouldBe BAD_REQUEST
       (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
       (result.json \ "message").as[String] shouldBe "Bad request"
+
       val errors = (result.json \ "errors").as[Seq[JsValue]]
       errors.map(e => (e \ "code").as[String] shouldBe "VALIDATION_ERROR")
       errors.map(e => (e \ "path").as[String] shouldBe "/submissionPeriod")
       errors.map(e => (e \ "message").as[String] shouldBe "Invalid month provided")
     }
 
-    "return 400 Bad Request when request fails validation with invalid tax year" in {
+    "return 400 Bad Request when request fails validation submissionPeriod provided is an integer" in {
       val result = initiateRequest(
-        invalidRequestJson +
-          ("taxYear"          -> JsNumber(2026)) +
-          ("submissionPeriod" -> JsString("JAN"))
+        validRequestJson +
+          ("submissionPeriod" -> JsNumber(1))
       )
 
       result.status                        shouldBe BAD_REQUEST
       (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
       (result.json \ "message").as[String] shouldBe "Bad request"
+
       val errors = (result.json \ "errors").as[Seq[JsValue]]
       errors.map(e => (e \ "code").as[String] shouldBe "VALIDATION_ERROR")
+      errors.map(e => (e \ "path").as[String] shouldBe "/submissionPeriod")
+      errors.map(e => (e \ "message").as[String] shouldBe "Invalid month provided must be a string")
+    }
+
+    //Tax year validation
+    "return 400 Bad Request when request fails validation with invalid tax year - tax year in future" in {
+      val result = initiateRequest(validRequestJson + ("taxYear" -> JsNumber(LocalDateTime.now().plusYears(10).get(YEAR))))
+
+      result.status                        shouldBe BAD_REQUEST
+      (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
+      (result.json \ "message").as[String] shouldBe "Bad request"
+
+      val errors = (result.json \ "errors").as[Seq[JsValue]]
+      errors.map(e => (e \ "code").as[String] shouldBe "INVALID_YEAR")
       errors.map(e => (e \ "path").as[String] shouldBe "/taxYear")
       errors.map(e => (e \ "message").as[String] shouldBe "Tax year must be the current tax year")
     }
   }
-  "return 400 Bad Request when request fails validation with invalid totalRecords" in {
+
+  "return 400 Bad Request when request fails validation with tax year not a whole number" in {
+    val invalidRequestJson: JsObject = Json.obj(
+      "totalRecords"     -> 5000,
+      "submissionPeriod" -> "JAN",
+      "taxYear"          -> 2024.1
+    )
+
+    val result = initiateRequest(invalidRequestJson)
+    result.status                        shouldBe BAD_REQUEST
+    (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
+    (result.json \ "message").as[String] shouldBe "Bad request"
+
+    val errors = (result.json \ "errors").as[Seq[JsValue]]
+    errors.map(e => (e \ "code").as[String])(0)    shouldBe "INVALID_YEAR"
+    errors.map(e => (e \ "message").as[String])(0) shouldBe "Tax year must be a valid whole number"
+    errors.map(e => (e \ "path").as[String])(0)    shouldBe "/taxYear"
+
+  }
+
+  "return 400 Bad Request when request fails validation with tax year not an integer" in {
+    val invalidRequestJson: JsObject = Json.obj(
+      "totalRecords"     -> 5000,
+      "submissionPeriod" -> "JAN",
+      "taxYear"          -> "2025"
+    )
+
+    val result = initiateRequest(invalidRequestJson)
+    result.status                        shouldBe BAD_REQUEST
+    (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
+    (result.json \ "message").as[String] shouldBe "Bad request"
+
+    val errors = (result.json \ "errors").as[Seq[JsValue]]
+    errors.map(e => (e \ "code").as[String]).head    shouldBe "INVALID_YEAR"
+    errors.map(e => (e \ "message").as[String]).head shouldBe "Tax year must be a number"
+    errors.map(e => (e \ "path").as[String]).head    shouldBe "/taxYear"
+
+  }
+
+  "return 400 Bad Request when request fails validation with tax year is in the past" in {
+    val invalidRequestJson: JsObject = Json.obj(
+      "totalRecords"     -> 5000,
+      "submissionPeriod" -> "JAN",
+      "taxYear"          -> 2020
+    )
+
+    val result = initiateRequest(invalidRequestJson)
+    result.status                        shouldBe BAD_REQUEST
+    (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
+    (result.json \ "message").as[String] shouldBe "Bad request"
+
+    val errors = (result.json \ "errors").as[Seq[JsValue]]
+    errors.map(e => (e \ "code").as[String]).head    shouldBe "INVALID_YEAR"
+    errors.map(e => (e \ "message").as[String]).head shouldBe "Tax year cannot be in the past"
+    errors.map(e => (e \ "path").as[String]).head    shouldBe "/taxYear"
+
+  }
+
+  //Total records validation
+
+  "return 400 Bad Request when request fails validation with a negative value for totalRecords" in {
     val invalidRequestJson: JsObject = Json.obj(
       "totalRecords"     -> -1,
       "submissionPeriod" -> "JAN",
       "taxYear"          -> 2025
     )
-    val result = initiateRequest(invalidRequestJson)
 
+    val result = initiateRequest(invalidRequestJson)
     result.status                        shouldBe BAD_REQUEST
     (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
     (result.json \ "message").as[String] shouldBe "Bad request"
+
     val errors = (result.json \ "errors").as[Seq[JsValue]]
     errors.map(e => (e \ "code").as[String] shouldBe "VALIDATION_ERROR")
     errors.map(e => (e \ "path").as[String] shouldBe "/totalRecords")
     errors.map(e => (e \ "message").as[String] shouldBe "This field must be greater than or equal to 0")
   }
-  "return 400 Bad Request when request fails validation with invalid totalRecords and taxYear" in {
+
+  "return 400 Bad Request when request fails validation with a missing fields" in {
+    val invalidRequestJson: JsObject = Json.obj(
+      "submissionPeriod" -> "JAN",
+      "taxYear"          -> 2025
+    )
+
+    val result = initiateRequest(invalidRequestJson)
+    result.status                        shouldBe BAD_REQUEST
+    (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
+    (result.json \ "message").as[String] shouldBe "Bad request"
+
+    val errors = (result.json \ "errors").as[Seq[JsValue]]
+    errors.map(e => (e \ "code").as[String]).head    shouldBe "MISSING_FIELD"
+    errors.map(e => (e \ "message").as[String]).head shouldBe "This field is required"
+    errors.map(e => (e \ "path").as[String]).head    shouldBe "/totalRecords"
+  }
+
+  "return 400 Bad Request when request fails validation with totalRecords not a valid number" in {
+    val invalidRequestJson: JsObject = Json.obj(
+      "totalRecords"     -> "5000",
+      "submissionPeriod" -> "JAN",
+      "taxYear"          -> 2025
+    )
+
+    val result = initiateRequest(invalidRequestJson)
+    result.status                        shouldBe BAD_REQUEST
+    (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
+    (result.json \ "message").as[String] shouldBe "Bad request"
+
+    val errors = (result.json \ "errors").as[Seq[JsValue]]
+    errors.map(e => (e \ "code").as[String]).head    shouldBe "VALIDATION_ERROR"
+    errors.map(e => (e \ "message").as[String]).head shouldBe "This field must be greater than or equal to 0"
+    errors.map(e => (e \ "path").as[String]).head    shouldBe "/totalRecords"
+    // Review error messages with team
+  }
+
+  // Multiple errors validation
+  "return 400 Bad Request when request fails with two validation errors: totalRecords and taxYear" in {
     val invalidRequestJson: JsObject = Json.obj(
       "totalRecords"     -> -1,
       "submissionPeriod" -> "JAN",
       "taxYear"          -> 2024
     )
-    val result = initiateRequest(invalidRequestJson)
 
+    val result = initiateRequest(invalidRequestJson)
     result.status                        shouldBe BAD_REQUEST
     (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
     (result.json \ "message").as[String] shouldBe "Bad request"
-    val errors = (result.json \ "errors").as[Seq[JsValue]]
-    errors.map(e => (e \ "code").as[String] shouldBe "VALIDATION_ERROR")
-    errors.exists(e => (e \ "path").as[String].contains("/taxYear"))                                         shouldBe true
-    errors.exists(e => (e \ "path").as[String].contains("/totalRecords"))                                    shouldBe true
-    errors.exists(e => (e \ "message").as[String].contains("Tax year cannot be in the past"))                shouldBe true
-    errors.exists(e => (e \ "message").as[String].contains("This field must be greater than or equal to 0")) shouldBe true
 
+    val errors = (result.json \ "errors").as[Seq[JsValue]]
+    errors.map(e => (e \ "code").as[String]).head    shouldBe "INVALID_YEAR"
+    errors.map(e => (e \ "path").as[String]).head    shouldBe "/taxYear"
+    errors.map(e => (e \ "message").as[String]).head shouldBe "Tax year cannot be in the past"
+
+    errors.map(e => (e \ "code").as[String])(1)    shouldBe "VALIDATION_ERROR"
+    errors.map(e => (e \ "path").as[String])(1)    shouldBe "/totalRecords"
+    errors.map(e => (e \ "message").as[String])(1) shouldBe "This field must be greater than or equal to 0"
   }
-  "return 400 Bad Request when request fails validation with invalid totalRecords and taxYear and submissionPeriod" in {
+
+  "return 400 Bad Request when request fails validation with three validation errors: totalRecords, taxYear and submissionPeriod" in {
     val invalidRequestJson: JsObject = Json.obj(
       "totalRecords"     -> -1,
       "submissionPeriod" -> "January",
       "taxYear"          -> 2024
     )
     val result = initiateRequest(invalidRequestJson)
-
     result.status                        shouldBe BAD_REQUEST
     (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
     (result.json \ "message").as[String] shouldBe "Bad request"
+
     val errors = (result.json \ "errors").as[Seq[JsValue]]
-    errors.map(e => (e \ "code").as[String] shouldBe "VALIDATION_ERROR")
-    errors.exists(e => (e \ "path").as[String].contains("/taxYear"))                                         shouldBe true
-    errors.exists(e => (e \ "path").as[String].contains("/totalRecords"))                                    shouldBe true
-    errors.exists(e => (e \ "path").as[String].contains("/submissionPeriod"))                                shouldBe true
-    errors.exists(e => (e \ "message").as[String].contains("Tax year cannot be in the past"))                shouldBe true
-    errors.exists(e => (e \ "message").as[String].contains("This field must be greater than or equal to 0")) shouldBe true
-    errors.exists(e => (e \ "message").as[String].contains("Invalid month provided"))                        shouldBe true
+    errors.map(e => (e \ "code").as[String]).head    shouldBe "INVALID_YEAR"
+    errors.map(e => (e \ "path").as[String]).head    shouldBe "/taxYear"
+    errors.map(e => (e \ "message").as[String]).head shouldBe "Tax year cannot be in the past"
 
-  }
-  "return 400 Bad Request when request fails validation with a missing fields" in {
-    val invalidRequestJson: JsObject = Json.obj(
-      "submissionPeriod" -> "January",
-      "taxYear"          -> 2024
-    )
-    val result = initiateRequest(invalidRequestJson)
+    errors.map(e => (e \ "code").as[String])(1)    shouldBe "VALIDATION_ERROR"
+    errors.map(e => (e \ "path").as[String])(1)    shouldBe "/submissionPeriod"
+    errors.map(e => (e \ "message").as[String])(1) shouldBe "Invalid month provided"
 
-    result.status                        shouldBe BAD_REQUEST
-    (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
-    (result.json \ "message").as[String] shouldBe "Bad request"
-    val errors = (result.json \ "errors").as[Seq[JsValue]]
-    errors.exists(e => (e \ "code").as[String].contains( "MISSING_FIELD")) shouldBe true
-    errors.exists(e => (e \ "message").as[String].contains( "This field is required")) shouldBe true
-    errors.exists(e => (e \ "path").as[String].contains( "/totalRecords")) shouldBe true
-
-  }
-  "return 400 Bad Request when request fails validation with tax year not a whole number" in {
-    val invalidRequestJson: JsObject = Json.obj(
-      "totalRecords" -> 5000,
-      "submissionPeriod" -> "January",
-      "taxYear"          -> 2024.1
-    )
-    val result = initiateRequest(invalidRequestJson)
-
-    result.status                        shouldBe BAD_REQUEST
-    (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
-    (result.json \ "message").as[String] shouldBe "Bad request"
-    val errors = (result.json \ "errors").as[Seq[JsValue]]
-    errors.exists(e => (e \ "code").as[String].contains( "VALIDATION_ERROR")) shouldBe true
-    errors.exists(e => (e \ "message").as[String].contains( "Tax year must be a valid whole number")) shouldBe true
-    errors.exists(e => (e \ "path").as[String].contains( "/taxYear")) shouldBe true
-
-  }
-  "return 400 Bad Request when request fails validation with tax year not an integer" in {
-    val invalidRequestJson: JsObject = Json.obj(
-      "totalRecords" -> 5000,
-      "submissionPeriod" -> "January",
-      "taxYear"          -> "2024"
-    )
-    val result = initiateRequest(invalidRequestJson)
-
-    result.status                        shouldBe BAD_REQUEST
-    (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
-    (result.json \ "message").as[String] shouldBe "Bad request"
-    val errors = (result.json \ "errors").as[Seq[JsValue]]
-    errors.exists(e => (e \ "code").as[String].contains( "VALIDATION_ERROR")) shouldBe true
-    errors.exists(e => (e \ "message").as[String].contains( "Tax year must be a number")) shouldBe true
-    errors.exists(e => (e \ "path").as[String].contains( "/taxYear")) shouldBe true
-
-  }
-  "return 400 Bad Request when request fails validation with totalRecords not a valid number" in {
-    val invalidRequestJson: JsObject = Json.obj(
-      "totalRecords" -> "5000",
-      "submissionPeriod" -> "January",
-      "taxYear"          -> 2025
-    )
-    val result = initiateRequest(invalidRequestJson)
-
-    result.status                        shouldBe BAD_REQUEST
-    (result.json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
-    (result.json \ "message").as[String] shouldBe "Bad request"
-    val errors = (result.json \ "errors").as[Seq[JsValue]]
-    errors.exists(e => (e \ "code").as[String].contains( "VALIDATION_ERROR")) shouldBe true
-    errors.exists(e => (e \ "message").as[String].contains( "This field must be greater than or equal to 0")) shouldBe true
-    errors.exists(e => (e \ "path").as[String].contains( "/totalRecords")) shouldBe true
-
+    errors.map(e => (e \ "code").as[String])(2)    shouldBe "VALIDATION_ERROR"
+    errors.map(e => (e \ "path").as[String])(2)    shouldBe "/totalRecords"
+    errors.map(e => (e \ "message").as[String])(2) shouldBe "This field must be greater than or equal to 0"
   }
 
-  "return 500 Internal Server Error when upstream error returned from ppns" in {
+  "return 500 Internal Server Error when upstream 500 Server Error returned from PPNS" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false))
-    stubPPNSInternalServerError()
-
+    stubFor(
+      get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations/declaration/isa/return%23%231.0%23%23callbackUrl"))
+        .willReturn(serverError)
+    )
     val result = initiateRequest(validRequestJson)
 
     result.status                        shouldBe INTERNAL_SERVER_ERROR
@@ -333,6 +386,19 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
     (result.json \ "message").as[String] shouldBe "There has been an issue processing your request"
   }
 
+  "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from PPNS" in {
+    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false))
+    stubFor(
+      get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations/declaration/isa/return%23%231.0%23%23callbackUrl"))
+        .willReturn(serverError)
+    )
+    val result = initiateRequest(validRequestJson)
+
+    result.status                        shouldBe INTERNAL_SERVER_ERROR
+    (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
+    (result.json \ "message").as[String] shouldBe "There has been an issue processing your request"
+  }
 
   def initiateRequest(requestBody: JsObject, headers: Seq[(String, String)] = testHeaders): WSResponse = {
     stubAuth()

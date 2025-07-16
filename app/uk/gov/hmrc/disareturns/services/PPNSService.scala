@@ -29,7 +29,6 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionContext) {
 
-  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, String] = {
+  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, String] =
     connector.getBox(clientId).map(_.json.as[Box].boxId).leftMap(mapToErrorResponse)
-  }
 }

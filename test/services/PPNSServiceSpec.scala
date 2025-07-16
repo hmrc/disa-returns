@@ -42,7 +42,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
         applicationId = Some("applicationId"),
         subscriber = None
       )
-      val boxJson = Json.toJson(expectedResponse)
+      val boxJson      = Json.toJson(expectedResponse)
       val httpResponse = HttpResponse(200, boxJson.toString())
 
       when(mockPPNSConnector.getBox(testClientId))

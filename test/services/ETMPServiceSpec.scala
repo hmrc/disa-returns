@@ -32,9 +32,9 @@ class ETMPServiceSpec extends BaseUnitSpec {
   "ETMPService.checkObligationStatus" should {
 
     "return Right(EtmpObligations) when call to ETMP connector returns an obligation status" in new TestSetup {
-      val expectedResponse: EtmpObligations = EtmpObligations(true)
-      val etmpObligationsJson: JsValue = Json.toJson(expectedResponse)
-      val httpResponse: HttpResponse = HttpResponse(200, etmpObligationsJson.toString())
+      val expectedResponse:    EtmpObligations = EtmpObligations(true)
+      val etmpObligationsJson: JsValue         = Json.toJson(expectedResponse)
+      val httpResponse:        HttpResponse    = HttpResponse(200, etmpObligationsJson.toString())
 
       when(mockETMPConnector.getReturnsObligationStatus(testIsaManagerReferenceNumber))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
@@ -64,10 +64,9 @@ class ETMPServiceSpec extends BaseUnitSpec {
   "ETMPService.checkReportingWindowStatus" should {
 
     "return Right(EtmpReportingWindow) when call to ETMP connector returns a reporting window status" in new TestSetup {
-      val expectedResponse: EtmpReportingWindow = EtmpReportingWindow(true)
-      val etmpReportingWindowJson: JsValue = Json.toJson(expectedResponse)
-      val httpResponse: HttpResponse = HttpResponse(200, etmpReportingWindowJson.toString())
-
+      val expectedResponse:        EtmpReportingWindow = EtmpReportingWindow(true)
+      val etmpReportingWindowJson: JsValue             = Json.toJson(expectedResponse)
+      val httpResponse:            HttpResponse        = HttpResponse(200, etmpReportingWindowJson.toString())
 
       when(mockETMPConnector.getReportingWindowStatus)
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))

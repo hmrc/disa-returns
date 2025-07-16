@@ -25,26 +25,25 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, Upstream
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ETMPConnector @Inject() (http: HttpClientV2,
-                               appConfig: AppConfig,
-                               httpClientResponse: HttpClientResponse)(implicit ec: ExecutionContext) {
+class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig, httpClientResponse: HttpClientResponse)(implicit ec: ExecutionContext) {
 
-  def getReturnsObligationStatus(isaManagerReferenceNumber: String)
-                                (implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+  def getReturnsObligationStatus(
+    isaManagerReferenceNumber: String
+  )(implicit hc:               HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-obligation-status/$isaManagerReferenceNumber"
     httpClientResponse.read(
       http
-      .get(url"$url")
-      .execute[Either[UpstreamErrorResponse, HttpResponse]]
+        .get(url"$url")
+        .execute[Either[UpstreamErrorResponse, HttpResponse]]
     )
   }
 
   def getReportingWindowStatus(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-reporting-window"
     httpClientResponse.read(
-    http
-      .get(url"$url")
-      .execute[Either[UpstreamErrorResponse, HttpResponse]]
+      http
+        .get(url"$url")
+        .execute[Either[UpstreamErrorResponse, HttpResponse]]
     )
   }
 }

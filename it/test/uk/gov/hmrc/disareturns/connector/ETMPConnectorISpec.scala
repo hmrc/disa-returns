@@ -55,7 +55,7 @@ class ETMPConnectorISpec extends BaseIntegrationSpec {
       val Left(response) = await(connector.getReturnsObligationStatus("non-existent").value)
 
       response.statusCode shouldBe NOT_FOUND
-      response.message should include("No response could be served as there are no stub mappings in this WireMock instance.")
+      response.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")
     }
   }
 
@@ -68,7 +68,7 @@ class ETMPConnectorISpec extends BaseIntegrationSpec {
 
       val Right(response) = await(connector.getReportingWindowStatus.value)
 
-      response.status shouldBe OK
+      response.status                                     shouldBe OK
       (response.json \ "reportingWindowOpen").as[Boolean] shouldBe true
     }
 
@@ -78,14 +78,14 @@ class ETMPConnectorISpec extends BaseIntegrationSpec {
       val Left(response) = await(connector.getReportingWindowStatus.value)
 
       response.statusCode shouldBe FORBIDDEN
-      response.message should include("Forbidden")
+      response.message      should include("Forbidden")
     }
 
     "return Left(UpstreamErrorResponse) when ETMP call fails with unexpected exception" in {
       val Left(response) = await(connector.getReportingWindowStatus.value)
 
       response.statusCode shouldBe NOT_FOUND
-      response.message should include("No response could be served as there are no stub mappings in this WireMock instance.")
+      response.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")
     }
   }
 }

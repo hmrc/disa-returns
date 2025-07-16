@@ -22,18 +22,13 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 
-
 trait HeaderCheckedAuthorisedFunctions extends AuthorisedFunctions {
 
   private val ClientIdHeader = "X-Client-ID"
 
-  def authorisedWithClientIdCheck[A](body: String => Future[A])(implicit hc: HeaderCarrier,
-                                      request: RequestHeader,
-                                      ec: ExecutionContext
-                                    ): Future[A] = {
+  def authorisedWithClientIdCheck[A](body: String => Future[A])(implicit hc: HeaderCarrier, request: RequestHeader, ec: ExecutionContext): Future[A] =
     request.headers.get(ClientIdHeader) match {
-      case Some(clientId) => authorised() { body(clientId) }
-      case None    => Future.failed(new RuntimeException(s"Missing required header: $ClientIdHeader"))
+      case Some(clientId) => authorised()(body(clientId))
+      case None           => Future.failed(new RuntimeException(s"Missing required header: $ClientIdHeader"))
     }
-  }
 }

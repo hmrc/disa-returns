@@ -40,11 +40,11 @@ class InitiateSubmissionSpec extends AnyWordSpec with Matchers {
 
     "serialize and deserialize correctly" in {
       val localDateTime = LocalDateTime.of(2025, 7, 15, 16, 0, 0)
-      val instantAt16 = localDateTime.toInstant(ZoneOffset.UTC)
-      val json    = Json.parse(jsonString)
-      val request = json.as[SubmissionRequest]
+      val instantAt16   = localDateTime.toInstant(ZoneOffset.UTC)
+      val json          = Json.parse(jsonString)
+      val request       = json.as[SubmissionRequest]
 
-      val submissionRequestWithReturnId = InitiateSubmission.create(boxId, request, isaManagerReference,instantAt16)
+      val submissionRequestWithReturnId = InitiateSubmission.create(boxId, request, isaManagerReference, instantAt16)
 
       val serialized   = Json.toJson(submissionRequestWithReturnId)
       val deserialized = serialized.validate[InitiateSubmission]
@@ -61,7 +61,7 @@ class InitiateSubmissionSpec extends AnyWordSpec with Matchers {
       result.submissionRequest   shouldBe request
       result.isaManagerReference shouldBe isaManagerReference
       result.returnId              should not be empty
-      result.createdAt shouldBe a [Instant]
+      result.createdAt           shouldBe a[Instant]
     }
   }
 }

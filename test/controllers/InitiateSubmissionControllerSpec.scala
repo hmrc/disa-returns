@@ -38,41 +38,18 @@ import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReporti
 import uk.gov.hmrc.disareturns.controllers.InitiateSubmissionController
 import uk.gov.hmrc.disareturns.services.{ETMPService, InitiateSubmissionDataService, PPNSService}
 import uk.gov.hmrc.http.HeaderCarrier
+import utils.BaseUnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class InitiateSubmissionControllerSpec
-    extends AnyWordSpec
-    with Matchers
-    with MockitoSugar
-    with ScalaFutures
-    with BeforeAndAfterEach
-    with GuiceOneServerPerSuite {
-
-  val mockAuthConnector: AuthConnector                 = mock[AuthConnector]
-  val mockEtmpService:   ETMPService                   = mock[ETMPService]
-  val mockPpnsService:   PPNSService                   = mock[PPNSService]
-  val mockMongoService:  InitiateSubmissionDataService = mock[InitiateSubmissionDataService]
-
-  override def fakeApplication(): Application = GuiceApplicationBuilder()
-    .overrides(
-      bind[AuthConnector].toInstance(mockAuthConnector),
-      bind[ETMPService].toInstance(mockEtmpService),
-      bind[PPNSService].toInstance(mockPpnsService),
-      bind[InitiateSubmissionDataService].toInstance(mockMongoService)
-    )
-    .build()
-
-  implicit val ec:  ExecutionContext = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:  HeaderCarrier    = HeaderCarrier()
-  implicit val mat: Materializer     = app.materializer
+class InitiateSubmissionControllerSpec extends BaseUnitSpec {
 
   val controller: InitiateSubmissionController = app.injector.instanceOf[InitiateSubmissionController]
 
-  val isaManagerRef   = "Z123456"
-  val boxId           = "box-123"
-  val returnId        = "return-789"
-  val obligation: EtmpObligations = EtmpObligations(false)
+  val isaManagerRef = "Z123456"
+  val boxId         = "box-123"
+  val returnId      = "return-789"
+  val obligation:      EtmpObligations     = EtmpObligations(false)
   val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
 
   val validSubmissionJson: JsValue = Json.obj(
@@ -82,17 +59,17 @@ class InitiateSubmissionControllerSpec
   )
 
   override def beforeEach(): Unit =
-    reset(mockEtmpService, mockPpnsService, mockMongoService)
+    reset(mockETMPService, mockPPNSService, mockInitiateSubmissionDataService)
 
   "InitiateSubmissionController.initiate" should {
 
     "return 200 OK for valid submission" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      when(mockEtmpService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.rightT((reportingWindow,obligation)))
-      when(mockPpnsService.getBoxId(any())(any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+      when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(EitherT.rightT(boxId))
-      when(mockMongoService.saveInitiateSubmission(any(), any(), any()))
+      when(mockInitiateSubmissionDataService.saveInitiateSubmission(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
       val fakeRequest = FakeRequest("POST", s"/initiate/$isaManagerRef")

@@ -21,13 +21,18 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
+import play.api.inject.bind
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.DefaultAwaitTimeout
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.config.Constants
 import uk.gov.hmrc.disareturns.connectors.{ETMPConnector, HttpClientResponse, PPNSConnector}
+import uk.gov.hmrc.disareturns.services.{ETMPService, InitiateSubmissionDataService, PPNSService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
-
 
 import scala.concurrent.ExecutionContext
 
@@ -39,16 +44,30 @@ abstract class BaseUnitSpec
     with EitherValues
     with ScalaFutures
     with MockitoSugar
-    with DefaultAwaitTimeout {
+    with DefaultAwaitTimeout
+    with GuiceOneAppPerSuite {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   implicit val hc: HeaderCarrier    = HeaderCarrier()
 
   //MOCKS
-  val mockHttpClient:     HttpClientV2   = mock[HttpClientV2]
-  val mockAppConfig:      AppConfig      = mock[AppConfig]
-  val mockRequestBuilder: RequestBuilder = mock[RequestBuilder]
-  val mockPPNSConnector:  PPNSConnector  = mock[PPNSConnector]
-  val mockETMPConnector:  ETMPConnector  = mock[ETMPConnector]
-  val mockHttpClientResponse:  HttpClientResponse  = mock[HttpClientResponse]
+  val mockHttpClient:                    HttpClientV2                  = mock[HttpClientV2]
+  val mockAppConfig:                     AppConfig                     = mock[AppConfig]
+  val mockRequestBuilder:                RequestBuilder                = mock[RequestBuilder]
+  val mockPPNSService:                   PPNSService                   = mock[PPNSService]
+  val mockPPNSConnector:                 PPNSConnector                 = mock[PPNSConnector]
+  val mockETMPConnector:                 ETMPConnector                 = mock[ETMPConnector]
+  val mockETMPService:                   ETMPService                   = mock[ETMPService]
+  val mockHttpClientResponse:            HttpClientResponse            = mock[HttpClientResponse]
+  val mockInitiateSubmissionDataService: InitiateSubmissionDataService = mock[InitiateSubmissionDataService]
+  val mockAuthConnector:                 AuthConnector                 = mock[AuthConnector]
+
+  override def fakeApplication(): Application = GuiceApplicationBuilder()
+    .overrides(
+      bind[AuthConnector].toInstance(mockAuthConnector),
+      bind[ETMPService].toInstance(mockETMPService),
+      bind[PPNSService].toInstance(mockPPNSService),
+      bind[InitiateSubmissionDataService].toInstance(mockInitiateSubmissionDataService)
+    )
+    .build()
 }

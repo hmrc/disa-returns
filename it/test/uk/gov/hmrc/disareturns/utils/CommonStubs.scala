@@ -30,7 +30,7 @@ trait CommonStubs {
     }
 
   val testClientId = "test-client-id"
-  val testHeaders :Seq[(String, String)] = Seq(
+  val testHeaders: Seq[(String, String)] = Seq(
     "X-Client-ID"   -> testClientId,
     "Authorization" -> "mock-bearer-token"
   )

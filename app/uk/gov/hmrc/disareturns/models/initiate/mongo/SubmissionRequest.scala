@@ -43,8 +43,7 @@ object SubmissionRequest {
     )
   }
 
-  def setAction(totalRecords: Int): ResponseAction.Value = {
-    if(totalRecords == 0) ResponseAction.NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION
+  def setAction(totalRecords: Int): ResponseAction.Value =
+    if (totalRecords == 0) ResponseAction.NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION
     else ResponseAction.SUBMIT_RETURN_TO_PAGINATED_API
-  }
 }

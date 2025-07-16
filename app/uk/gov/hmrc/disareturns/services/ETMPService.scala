@@ -35,27 +35,26 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
   def getObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] =
     connector.getReturnsObligationStatus(isaManagerReferenceNumber).map(_.json.as[EtmpObligations]).leftMap(mapToErrorResponse)
 
-  def validateEtmpSubmissionEligibility(isaManagerReferenceNumber: String)
-                                       (implicit hc: HeaderCarrier, ec: ExecutionContext):
-  EitherT[Future, ErrorResponse, (EtmpReportingWindow, EtmpObligations)] = {
-
+  def validateEtmpSubmissionEligibility(
+    isaManagerReferenceNumber: String
+  )(implicit hc:               HeaderCarrier, ec: ExecutionContext): EitherT[Future, ErrorResponse, (EtmpReportingWindow, EtmpObligations)] =
     for {
       reportingWindow <- getReportingWindowStatus()
-      obligations <- getObligationStatus(isaManagerReferenceNumber)
+      obligations     <- getObligationStatus(isaManagerReferenceNumber)
       validated <- EitherT.fromEither[Future] {
-        val errors: Seq[ErrorResponse] = Seq(
-          if (!reportingWindow.reportingWindowOpen) Some(ReportingWindowClosed) else None,
-          if (obligations.obligationAlreadyMet) Some(ObligationClosed) else None
-        ).flatten
+                     val errors: Seq[ErrorResponse] = Seq(
+                       if (!reportingWindow.reportingWindowOpen) Some(ReportingWindowClosed) else None,
+                       if (obligations.obligationAlreadyMet) Some(ObligationClosed) else None
+                     ).flatten
 
-        errors match {
-          case Nil => Right((reportingWindow, obligations))
-          case singleError :: Nil => Left(singleError: ErrorResponse)
-          case multipleErrors => Left(
-            MultipleErrorResponse(errors = multipleErrors): ErrorResponse
-          )
-        }
-      }
+                     errors match {
+                       case Nil                => Right((reportingWindow, obligations))
+                       case singleError :: Nil => Left(singleError: ErrorResponse)
+                       case multipleErrors =>
+                         Left(
+                           MultipleErrorResponse(errors = multipleErrors): ErrorResponse
+                         )
+                     }
+                   }
     } yield validated
-  }
 }

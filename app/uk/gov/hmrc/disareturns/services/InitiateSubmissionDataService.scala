@@ -27,14 +27,9 @@ class InitiateSubmissionDataService @Inject() (
   repository:  InitiateSubmissionRepository
 )(implicit ec: ExecutionContext) {
 
-  def saveInitiateSubmission(boxId: String,
-           submissionRequest: SubmissionRequest,
-           isaManagerReference: String): Future[String] = {
-    val  initiateSubmission =
-      InitiateSubmission.create(
-        boxId = boxId,
-        submissionRequest = submissionRequest,
-        isaManagerReference = isaManagerReference)
+  def saveInitiateSubmission(boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String): Future[String] = {
+    val initiateSubmission =
+      InitiateSubmission.create(boxId = boxId, submissionRequest = submissionRequest, isaManagerReference = isaManagerReference)
     repository.insert(initiateSubmission)
   }
 }
