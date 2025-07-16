@@ -16,17 +16,14 @@
 
 package models
 
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
 import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.InitiateSubmission
+import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
+import utils.BaseUnitSpec
 
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 
-class InitiateSubmissionSpec extends AnyWordSpec with Matchers {
+class InitiateSubmissionSpec extends BaseUnitSpec {
 
   "InitiateSubmission" should {
     val boxId               = "5"

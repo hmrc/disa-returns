@@ -16,8 +16,6 @@
 
 package models
 
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, FieldValidationError, MultipleErrorResponse, ObligationClosed}
 import utils.BaseUnitSpec
@@ -28,7 +26,7 @@ class ErrorResponseSpec extends BaseUnitSpec {
 
     "deserialize a known singleton error" in {
       val json = Json.obj(
-        "code" -> ObligationClosed.code,
+        "code"    -> ObligationClosed.code,
         "message" -> ObligationClosed.message
       )
 
@@ -39,7 +37,7 @@ class ErrorResponseSpec extends BaseUnitSpec {
 
     "deserialize a MultipleErrorResponse with code FORBIDDEN" in {
       val json = Json.obj(
-        "code" -> "FORBIDDEN",
+        "code"    -> "FORBIDDEN",
         "message" -> "Multiple issues found regarding your submission",
         "errors" -> Json.arr(
           Json.obj("code" -> ObligationClosed.code, "message" -> ObligationClosed.message)
@@ -50,68 +48,68 @@ class ErrorResponseSpec extends BaseUnitSpec {
 
       result.isSuccess shouldBe true
       val multipleError = result.get
-      multipleError shouldBe a [MultipleErrorResponse]
-      multipleError.code shouldBe "FORBIDDEN"
+      multipleError                                                 shouldBe a[MultipleErrorResponse]
+      multipleError.code                                            shouldBe "FORBIDDEN"
       multipleError.asInstanceOf[MultipleErrorResponse].errors.head shouldBe ObligationClosed
     }
 
     "deserialize a FieldValidationError when path field is present" in {
       val json = Json.obj(
-        "code" -> "SOME_CODE",
+        "code"    -> "SOME_CODE",
         "message" -> "Some error message",
-        "path" -> "/some/field"
+        "path"    -> "/some/field"
       )
 
       val result = Json.fromJson[ErrorResponse](json)
 
       result.isSuccess shouldBe true
       val fieldError = result.get
-      fieldError shouldBe a [FieldValidationError]
-      fieldError.code shouldBe "SOME_CODE"
-      fieldError.message shouldBe "Some error message"
+      fieldError                                         shouldBe a[FieldValidationError]
+      fieldError.code                                    shouldBe "SOME_CODE"
+      fieldError.message                                 shouldBe "Some error message"
       fieldError.asInstanceOf[FieldValidationError].path shouldBe "/some/field"
     }
 
     "fail to deserialize unknown error codes" in {
       val json = Json.obj(
-        "code" -> "UNKNOWN_CODE",
+        "code"    -> "UNKNOWN_CODE",
         "message" -> "Unknown error"
       )
 
       val result = Json.fromJson[ErrorResponse](json)
 
-      result shouldBe a [JsError]
+      result shouldBe a[JsError]
       val JsError(errors) = result
-      errors.head._2.head.message should include ("Unknown error code: UNKNOWN_CODE")
+      errors.head._2.head.message should include("Unknown error code: UNKNOWN_CODE")
     }
 
     "serialize a known singleton error" in {
       val json = Json.toJson(ObligationClosed: ErrorResponse)
       json shouldBe Json.obj(
-        "code" -> ObligationClosed.code,
+        "code"    -> ObligationClosed.code,
         "message" -> ObligationClosed.message
       )
     }
 
     "serialize a MultipleErrorResponse" in {
       val multipleError = MultipleErrorResponse(errors = Seq(ObligationClosed))
-      val json = Json.toJson(multipleError: ErrorResponse)
+      val json          = Json.toJson(multipleError: ErrorResponse)
 
       (json \ "code").as[String] shouldBe "FORBIDDEN"
       (json \ "errors").as[Seq[JsValue]].head shouldBe Json.obj(
-        "code" -> ObligationClosed.code,
+        "code"    -> ObligationClosed.code,
         "message" -> ObligationClosed.message
       )
     }
 
     "serialize a FieldValidationError" in {
       val fieldError = FieldValidationError("CODE", "message", "/some/path")
-      val json = Json.toJson(fieldError: ErrorResponse)
+      val json       = Json.toJson(fieldError: ErrorResponse)
 
       json shouldBe Json.obj(
-        "code" -> "CODE",
+        "code"    -> "CODE",
         "message" -> "message",
-        "path" -> "/some/path"
+        "path"    -> "/some/path"
       )
     }
   }

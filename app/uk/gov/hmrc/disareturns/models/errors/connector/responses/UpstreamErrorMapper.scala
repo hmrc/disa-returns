@@ -34,8 +34,6 @@ object UpstreamErrorMapper extends Logging {
       case UpstreamErrorResponse(_, statusCode, _, _) if statusCode >= 400 =>
         logger.error(s"Unhandled upstream error with status=$statusCode, mapping to InternalServerError")
         InternalServerErr
-      //???
     }
   }
-
 }

@@ -46,7 +46,6 @@ case object InternalServerErr extends ErrorResponse {
 
 object ErrorResponse {
 
-  // This map links code -> instance
   private val singletons: Map[String, ErrorResponse] = Map(
     ObligationClosed.code      -> ObligationClosed,
     ReportingWindowClosed.code -> ReportingWindowClosed,

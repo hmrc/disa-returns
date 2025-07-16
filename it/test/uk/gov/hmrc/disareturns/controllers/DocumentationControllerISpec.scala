@@ -27,7 +27,7 @@ class DocumentationControllerISpec extends BaseIntegrationSpec {
   "GET /api/definition" should {
     "return the API definition.json file" in {
       val request = FakeRequest(GET, "/api/definition")
-      val result = route(app, request).get
+      val result  = route(app, request).get
 
       status(result) mustBe OK
       contentType(result) mustBe Some("application/json")
@@ -38,7 +38,7 @@ class DocumentationControllerISpec extends BaseIntegrationSpec {
   "GET /api/conf/1.0/application.yaml" should {
     "return the OpenAPI spec file" in {
       val request = FakeRequest(GET, "/api/conf/1.0/application.yaml")
-      val result = route(app, request).get
+      val result  = route(app, request).get
 
       status(result) mustBe OK
       contentType(result) mustBe Some("application/octet-stream")

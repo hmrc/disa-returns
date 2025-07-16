@@ -16,22 +16,14 @@
 
 package models
 
-import cats.data.EitherT
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito._
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import uk.gov.hmrc.disareturns.connectors.HttpClientResponse
 import uk.gov.hmrc.http.{HttpException, HttpResponse, UpstreamErrorResponse}
+import utils.BaseUnitSpec
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
-class HttpClientResponseSpec extends AnyWordSpec with Matchers with ScalaFutures with MockitoSugar {
-
-  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+class HttpClientResponseSpec extends BaseUnitSpec {
 
   val httpClientResponse = new HttpClientResponse()
 
@@ -45,7 +37,7 @@ class HttpClientResponseSpec extends AnyWordSpec with Matchers with ScalaFutures
       whenReady(result.value) {
         case Right(resp) =>
           resp.status shouldBe 200
-          resp.body shouldBe "OK"
+          resp.body   shouldBe "OK"
         case other =>
           fail(s"Expected Right(HttpResponse), but got $other")
       }
@@ -53,13 +45,13 @@ class HttpClientResponseSpec extends AnyWordSpec with Matchers with ScalaFutures
 
     "return Left UpstreamErrorResponse when Future is successful with status >= 400" in {
       val httpResponse = HttpResponse(500, "Internal Server Error")
-      val response = Future.successful(Right(httpResponse))
+      val response     = Future.successful(Right(httpResponse))
 
       val result = httpClientResponse.read(response)
 
       whenReady(result.value) {
         case Left(err) =>
-          err.message should include("Received error status 500")
+          err.message      should include("Received error status 500")
           err.statusCode shouldBe 500
         case _ => fail("Expected Left UpstreamErrorResponse")
       }
@@ -67,7 +59,7 @@ class HttpClientResponseSpec extends AnyWordSpec with Matchers with ScalaFutures
 
     "return Left when Future contains Left error" in {
       val upstreamError = UpstreamErrorResponse("some error", 400, 400)
-      val response = Future.successful(Left(upstreamError))
+      val response      = Future.successful(Left(upstreamError))
 
       val result = httpClientResponse.read(response)
 
@@ -78,27 +70,27 @@ class HttpClientResponseSpec extends AnyWordSpec with Matchers with ScalaFutures
 
     "recover and return Left UpstreamErrorResponse when Future fails with HttpException" in {
       val httpException = new HttpException("http exception occurred", Status.INTERNAL_SERVER_ERROR)
-      val failedFuture = Future.failed[Either[UpstreamErrorResponse, HttpResponse]](httpException)
+      val failedFuture  = Future.failed[Either[UpstreamErrorResponse, HttpResponse]](httpException)
 
       val result = httpClientResponse.read(failedFuture)
 
       whenReady(result.value) {
         case Left(err) =>
-          err.message should include("Unexpected error")
+          err.message      should include("Unexpected error")
           err.statusCode shouldBe Status.INTERNAL_SERVER_ERROR
         case _ => fail("Expected Left UpstreamErrorResponse")
       }
     }
 
     "recover and return Left UpstreamErrorResponse when Future fails with generic Exception" in {
-      val exception = new RuntimeException("something bad happened")
+      val exception    = new RuntimeException("something bad happened")
       val failedFuture = Future.failed[Either[UpstreamErrorResponse, HttpResponse]](exception)
 
       val result = httpClientResponse.read(failedFuture)
 
       whenReady(result.value) {
         case Left(err) =>
-          err.message should include("Unexpected error")
+          err.message      should include("Unexpected error")
           err.statusCode shouldBe Status.INTERNAL_SERVER_ERROR
         case _ => fail("Expected Left UpstreamErrorResponse")
       }

@@ -19,7 +19,7 @@ package services
 import cats.data.EitherT
 import org.mockito.Mockito._
 import play.api.libs.json.Json
-import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, Unauthorised}
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, InternalServerErr, Unauthorised}
 import uk.gov.hmrc.disareturns.models.ppns.response.{Box, BoxCreator}
 import uk.gov.hmrc.disareturns.services.PPNSService
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
@@ -67,6 +67,22 @@ class PPNSServiceSpec extends BaseUnitSpec {
       val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).value.futureValue
 
       result shouldBe Left(Unauthorised)
+    }
+
+    "return Left(InternalServerErr) when the call to ETMP connector fails with an UpstreamErrorResponse" in {
+      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
+        message = "Forbidden to access this service",
+        statusCode = 403,
+        reportAs = 403,
+        headers = Map.empty
+      )
+
+      when(mockPPNSConnector.getBox(testClientId))
+        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
+
+      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).value.futureValue
+
+      result shouldBe Left(InternalServerErr)
     }
   }
 }

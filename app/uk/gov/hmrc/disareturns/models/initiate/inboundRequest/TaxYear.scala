@@ -29,7 +29,7 @@ object TaxYear {
   def now(clock: Clock = Clock.systemDefaultZone()): LocalDate = LocalDate.now(clock)
 
   def currentTaxYear(clock: Clock = Clock.systemDefaultZone()): Int = {
-    val today  = now(clock) // renamed from 'now' to 'today'
+    val today  = now(clock)
     val cutoff = LocalDate.of(today.getYear, 4, 6)
     if (today.isBefore(cutoff)) today.getYear - 1 else today.getYear
   }
