@@ -42,6 +42,15 @@ case object InternalServerErr extends ErrorResponse {
   val code    = "INTERNAL_SERVER_ERROR"
   val message = "There has been an issue processing your request"
 }
+case object BadRequestInvalidIsaRefErr extends ErrorResponse {
+  val code    = "BAD_REQUEST"
+  val message = "ISA Manager Reference Number format is invalid"
+}
+
+case object BadRequestMissingHeaderErr extends ErrorResponse {
+  val code    = "BAD_REQUEST"
+  val message = "Missing required header: X-Client-ID"
+}
 
 object ErrorResponse {
 
@@ -78,6 +87,11 @@ object ErrorResponse {
         Json.toJson(m)(MultipleErrorResponse.format)
       case v: FieldValidationError =>
         Json.obj("code" -> v.code, "message" -> v.message, "path" -> v.path)
+      case BadRequestInvalidIsaRefErr =>
+        Json.obj("code" -> BadRequestInvalidIsaRefErr.code, "message" -> BadRequestInvalidIsaRefErr.message)
+      case BadRequestMissingHeaderErr =>
+        Json.obj("code" -> BadRequestMissingHeaderErr.code, "message" -> BadRequestMissingHeaderErr.message)
+
       case other =>
         // Optional: catch-all for future-proofing or logging
         Json.obj("code" -> "UNKNOWN", "message" -> "Unknown error response")

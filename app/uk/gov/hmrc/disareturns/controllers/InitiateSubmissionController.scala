@@ -42,7 +42,7 @@ class InitiateSubmissionController @Inject() (
     with HeaderCheckedAuthorisedFunctions {
 
   def initiate(isaManagerReferenceNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    authorisedWithClientIdCheck { clientId =>
+    authorisedWithClientIdCheck(isaManagerReferenceNumber) { clientId =>
       request.body
         .validate[SubmissionRequest]
         .fold(

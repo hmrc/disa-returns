@@ -16,8 +16,11 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
-import play.api.mvc.RequestHeader
+import play.api.libs.json.Json
+import play.api.mvc.Results.BadRequest
+import play.api.mvc.{RequestHeader, Result}
 import uk.gov.hmrc.auth.core.AuthorisedFunctions
+import uk.gov.hmrc.disareturns.models.errors.connector.responses.{BadRequestInvalidIsaRefErr, BadRequestMissingHeaderErr, ErrorResponse}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -26,9 +29,21 @@ trait HeaderCheckedAuthorisedFunctions extends AuthorisedFunctions {
 
   private val ClientIdHeader = "X-Client-ID"
 
-  def authorisedWithClientIdCheck[A](body: String => Future[A])(implicit hc: HeaderCarrier, request: RequestHeader, ec: ExecutionContext): Future[A] =
+  def authorisedWithClientIdCheck(
+                                   isaManagerReferenceNumber: String
+                                 )(body:                      String => Future[Result])(implicit hc: HeaderCarrier, request: RequestHeader, ec: ExecutionContext): Future[Result] = {
+    val isaRefRegex = "^Z([0-9]{4}|[0-9]{6})$".r
+    val isaRefChecker: Boolean = isaRefRegex.pattern.matcher(isaManagerReferenceNumber).matches()
+
     request.headers.get(ClientIdHeader) match {
-      case Some(clientId) => authorised()(body(clientId))
-      case None           => Future.failed(new RuntimeException(s"Missing required header: $ClientIdHeader"))
+      case Some(clientId) =>
+        if (isaRefChecker) {
+          authorised()(body(clientId))
+        } else {
+          Future.successful(BadRequest(Json.toJson(BadRequestInvalidIsaRefErr: ErrorResponse)))
+        }
+      case None =>
+        Future.successful(BadRequest(Json.toJson(BadRequestMissingHeaderErr: ErrorResponse)))
     }
+  }
 }
