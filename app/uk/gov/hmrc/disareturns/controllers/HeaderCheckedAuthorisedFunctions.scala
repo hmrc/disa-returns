@@ -30,8 +30,8 @@ trait HeaderCheckedAuthorisedFunctions extends AuthorisedFunctions {
   private val ClientIdHeader = "X-Client-ID"
 
   def authorisedWithClientIdCheck(
-                                   isaManagerReferenceNumber: String
-                                 )(body:                      String => Future[Result])(implicit hc: HeaderCarrier, request: RequestHeader, ec: ExecutionContext): Future[Result] = {
+    isaManagerReferenceNumber: String
+  )(body:                      String => Future[Result])(implicit hc: HeaderCarrier, request: RequestHeader, ec: ExecutionContext): Future[Result] = {
     val isaRefRegex = "^Z([0-9]{4}|[0-9]{6})$".r
     val isaRefChecker: Boolean = isaRefRegex.pattern.matcher(isaManagerReferenceNumber).matches()
 

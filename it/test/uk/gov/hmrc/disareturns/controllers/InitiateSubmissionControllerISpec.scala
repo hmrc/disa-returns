@@ -115,13 +115,19 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
       (result.json \ "boxId").as[String]    shouldBe "boxId1"
     }
 
-    "return a 500 Internal Server Error when clientId is missing from the request header" in {
+    "return a 400 Bad Request when clientId is missing from the request header" in {
       val headersWithoutClientId: Seq[(String, String)] = Seq(
         "Authorization" -> "mock-bearer-token"
       )
       val result: WSResponse = initiateRequest(validRequestJson, headers = headersWithoutClientId)
-      result.status                        shouldBe INTERNAL_SERVER_ERROR
+      result.status                        shouldBe BAD_REQUEST
       (result.json \ "message").as[String] shouldBe "Missing required header: X-Client-ID"
+    }
+
+    "return a 400 Bad Request when isaManagerRef is invalid" in {
+      val result: WSResponse = initiateRequest(validRequestJson, isaManagerReference = "NOT_VALID")
+      result.status                        shouldBe BAD_REQUEST
+      (result.json \ "message").as[String] shouldBe "ISA Manager Reference Number format is invalid"
     }
 
     "return 403 Forbidden when ETMP returns obligation already met" in {
@@ -195,7 +201,6 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
       errors.map(e => (e \ "message").as[String] shouldBe "Invalid month provided must be a string")
     }
 
-    //Tax year validation
     "return 400 Bad Request when request fails validation with invalid tax year - tax year in future" in {
       val result = initiateRequest(validRequestJson + ("taxYear" -> JsNumber(LocalDateTime.now().plusYears(10).get(YEAR))))
 
@@ -320,10 +325,8 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
     errors.map(e => (e \ "code").as[String]).head    shouldBe "VALIDATION_ERROR"
     errors.map(e => (e \ "message").as[String]).head shouldBe "This field must be greater than or equal to 0"
     errors.map(e => (e \ "path").as[String]).head    shouldBe "/totalRecords"
-    // Review error messages with team
   }
 
-  // Multiple errors validation
   "return 400 Bad Request when request fails with two validation errors: totalRecords and taxYear" in {
     val invalidRequestJson: JsObject = Json.obj(
       "totalRecords"     -> -1,
@@ -399,12 +402,16 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
     (result.json \ "message").as[String] shouldBe "There has been an issue processing your request"
   }
 
-  def initiateRequest(requestBody: JsObject, headers: Seq[(String, String)] = testHeaders): WSResponse = {
+  def initiateRequest(
+    requestBody:         JsObject,
+    headers:             Seq[(String, String)] = testHeaders,
+    isaManagerReference: String = isaManagerRef
+  ): WSResponse = {
     stubAuth()
     mongo.dropCollection()
     await(
       ws.url(
-        s"http://localhost:$port/monthly/$isaManagerRef/init"
+        s"http://localhost:$port/monthly/$isaManagerReference/init"
       ).withFollowRedirects(follow = false)
         .withHttpHeaders(
           headers: _*
