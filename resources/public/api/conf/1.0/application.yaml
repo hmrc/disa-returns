@@ -3,6 +3,7 @@ openapi: "3.0.3"
 info:
   version: 1.0.0
   title: DISA Returns API
+  description: This specification outlines the endpoints required for submitting ISA Returns to HMRC.
 
 servers:
   - url: https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return
@@ -36,6 +37,7 @@ paths:
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       requestBody:
+        description: To initialise a submission we require information on the number of records intended to be submitted, alongside confirmation of the tax month and tax year of this return
         required: true
         content:
           application/json:
@@ -196,6 +198,7 @@ paths:
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       requestBody:
+        description: A number of NDJSON models as described below. Please note that the rendered JSON is incorrect, there should be no square brackets, and each record should be on one line.
         required: true
         content:
           application/x-ndjson:
@@ -216,7 +219,7 @@ paths:
                     $ref: '#/components/schemas/identifiersMissing'
                   - title: 'Invalid Model'
                     $ref: '#/components/schemas/modelInvalid'
-                examples:
+                example:
                   identifierExample:
                     summary: an example of the Missing Identifiers scenario
                     value: { "code": "NINO_OR_ACC_NUM_MISSING", "message": "All models send must include an account number and nino in order to process correctly"}
@@ -657,9 +660,11 @@ components:
       description: Bearer token for authentication
   schemas:
     investorDetails:
+      title: "Investor Details"
       type: object
       anyOf:
         - title: "Lifetime ISA - New Subscription"
+          description: Model for a record of a New Lifetime ISA Subscription
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -690,6 +695,7 @@ components:
               not:
                 required: [ closureDate, accountNumberOfTransferringAccount ]
         - title: "Lifetime ISA - Transfer"
+          description: Model for a record of a Lifetime ISA being Transferred
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -730,6 +736,7 @@ components:
               not:
                 required: [ closureDate ]
         - title: "Lifetime ISA - Closure"
+          description: Model for a record of a Lifetime ISA being Closed
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -774,6 +781,7 @@ components:
                   pattern: '^\d+\.\d{2}$'
               required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim ]
         - title: "Lifetime ISA - Transfer & Closure"
+          description: Model for a record of a Lifetime ISA account being Transferred and Closed
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -828,6 +836,7 @@ components:
                   pattern: '^\d+\.\d{2}$'
               required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim, accountNumberOfTransferringAccount, amountTransferred ]
         - title: "Standard ISA - New Subscription"
+          description: Model for a record of a New Standard ISA Subscription
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -844,6 +853,7 @@ components:
               not:
                 required: [ closureDate, accountNumberOfTransferringAccount, dateOfFirstSubscription ]
         - title: "Standard ISA - Transfer"
+          description: Model for a record of a Standard ISA being Transferred
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -870,6 +880,7 @@ components:
               not:
                 required: [ closureDate ]
     investorDetailsBase:
+      title: "Common fields for Investor Details"
       type: object
       required:
         - accountNumber
@@ -993,6 +1004,7 @@ components:
                 example: "The NINO provided is invalid"
 
     returnResult:
+      title: "Model report record with an identified issue"
       type: object
       properties:
         accountNumber:
@@ -1009,6 +1021,7 @@ components:
             - $ref: '#/components/schemas/returnResultOverSubscribed'
             - $ref: '#/components/schemas/returnResultUnableToIdentifyInvestor'
     returnResultOverSubscribed:
+      title: "Model for a report record outlining an over-subscription"
       type: object
       properties:
         code:
@@ -1024,6 +1037,7 @@ components:
           example: 1000.00
           pattern: '^\d+\.\d{2}$'
     returnResultUnableToIdentifyInvestor:
+      title: "Model for a report record outlining an inability to identify the investor"
       type: object
       properties:
         code:
