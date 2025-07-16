@@ -138,8 +138,8 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
       val result = initiateRequest(validRequestJson)
 
       result.status                        shouldBe FORBIDDEN
-      (result.json \ "code").as[String]    shouldBe "RETURN_OBLIGATION_ALREADY_MET"
-      (result.json \ "message").as[String] shouldBe "Return obligation already met"
+      (result.json \ "code").as[String]    shouldBe "OBLIGATION_CLOSED"
+      (result.json \ "message").as[String] shouldBe "Obligation closed"
     }
 
     "return 403 Forbidden when ETMP returns reporting window closed" in {
@@ -168,8 +168,8 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
       errors.map(e => (e \ "code").as[String]).head    shouldBe "REPORTING_WINDOW_CLOSED"
       errors.map(e => (e \ "message").as[String]).head shouldBe "Reporting window has been closed"
 
-      errors.map(e => (e \ "code").as[String])(1)    shouldBe "RETURN_OBLIGATION_ALREADY_MET"
-      errors.map(e => (e \ "message").as[String])(1) shouldBe "Return obligation already met"
+      errors.map(e => (e \ "code").as[String])(1)    shouldBe "OBLIGATION_CLOSED"
+      errors.map(e => (e \ "message").as[String])(1) shouldBe "Obligation closed"
     }
 
     "return 400 Bad Request when request fails validation with invalid submissionPeriod" in {

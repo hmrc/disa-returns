@@ -149,8 +149,8 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
       val result = controller.initiate(isaManagerRef)(request)
 
       status(result)                                 shouldBe FORBIDDEN
-      (contentAsJson(result) \ "message").as[String] shouldBe "Return obligation already met"
-      (contentAsJson(result) \ "code").as[String]    shouldBe "RETURN_OBLIGATION_ALREADY_MET"
+      (contentAsJson(result) \ "message").as[String] shouldBe "Obligation closed"
+      (contentAsJson(result) \ "code").as[String]    shouldBe "OBLIGATION_CLOSED"
 
     }
     "return 403 Forbidden when ETMP reporting window is closed" in {
@@ -184,8 +184,8 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
       (contentAsJson(result) \ "message").as[String] shouldBe "Multiple issues found regarding your submission"
       (contentAsJson(result) \ "code").as[String]    shouldBe "FORBIDDEN"
       val errors = (contentAsJson(result) \ "errors").as[Seq[JsValue]]
-      errors.map(e => (e \ "code").as[String]).head    shouldBe "RETURN_OBLIGATION_ALREADY_MET"
-      errors.map(e => (e \ "message").as[String]).head shouldBe "Return obligation already met"
+      errors.map(e => (e \ "code").as[String]).head    shouldBe "OBLIGATION_CLOSED"
+      errors.map(e => (e \ "message").as[String]).head shouldBe "Obligation closed"
       errors.map(e => (e \ "code").as[String])(1)      shouldBe "REPORTING_WINDOW_CLOSED"
       errors.map(e => (e \ "message").as[String])(1)   shouldBe "Reporting window has been closed"
 

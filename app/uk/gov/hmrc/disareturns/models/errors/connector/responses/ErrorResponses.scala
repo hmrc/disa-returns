@@ -24,8 +24,8 @@ sealed trait ErrorResponse {
 }
 
 case object ObligationClosed extends ErrorResponse {
-  val code    = "RETURN_OBLIGATION_ALREADY_MET"
-  val message = "Return obligation already met"
+  val code    = "OBLIGATION_CLOSED"
+  val message = "Obligation closed"
 }
 
 case object ReportingWindowClosed extends ErrorResponse {
