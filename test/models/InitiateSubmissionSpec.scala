@@ -17,8 +17,8 @@
 package models
 
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.InitiateSubmission
-import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
+import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.SubmissionRequest
+import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
 import utils.BaseUnitSpec
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
@@ -41,10 +41,10 @@ class InitiateSubmissionSpec extends BaseUnitSpec {
       val json          = Json.parse(jsonString)
       val request       = json.as[SubmissionRequest]
 
-      val submissionRequestWithReturnId = InitiateSubmission.create(boxId, request, isaManagerReference, instantAt16)
+      val submissionRequestWithReturnId = ReturnMetadata.create(boxId, request, isaManagerReference, instantAt16)
 
       val serialized   = Json.toJson(submissionRequestWithReturnId)
-      val deserialized = serialized.validate[InitiateSubmission]
+      val deserialized = serialized.validate[ReturnMetadata]
 
       deserialized shouldBe JsSuccess(submissionRequestWithReturnId)
     }
@@ -52,7 +52,7 @@ class InitiateSubmissionSpec extends BaseUnitSpec {
     "create a new instance with a UUID returnId" in {
       val json    = Json.parse(jsonString)
       val request = json.as[SubmissionRequest]
-      val result  = InitiateSubmission.create(boxId, request, isaManagerReference)
+      val result  = ReturnMetadata.create(boxId, request, isaManagerReference)
 
       result.boxId               shouldBe "5"
       result.submissionRequest   shouldBe request

@@ -21,8 +21,8 @@ import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, OK}
 import play.api.libs.json._
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
-import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.InitiateSubmission
-import uk.gov.hmrc.disareturns.repositories.InitiateSubmissionRepository
+import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
+import uk.gov.hmrc.disareturns.repositories.ReturnMetadataRepository
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 import java.time.temporal.ChronoField.YEAR
 
@@ -30,7 +30,7 @@ import java.time.LocalDateTime
 
 class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
-  implicit val mongo: InitiateSubmissionRepository = app.injector.instanceOf[InitiateSubmissionRepository]
+  implicit val mongo: ReturnMetadataRepository = app.injector.instanceOf[ReturnMetadataRepository]
   val isaManagerRef = "Z123456"
   val initiateUrl   = s"/monthly/$isaManagerRef/init"
 
@@ -72,7 +72,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
   def stubPPNSBoxId(): Unit =
     stubFor(
-      get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations/declaration/isa/return%23%231.0%23%23callbackUrl"))
+      get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"))
         .willReturn(ok(boxResponseJson))
     )
 
@@ -87,7 +87,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe OK
 
-      val mongoRecord: Option[InitiateSubmission] = await(mongo.findByIsaManagerReference(isaManagerRef))
+      val mongoRecord: Option[ReturnMetadata] = await(mongo.findByIsaManagerReference(isaManagerRef))
       val returnId = mongoRecord.map(_.returnId).get
 
       (result.json \ "returnId").as[String] shouldBe returnId
@@ -107,7 +107,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe OK
 
-      val mongoRecord: Option[InitiateSubmission] = await(mongo.findByIsaManagerReference(isaManagerRef))
+      val mongoRecord: Option[ReturnMetadata] = await(mongo.findByIsaManagerReference(isaManagerRef))
       val returnId = mongoRecord.map(_.returnId).get
 
       (result.json \ "returnId").as[String] shouldBe returnId

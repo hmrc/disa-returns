@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.initiate.mongo
+package uk.gov.hmrc.disareturns.models.initiate.inboundRequest
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common.Month.Month
-import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.TaxYear
 import uk.gov.hmrc.disareturns.models.initiate.response.ResponseAction
 
 case class SubmissionRequest(

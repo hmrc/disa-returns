@@ -36,17 +36,13 @@ import org.apache.pekko.stream.Materializer
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import org.scalatestplus.play.guice.{GuiceOneAppPerSuite, GuiceOneServerPerSuite}
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.ws.{DefaultWSCookie, WSClient, WSCookie}
-import play.api.mvc.{Cookie, Session, SessionCookieBaker}
+import play.api.libs.ws.WSClient
 import play.api.test.DefaultAwaitTimeout
-import uk.gov.hmrc.crypto.PlainText
-import uk.gov.hmrc.disareturns.config.Constants
 import uk.gov.hmrc.disareturns.utils.WiremockHelper.{wiremockHost, wiremockPort}
-import uk.gov.hmrc.http.{HeaderCarrier, SessionKeys}
+import uk.gov.hmrc.http.HeaderCarrier
 
 trait BaseIntegrationSpec
     extends AnyWordSpec

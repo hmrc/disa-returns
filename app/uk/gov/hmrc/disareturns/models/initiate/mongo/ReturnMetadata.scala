@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.initiate.inboundRequest
+package uk.gov.hmrc.disareturns.models.initiate.mongo
 
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json.{OFormat, __}
-import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
+import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.SubmissionRequest
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 import java.util.UUID
 
-case class InitiateSubmission(
+case class ReturnMetadata(
   returnId:            String,
   boxId:               String,
   submissionRequest:   SubmissionRequest,
@@ -32,7 +32,7 @@ case class InitiateSubmission(
   createdAt:           Instant = Instant.now()
 )
 
-object InitiateSubmission {
+object ReturnMetadata {
 
   private val reads = (
     (__ \ "returnId").read[String] and
@@ -40,7 +40,7 @@ object InitiateSubmission {
       (__ \ "submissionRequest").read[SubmissionRequest] and
       (__ \ "isaManagerReference").read[String] and
       (__ \ "createdAt").read[Instant](MongoJavatimeFormats.instantFormat)
-  )(InitiateSubmission.apply _)
+  )(ReturnMetadata.apply _)
 
   private val writes = (
     (__ \ "returnId").write[String] and
@@ -48,15 +48,15 @@ object InitiateSubmission {
       (__ \ "submissionRequest").write[SubmissionRequest] and
       (__ \ "isaManagerReference").write[String] and
       (__ \ "createdAt").write[Instant](MongoJavatimeFormats.instantFormat)
-  )(unlift(InitiateSubmission.unapply))
+  )(unlift(ReturnMetadata.unapply))
 
-  implicit val format: OFormat[InitiateSubmission] = OFormat(reads, writes)
+  implicit val format: OFormat[ReturnMetadata] = OFormat(reads, writes)
 
   def create(
     boxId:               String,
     submissionRequest:   SubmissionRequest,
     isaManagerReference: String,
     createdAt:           Instant = Instant.now()
-  ): InitiateSubmission =
-    InitiateSubmission(UUID.randomUUID().toString, boxId, submissionRequest, isaManagerReference, createdAt = createdAt)
+  ): ReturnMetadata =
+    ReturnMetadata(UUID.randomUUID().toString, boxId, submissionRequest, isaManagerReference, createdAt = createdAt)
 }

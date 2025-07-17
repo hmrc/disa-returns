@@ -18,7 +18,7 @@ package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
-import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.InitiateSubmission
+import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
@@ -27,11 +27,11 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class InitiateSubmissionRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
-    extends PlayMongoRepository[InitiateSubmission](
+class ReturnMetadataRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
+    extends PlayMongoRepository[ReturnMetadata](
       mongoComponent = mc,
       collectionName = "initiateSubmission",
-      domainFormat = InitiateSubmission.format,
+      domainFormat = ReturnMetadata.format,
       indexes = Seq(
         IndexModel(
           keys = Indexes.ascending("returnId"),
@@ -46,10 +46,10 @@ class InitiateSubmissionRepository @Inject() (mc: MongoComponent)(implicit ec: E
       )
     ) {
 
-  def insert(initiateSubmission: InitiateSubmission): Future[String] =
+  def insert(initiateSubmission: ReturnMetadata): Future[String] =
     collection.insertOne(initiateSubmission).toFuture().map(_ => initiateSubmission.returnId)
 
-  def findByIsaManagerReference(isaManagerReference: String): Future[Option[InitiateSubmission]] =
+  def findByIsaManagerReference(isaManagerReference: String): Future[Option[ReturnMetadata]] =
     collection.find(equal("isaManagerReference", isaManagerReference)).headOption()
 
   def dropCollection(): Future[Unit] =

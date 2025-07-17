@@ -20,7 +20,7 @@ import cats.data.EitherT
 import org.mockito.Mockito._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, Unauthorised}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, Unauthorised}
 import uk.gov.hmrc.disareturns.services.ETMPService
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import utils.BaseUnitSpec

@@ -23,13 +23,12 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.Constants
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
 import uk.gov.hmrc.disareturns.models.ppns.response.{Box, BoxCreator}
-import uk.gov.hmrc.disareturns.utils.RequestHelper
 import uk.gov.hmrc.http.{HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
 
-class PPNSConnectorSpec extends BaseUnitSpec with RequestHelper {
+class PPNSConnectorSpec extends BaseUnitSpec {
 
   "PPNSConnector.getBoxId" should {
 
@@ -104,8 +103,10 @@ class PPNSConnectorSpec extends BaseUnitSpec with RequestHelper {
     val testUrl: String = "http://localhost:6701"
     when(mockAppConfig.ppnsBaseUrl).thenReturn(testUrl)
     when(
-      mockHttpClient.get(url"$testUrl/box?clientId=test-client-id-12345&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl")
-    )
+      mockHttpClient.get(url"$testUrl/box")
+    ).thenReturn(mockRequestBuilder)
+
+    when(mockRequestBuilder.transform(any()))
       .thenReturn(mockRequestBuilder)
   }
 }

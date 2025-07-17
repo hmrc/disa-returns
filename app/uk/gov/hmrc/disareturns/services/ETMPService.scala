@@ -19,8 +19,8 @@ package uk.gov.hmrc.disareturns.services
 import cats.data.EitherT
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.models.errors.connector.responses.UpstreamErrorMapper.mapToErrorResponse
-import uk.gov.hmrc.disareturns.models.errors.connector.responses._
+import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import javax.inject.{Inject, Singleton}

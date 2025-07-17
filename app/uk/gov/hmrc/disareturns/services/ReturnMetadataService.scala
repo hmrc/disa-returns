@@ -16,18 +16,18 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.InitiateSubmission
-import uk.gov.hmrc.disareturns.models.initiate.mongo.SubmissionRequest
-import uk.gov.hmrc.disareturns.repositories.InitiateSubmissionRepository
+import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.SubmissionRequest
+import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
+import uk.gov.hmrc.disareturns.repositories.ReturnMetadataRepository
 
 import javax.inject.Inject
 import scala.concurrent.Future
 
-class InitiateSubmissionDataService @Inject() (repository: InitiateSubmissionRepository) {
+class ReturnMetadataService @Inject() (repository: ReturnMetadataRepository) {
 
-  def saveInitiateSubmission(boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String): Future[String] = {
-    val initiateSubmission =
-      InitiateSubmission.create(boxId = boxId, submissionRequest = submissionRequest, isaManagerReference = isaManagerReference)
-    repository.insert(initiateSubmission)
+  def saveReturnMetadata(boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String): Future[String] = {
+    val returnMetadata =
+      ReturnMetadata.create(boxId = boxId, submissionRequest = submissionRequest, isaManagerReference = isaManagerReference)
+    repository.insert(returnMetadata)
   }
 }

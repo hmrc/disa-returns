@@ -21,14 +21,14 @@ import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.config.Constants
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
 import uk.gov.hmrc.disareturns.utils.WiremockHelper._
-import uk.gov.hmrc.disareturns.utils.{BaseIntegrationSpec, RequestHelper}
+import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
-class PPNSConnectorISpec extends BaseIntegrationSpec with RequestHelper {
+class PPNSConnectorISpec extends BaseIntegrationSpec {
 
   lazy val connector: PPNSConnector = app.injector.instanceOf[PPNSConnector]
 
   override val testClientId = "test-client-id-12345"
-  val url                   = "/box?clientId=test-client-id-12345&boxName=obligations/declaration/isa/return%23%231.0%23%23callbackUrl"
+  val url                   = "/box?clientId=test-client-id-12345&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"
 
   "PPNSConnector.getBoxId" should {
 
@@ -66,7 +66,7 @@ class PPNSConnectorISpec extends BaseIntegrationSpec with RequestHelper {
     }
 
     "return Left(UpstreamErrorResponse) when the call fails with unexpected exception" in {
-      stopWiremock() // simulate connection failure
+      stopWiremock()
 
       val Left(response) = await(connector.getBox(testClientId).value)
       response.statusCode shouldBe INTERNAL_SERVER_ERROR

@@ -29,7 +29,8 @@ import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.{ETMPConnector, HttpClientResponse, PPNSConnector}
-import uk.gov.hmrc.disareturns.services.{ETMPService, InitiateSubmissionDataService, PPNSService}
+import uk.gov.hmrc.disareturns.repositories.ReturnMetadataRepository
+import uk.gov.hmrc.disareturns.services.{ETMPService, PPNSService, ReturnMetadataService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
@@ -50,23 +51,23 @@ abstract class BaseUnitSpec
   implicit val hc: HeaderCarrier    = HeaderCarrier()
 
   //MOCKS
-  val mockHttpClient:                    HttpClientV2                  = mock[HttpClientV2]
-  val mockAppConfig:                     AppConfig                     = mock[AppConfig]
-  val mockRequestBuilder:                RequestBuilder                = mock[RequestBuilder]
-  val mockPPNSService:                   PPNSService                   = mock[PPNSService]
-  val mockPPNSConnector:                 PPNSConnector                 = mock[PPNSConnector]
-  val mockETMPConnector:                 ETMPConnector                 = mock[ETMPConnector]
-  val mockETMPService:                   ETMPService                   = mock[ETMPService]
-  val mockHttpClientResponse:            HttpClientResponse            = mock[HttpClientResponse]
-  val mockInitiateSubmissionDataService: InitiateSubmissionDataService = mock[InitiateSubmissionDataService]
-  val mockAuthConnector:                 AuthConnector                 = mock[AuthConnector]
+  val mockHttpClient:                    HttpClientV2          = mock[HttpClientV2]
+  val mockAppConfig:                     AppConfig             = mock[AppConfig]
+  val mockRequestBuilder:                RequestBuilder        = mock[RequestBuilder]
+  val mockPPNSService:                   PPNSService           = mock[PPNSService]
+  val mockPPNSConnector:                 PPNSConnector         = mock[PPNSConnector]
+  val mockETMPConnector:                 ETMPConnector         = mock[ETMPConnector]
+  val mockETMPService:                   ETMPService           = mock[ETMPService]
+  val mockHttpClientResponse:            HttpClientResponse    = mock[HttpClientResponse]
+  val mockInitiateSubmissionDataService: ReturnMetadataService = mock[ReturnMetadataService]
+  val mockAuthConnector:                 AuthConnector         = mock[AuthConnector]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .overrides(
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[ETMPService].toInstance(mockETMPService),
       bind[PPNSService].toInstance(mockPPNSService),
-      bind[InitiateSubmissionDataService].toInstance(mockInitiateSubmissionDataService)
+      bind[ReturnMetadataService].toInstance(mockInitiateSubmissionDataService)
     )
     .build()
 }

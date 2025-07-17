@@ -17,7 +17,7 @@
 package models
 
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.errors.connector.responses.{ErrorResponse, FieldValidationError, MultipleErrorResponse, ObligationClosed, Unauthorised}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, FieldValidationError, MultipleErrorResponse, ObligationClosed, Unauthorised}
 import utils.BaseUnitSpec
 
 class ErrorResponseSpec extends BaseUnitSpec {

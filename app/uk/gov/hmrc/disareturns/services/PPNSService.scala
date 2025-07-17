@@ -18,8 +18,8 @@ package uk.gov.hmrc.disareturns.services
 
 import cats.data.EitherT
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
-import uk.gov.hmrc.disareturns.models.errors.connector.responses.ErrorResponse
-import uk.gov.hmrc.disareturns.models.errors.connector.responses.UpstreamErrorMapper.mapToErrorResponse
+import uk.gov.hmrc.disareturns.models.common.ErrorResponse
+import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.ppns.response.Box
 import uk.gov.hmrc.http.HeaderCarrier
 

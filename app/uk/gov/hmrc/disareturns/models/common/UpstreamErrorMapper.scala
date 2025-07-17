@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.errors.connector.responses
+package uk.gov.hmrc.disareturns.models.common
 
 import play.api.Logging
 import uk.gov.hmrc.http.UpstreamErrorResponse

@@ -25,7 +25,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.controllers.InitiateSubmissionController
-import uk.gov.hmrc.disareturns.models.errors.connector.responses.{InternalServerErr, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed, Unauthorised}
+import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed, Unauthorised}
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -59,7 +59,7 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(EitherT.rightT(boxId))
-      when(mockInitiateSubmissionDataService.saveInitiateSubmission(any(), any(), any()))
+      when(mockInitiateSubmissionDataService.saveReturnMetadata(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
       val fakeRequest = FakeRequest("POST", s"/initiate/$isaManagerRef")
@@ -85,7 +85,7 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(EitherT.rightT(boxId))
-      when(mockInitiateSubmissionDataService.saveInitiateSubmission(any(), any(), any()))
+      when(mockInitiateSubmissionDataService.saveReturnMetadata(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
       val fakeRequest = FakeRequest("POST", s"/initiate/$isaManagerRef")
@@ -119,6 +119,7 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
       errors.map(e => (e \ "message").as[String])(1)   shouldBe "This field is required"
       errors.map(e => (e \ "path").as[String])(1)      shouldBe "/submissionPeriod"
     }
+
     "return 400 BadRequest for invalid JSON when submissionPeriod is not an enum" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       val invalidJson = Json.obj("totalRecords" -> 100, "submissionPeriod" -> "January", "taxYear" -> 2025)

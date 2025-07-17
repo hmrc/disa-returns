@@ -14,14 +14,8 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.utils
+package uk.gov.hmrc.disareturns.models.common
 
-import java.net.URLEncoder
+import play.api.mvc.{Request, WrappedRequest}
 
-trait RequestHelper {
-  def makeQueryString(queryParams: Seq[(String, String)]): String = {
-    val paramPairs = queryParams.map { case (k, v) => s"$k=${URLEncoder.encode(v, "utf-8")}" }
-    if (paramPairs.isEmpty) "" else paramPairs.mkString("?", "&", "")
-  }
-
-}
+case class ClientIdRequest[A](clientId: String, request: Request[A]) extends WrappedRequest[A](request)
