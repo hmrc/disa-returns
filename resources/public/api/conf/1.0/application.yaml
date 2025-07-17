@@ -684,13 +684,13 @@ components:
                   format: double
                   description: The amount of the current subscription that qualifies for a LISA bonus
                   example: 1000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
                 lisaBonusClaim:
                   type: number
                   format: double
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
               required: [ dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim ]
               not:
                 required: [ closureDate, accountNumberOfTransferringAccount ]
@@ -713,7 +713,7 @@ components:
                   format: double
                   description: 'The amount transferred to the ISA account'
                   example: 5000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
                 dateOfFirstSubscription:
                   type: string
                   format: date
@@ -725,13 +725,13 @@ components:
                   format: double
                   description: The amount of the current subscription that qualifies for a LISA bonus
                   example: 1000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
                 lisaBonusClaim:
                   type: number
                   format: double
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
               required: [ dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred, lisaQualifyingAddition, lisaBonusClaim ]
               not:
                 required: [ closureDate ]
@@ -772,13 +772,13 @@ components:
                   format: double
                   description: The amount of the current subscription that qualifies for a LISA bonus
                   example: 1000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
                 lisaBonusClaim:
                   type: number
                   format: double
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
               required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim ]
         - title: "Lifetime ISA - Transfer & Closure"
           description: Model for a record of a Lifetime ISA account being Transferred and Closed
@@ -799,7 +799,7 @@ components:
                   format: double
                   description: 'The amount transferred to the ISA account'
                   example: 5000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
                 dateOfFirstSubscription:
                   type: string
                   format: date
@@ -827,13 +827,13 @@ components:
                   format: double
                   description: The amount of the current subscription that qualifies for a LISA bonus
                   example: 1000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
                 lisaBonusClaim:
                   type: number
                   format: double
                   description: The amount being claimed as a LISA bonus
                   example: 1000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
               required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim, accountNumberOfTransferringAccount, amountTransferred ]
         - title: "Standard ISA - New Subscription"
           description: Model for a record of a New Standard ISA Subscription
@@ -871,7 +871,7 @@ components:
                   format: double
                   description: 'The amount transferred to the ISA account'
                   example: 5000.00
-                  pattern: '^\d+\.\d{2}$'
+                  pattern: '^-?\d+\.\d{2}$'
                 flexibleIsa:
                   type: boolean
                   description: 'Indicates if the ISA account is flexible'
