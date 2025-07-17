@@ -28,13 +28,13 @@ import utils.BaseUnitSpec
 
 import scala.concurrent.Future
 
-class InitiateSubmissionDataServiceSpec extends BaseUnitSpec  {
+class InitiateSubmissionDataServiceSpec extends BaseUnitSpec {
 
   "create and insert ReturnMetadata, returning the returnId" in {
     val mockRepository = mock[ReturnMetadataRepository]
-    val service = new ReturnMetadataService(mockRepository)
+    val service        = new ReturnMetadataService(mockRepository)
 
-    val boxId = "box-123"
+    val boxId         = "box-123"
     val isaManagerRef = "Z123456"
     val submissionRequest = SubmissionRequest(
       totalRecords = 5,

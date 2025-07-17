@@ -26,8 +26,7 @@ import uk.gov.hmrc.disareturns.models.common.{BadRequestMissingHeaderErr, Client
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ClientIdAction @Inject()(implicit ec: ExecutionContext)
-  extends ActionRefiner[Request, ClientIdRequest] {
+class ClientIdAction @Inject() (implicit ec: ExecutionContext) extends ActionRefiner[Request, ClientIdRequest] {
 
   private val ClientIdHeader = "X-Client-ID"
   override protected def executionContext: ExecutionContext = ec

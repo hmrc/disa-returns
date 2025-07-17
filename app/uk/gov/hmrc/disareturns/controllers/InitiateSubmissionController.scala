@@ -18,18 +18,18 @@ package uk.gov.hmrc.disareturns.controllers
 
 import cats.data.EitherT
 import com.google.inject.Inject
-import jakarta.inject.Singleton
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
+import jakarta.inject.Singleton
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, Unauthorised, ValidationFailureResponse}
+import uk.gov.hmrc.disareturns.controllers.actionBuilders.{ClientIdAction, IsaRefAction}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, Unauthorised}
 import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.SubmissionRequest
 import uk.gov.hmrc.disareturns.models.initiate.response.SuccessResponse
-import uk.gov.hmrc.disareturns.controllers.actionBuilders.{ClientIdAction, IsaRefAction}
 import uk.gov.hmrc.disareturns.services.{ETMPService, PPNSService, ReturnMetadataService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class InitiateSubmissionController @Inject() (
@@ -40,37 +40,32 @@ class InitiateSubmissionController @Inject() (
   mongoJourneyAnswersService: ReturnMetadataService,
   clientIdActionRefiner:      ClientIdAction
 )(implicit ec:                ExecutionContext)
-    extends BackendController(cc) {
+    extends BackendController(cc)
+    with WithJsonBodyWithBadRequest {
 
-  def initiate(isaManagerReferenceNumber: String): Action[JsValue] = (Action andThen new IsaRefAction(isaManagerReferenceNumber)
-    andThen clientIdActionRefiner).async(parse.json) { implicit request =>
-    request.body
-      .validate[SubmissionRequest]
-      .fold(
-        errors => {
-          val jsError           = JsError(errors)
-          val validationFailure = ValidationFailureResponse.convertErrors(jsError)
-          Future.successful(BadRequest(Json.toJson(validationFailure)))
-        },
-        submissionRequest =>
-          (for {
-            _     <- etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
-            boxId <- ppnsService.getBoxId(request.clientId)
-            returnId <-
-              EitherT.right[ErrorResponse](
-                mongoJourneyAnswersService
-                  .saveReturnMetadata(boxId = boxId, submissionRequest = submissionRequest, isaManagerReference = isaManagerReferenceNumber)
-              )
-          } yield SuccessResponse(
-            returnId = returnId,
-            action = SubmissionRequest.setAction(totalRecords = submissionRequest.totalRecords),
-            boxId = boxId
-          )).value.map {
-            case Right(response)         => Ok(Json.toJson(response))
-            case Left(InternalServerErr) => InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
-            case Left(Unauthorised)      => Unauthorized(Json.toJson(Unauthorised: ErrorResponse))
-            case Left(error)             => Forbidden(Json.toJson(error))
-          }
-      )
-  }
+  def initiate(isaManagerReferenceNumber: String): Action[JsValue] =
+    (Action andThen new IsaRefAction(isaManagerReferenceNumber) andThen clientIdActionRefiner).async(parse.json) { implicit request =>
+      withJsonBody[SubmissionRequest] { submissionRequest =>
+        (for {
+          _     <- etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
+          boxId <- ppnsService.getBoxId(request.clientId)
+          returnId <- EitherT.right[ErrorResponse] {
+                        mongoJourneyAnswersService.saveReturnMetadata(
+                          boxId = boxId,
+                          submissionRequest = submissionRequest,
+                          isaManagerReference = isaManagerReferenceNumber
+                        )
+                      }
+        } yield SuccessResponse(
+          returnId = returnId,
+          action = SubmissionRequest.setAction(submissionRequest.totalRecords),
+          boxId = boxId
+        )).value.map {
+          case Right(response)         => Ok(Json.toJson(response))
+          case Left(InternalServerErr) => InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
+          case Left(Unauthorised)      => Unauthorized(Json.toJson(Unauthorised: ErrorResponse))
+          case Left(error)             => Forbidden(Json.toJson(error))
+        }
+      }
+    }
 }

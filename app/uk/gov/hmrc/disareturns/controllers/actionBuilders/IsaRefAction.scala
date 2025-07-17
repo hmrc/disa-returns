@@ -26,18 +26,16 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.matching.Regex
 
 @Singleton
-class IsaRefAction(isaManagerReferenceNumber: String)(implicit ec: ExecutionContext)
-  extends ActionFilter[Request] {
+class IsaRefAction(isaManagerReferenceNumber: String)(implicit ec: ExecutionContext) extends ActionFilter[Request] {
 
-  val isaRefRegex: Regex = "^Z([0-9]{4}|[0-9]{6})$".r
+  private val isaRefRegex: Regex = "^Z([0-9]{4}|[0-9]{6})$".r
 
   override protected def filter[A](request: Request[A]): Future[Option[Result]] = {
     val isaRefChecker = isaRefRegex.pattern.matcher(isaManagerReferenceNumber).matches()
-    isaRefChecker match {
-      case true =>
-        Future.successful(None)
-      case false =>
-        Future.successful(Some(BadRequest(Json.toJson(BadRequestInvalidIsaRefErr: ErrorResponse))))
+    if (isaRefChecker) {
+      Future.successful(None)
+    } else {
+      Future.successful(Some(BadRequest(Json.toJson(BadRequestInvalidIsaRefErr: ErrorResponse))))
     }
   }
 
