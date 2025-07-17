@@ -30,7 +30,7 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig, httpCli
   def getReturnsObligationStatus(
     isaManagerReferenceNumber: String
   )(implicit hc:               HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-obligation-status/$isaManagerReferenceNumber"
+    val url = s"${appConfig.etmpBaseUrl}/etmp/check-obligation-status/$isaManagerReferenceNumber"
     httpClientResponse.read(
       http
         .get(url"$url")
@@ -39,7 +39,7 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig, httpCli
   }
 
   def getReportingWindowStatus(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.etmpBaseUrl}/disa-returns-stubs/etmp/check-reporting-window"
+    val url = s"${appConfig.etmpBaseUrl}/etmp/check-reporting-window"
     httpClientResponse.read(
       http
         .get(url"$url")

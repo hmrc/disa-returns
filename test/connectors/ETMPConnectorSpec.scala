@@ -142,9 +142,9 @@ class ETMPConnectorSpec extends BaseUnitSpec {
     val connector:                     ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig, mockHttpClientResponse)
     val testUrl:                       String        = "http://localhost:1204"
     when(mockAppConfig.etmpBaseUrl).thenReturn(testUrl)
-    when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-obligation-status/$testIsaManagerReferenceNumber"))
+    when(mockHttpClient.get(url"$testUrl/etmp/check-obligation-status/$testIsaManagerReferenceNumber"))
       .thenReturn(mockRequestBuilder)
-    when(mockHttpClient.get(url"$testUrl/disa-returns-stubs/etmp/check-reporting-window"))
+    when(mockHttpClient.get(url"$testUrl/etmp/check-reporting-window"))
       .thenReturn(mockRequestBuilder)
   }
 }

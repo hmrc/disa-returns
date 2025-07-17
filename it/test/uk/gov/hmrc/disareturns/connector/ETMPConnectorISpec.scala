@@ -25,8 +25,8 @@ import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 class ETMPConnectorISpec extends BaseIntegrationSpec {
 
   val testIsaManagerReferenceNumber = "123456"
-  val obligationsUrl                = s"/disa-returns-stubs/etmp/check-obligation-status/$testIsaManagerReferenceNumber"
-  val reportingWindowUrl            = "/disa-returns-stubs/etmp/check-reporting-window"
+  val obligationsUrl                = s"/etmp/check-obligation-status/$testIsaManagerReferenceNumber"
+  val reportingWindowUrl            = "/etmp/check-reporting-window"
 
   val connector: ETMPConnector = app.injector.instanceOf[ETMPConnector]
 

@@ -48,13 +48,13 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
   def stubEtmpReportingWindow(status: Int, body: JsObject): Unit =
     stubFor(
-      get(urlEqualTo("/disa-returns-stubs/etmp/check-reporting-window"))
+      get(urlEqualTo("/etmp/check-reporting-window"))
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
     )
 
   def stubEtmpObligation(status: Int, body: JsObject): Unit =
     stubFor(
-      get(urlEqualTo(s"/disa-returns-stubs/etmp/check-obligation-status/$isaManagerRef"))
+      get(urlEqualTo(s"/etmp/check-obligation-status/$isaManagerRef"))
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
     )
 
