@@ -29,11 +29,24 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionContext) {
 
-  def getReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] =
-    connector.getReportingWindowStatus.map(_.json.as[EtmpReportingWindow]).leftMap(mapToErrorResponse)
+  def getReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] = {
+    val result = connector.getReportingWindowStatus
+      .fold(
+        errors => Left(mapToErrorResponse(errors)),
+        httpResponse => Right(httpResponse.json.as[EtmpReportingWindow])
+      )
+    EitherT(result)
+  }
 
-  def getObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] =
-    connector.getReturnsObligationStatus(isaManagerReferenceNumber).map(_.json.as[EtmpObligations]).leftMap(mapToErrorResponse)
+  def getObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] = {
+    val result = connector
+      .getReturnsObligationStatus(isaManagerReferenceNumber)
+      .fold(
+        errors => Left(mapToErrorResponse(errors)),
+        httpResponse => Right(httpResponse.json.as[EtmpObligations])
+      )
+    EitherT(result)
+  }
 
   def validateEtmpSubmissionEligibility(
     isaManagerReferenceNumber: String
