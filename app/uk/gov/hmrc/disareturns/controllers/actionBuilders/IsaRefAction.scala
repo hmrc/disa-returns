@@ -28,16 +28,15 @@ import scala.util.matching.Regex
 @Singleton
 class IsaRefAction(isaManagerReferenceNumber: String)(implicit ec: ExecutionContext) extends ActionFilter[Request] {
 
-  private val isaRefRegex: Regex = "^Z([0-9]{4}|[0-9]{6})$".r
+  private val isaRefRegex: Regex   = "^Z([0-9]{4}|[0-9]{6})$".r
+  def isValidIsaRef:       Boolean = isaRefRegex.pattern.matcher(isaManagerReferenceNumber).matches()
 
-  override protected def filter[A](request: Request[A]): Future[Option[Result]] = {
-    val isaRefChecker = isaRefRegex.pattern.matcher(isaManagerReferenceNumber).matches()
-    if (isaRefChecker) {
+  override def filter[A](request: Request[A]): Future[Option[Result]] =
+    if (isValidIsaRef) {
       Future.successful(None)
     } else {
       Future.successful(Some(BadRequest(Json.toJson(BadRequestInvalidIsaRefErr: ErrorResponse))))
     }
-  }
 
   override protected def executionContext: ExecutionContext = ec
 }
