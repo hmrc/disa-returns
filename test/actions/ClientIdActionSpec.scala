@@ -29,13 +29,13 @@ class ClientIdActionSpec extends BaseUnitSpec {
   "ClientIdAction.refine" should {
 
     "allow request when X-Client-ID header is present" in {
-      val action = new ClientIdAction()
+      val action  = new ClientIdAction()
       val request = FakeRequest().withHeaders("X-Client-ID" -> "client-123")
 
       whenReady(action.refine(request)) {
         case Right(clientIdRequest) =>
           clientIdRequest.clientId shouldBe "client-123"
-          clientIdRequest.request shouldBe request
+          clientIdRequest.request  shouldBe request
 
         case Left(_) =>
           fail("Expected request to be allowed but got BadRequest")
@@ -43,16 +43,15 @@ class ClientIdActionSpec extends BaseUnitSpec {
     }
 
     "block request when X-Client-ID header is missing" in {
-      val action = new ClientIdAction()
+      val action  = new ClientIdAction()
       val request = FakeRequest()
 
       whenReady(action.refine(request)) {
         case Left(result) =>
           val resultF = Future.successful(result)
-          status(resultF) shouldBe BAD_REQUEST
-          contentType(resultF) shouldBe Some("application/json")
-          contentAsJson(resultF) shouldBe Json.obj("code" -> "BAD_REQUEST",
-            "message" -> "Missing required header: X-Client-ID")
+          status(resultF)        shouldBe BAD_REQUEST
+          contentType(resultF)   shouldBe Some("application/json")
+          contentAsJson(resultF) shouldBe Json.obj("code" -> "BAD_REQUEST", "message" -> "Missing required header: X-Client-ID")
 
         case Right(_) =>
           fail("Expected BadRequest but got a successful refinement")

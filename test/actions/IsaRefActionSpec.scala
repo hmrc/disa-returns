@@ -49,7 +49,7 @@ class IsaRefActionSpec extends BaseUnitSpec {
   }
   "IsaRefAction.filter" should {
     "return None for valid ISA reference (allow request to proceed)" in {
-      val action = new IsaRefAction("Z123456")
+      val action  = new IsaRefAction("Z123456")
       val request = FakeRequest()
 
       val resultF: Future[Option[Result]] = action.filter(request)
@@ -60,16 +60,15 @@ class IsaRefActionSpec extends BaseUnitSpec {
     }
 
     "return BadRequest for invalid ISA reference" in {
-      val action = new IsaRefAction("A123")
+      val action  = new IsaRefAction("A123")
       val request = FakeRequest()
 
       whenReady(action.filter(request)) {
         case Some(result) =>
           val resultF = Future.successful(result)
-          status(resultF) shouldBe BAD_REQUEST
-          contentType(resultF) shouldBe Some("application/json")
-          contentAsJson(resultF) shouldBe Json.obj("code" -> "BAD_REQUEST",
-            "message" -> "ISA Manager Reference Number format is invalid")
+          status(resultF)        shouldBe BAD_REQUEST
+          contentType(resultF)   shouldBe Some("application/json")
+          contentAsJson(resultF) shouldBe Json.obj("code" -> "BAD_REQUEST", "message" -> "ISA Manager Reference Number format is invalid")
 
         case None =>
           fail("Expected BadRequest but got None")
