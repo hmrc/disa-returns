@@ -17,7 +17,7 @@
 package uk.gov.hmrc.disareturns.connectors
 
 import cats.data.EitherT
-import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.config.{AppConfig, Constants}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
@@ -34,7 +34,8 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig, httpCli
     httpClientResponse.read(
       http
         .get(url"$url")
-        .execute[Either[UpstreamErrorResponse, HttpResponse]]
+        .execute[Either[UpstreamErrorResponse, HttpResponse]],
+      "ETMPConnector: getReturnsObligationStatus"
     )
   }
 
@@ -43,7 +44,8 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig, httpCli
     httpClientResponse.read(
       http
         .get(url"$url")
-        .execute[Either[UpstreamErrorResponse, HttpResponse]]
+        .execute[Either[UpstreamErrorResponse, HttpResponse]],
+      context = Constants.etmpContext
     )
   }
 }
