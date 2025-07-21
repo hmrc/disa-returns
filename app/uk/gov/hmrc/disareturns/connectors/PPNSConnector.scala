@@ -37,7 +37,8 @@ class PPNSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig, h
       httpClient
         .get(url"$url")
         .transform(_.withQueryStringParameters(Seq("clientId" -> clientId, "boxName" -> Constants.BoxName): _*))
-        .execute[Either[UpstreamErrorResponse, HttpResponse]]
+        .execute[Either[UpstreamErrorResponse, HttpResponse]],
+      context = Constants.ppnsContext
     )
   }
 }

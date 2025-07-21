@@ -18,6 +18,8 @@ package uk.gov.hmrc.disareturns.config
 
 object Constants {
 
-  val BoxName = "obligations/declaration/isa/return##1.0##callbackUrl"
+  val BoxName     = "obligations/declaration/isa/return##1.0##callbackUrl"
+  val ppnsContext = "PPNSConnector"
+  val etmpContext = "ETMPConnector"
 
 }

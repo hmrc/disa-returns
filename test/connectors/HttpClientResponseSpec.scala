@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package models
+package connectors
 
+import org.mockito.ArgumentMatchers.any
 import play.api.http.Status
 import uk.gov.hmrc.disareturns.connectors.HttpClientResponse
 import uk.gov.hmrc.http.{HttpException, HttpResponse, UpstreamErrorResponse}
@@ -26,13 +27,13 @@ import scala.concurrent.Future
 class HttpClientResponseSpec extends BaseUnitSpec {
 
   val httpClientResponse = new HttpClientResponse()
-
+  val context            = "Some context"
   "HttpClientResponse.read" should {
 
     "return Right when Future is successful with status < 400" in {
       val response = Future.successful(Right(HttpResponse(200, "OK")))
 
-      val result = httpClientResponse.read(response)
+      val result = httpClientResponse.read(response, context)
 
       whenReady(result.value) {
         case Right(resp) =>
@@ -47,7 +48,7 @@ class HttpClientResponseSpec extends BaseUnitSpec {
       val httpResponse = HttpResponse(500, "Internal Server Error")
       val response     = Future.successful(Right(httpResponse))
 
-      val result = httpClientResponse.read(response)
+      val result = httpClientResponse.read(response, context)
 
       whenReady(result.value) {
         case Left(err) =>
@@ -61,7 +62,7 @@ class HttpClientResponseSpec extends BaseUnitSpec {
       val upstreamError = UpstreamErrorResponse("some error", 400, 400)
       val response      = Future.successful(Left(upstreamError))
 
-      val result = httpClientResponse.read(response)
+      val result = httpClientResponse.read(response, context)
 
       whenReady(result.value) { res =>
         res shouldBe Left(upstreamError)
@@ -72,7 +73,7 @@ class HttpClientResponseSpec extends BaseUnitSpec {
       val httpException = new HttpException("http exception occurred", Status.INTERNAL_SERVER_ERROR)
       val failedFuture  = Future.failed[Either[UpstreamErrorResponse, HttpResponse]](httpException)
 
-      val result = httpClientResponse.read(failedFuture)
+      val result = httpClientResponse.read(failedFuture, context)
 
       whenReady(result.value) {
         case Left(err) =>
@@ -86,7 +87,7 @@ class HttpClientResponseSpec extends BaseUnitSpec {
       val exception    = new RuntimeException("something bad happened")
       val failedFuture = Future.failed[Either[UpstreamErrorResponse, HttpResponse]](exception)
 
-      val result = httpClientResponse.read(failedFuture)
+      val result = httpClientResponse.read(failedFuture, context)
 
       whenReady(result.value) {
         case Left(err) =>
