@@ -46,7 +46,7 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val result = action.invokeBlock(request, testBlock)
 
-      status(result) shouldBe OK
+      status(result)          shouldBe OK
       contentAsString(result) shouldBe "Success"
     }
 
@@ -60,7 +60,7 @@ class AuthActionSpec extends BaseUnitSpec {
 
       status(result) shouldBe BAD_REQUEST
       contentAsJson(result) shouldBe Json.obj(
-        "code" -> "BAD_REQUEST",
+        "code"    -> "BAD_REQUEST",
         "message" -> "Missing enrolment"
       )
     }
@@ -75,7 +75,7 @@ class AuthActionSpec extends BaseUnitSpec {
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.obj(
-        "code" -> "INTERNAL_SERVER_ERROR",
+        "code"    -> "INTERNAL_SERVER_ERROR",
         "message" -> "There has been an issue processing your request"
       )
     }

@@ -28,10 +28,10 @@ import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-
 @Singleton
-class AuthAction @Inject()(ac: AuthConnector)(implicit val executionContext: ExecutionContext)
-  extends ActionBuilder[Request, AnyContent] with Logging {
+class AuthAction @Inject() (ac: AuthConnector)(implicit val executionContext: ExecutionContext)
+    extends ActionBuilder[Request, AnyContent]
+    with Logging {
 
   private val auth = new AuthorisedFunctions {
     override def authConnector: AuthConnector = ac
