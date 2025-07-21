@@ -29,7 +29,7 @@ class BaseConnectorSpec extends BaseUnitSpec {
     override implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   }
 
-  val context            = "Some context"
+  val context = "Some context"
   "HttpClientResponse.read" should {
 
     "return Right when Future is successful with status < 400" in {

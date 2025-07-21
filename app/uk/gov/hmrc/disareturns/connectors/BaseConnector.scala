@@ -19,7 +19,7 @@ package uk.gov.hmrc.disareturns.connectors
 import cats.data.EitherT
 import play.api.Logging
 import play.api.http.Status.INTERNAL_SERVER_ERROR
-import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse, HttpException}
+import uk.gov.hmrc.http.{HttpException, HttpResponse, UpstreamErrorResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
