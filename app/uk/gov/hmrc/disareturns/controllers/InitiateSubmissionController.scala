@@ -22,7 +22,7 @@ import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import jakarta.inject.Singleton
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.disareturns.controllers.actionBuilders.{ClientIdAction, IsaRefAction}
+import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, Unauthorised}
 import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.SubmissionRequest
 import uk.gov.hmrc.disareturns.models.initiate.response.SuccessResponse
@@ -38,13 +38,17 @@ class InitiateSubmissionController @Inject() (
   etmpService:                ETMPService,
   ppnsService:                PPNSService,
   mongoJourneyAnswersService: ReturnMetadataService,
-  clientIdActionRefiner:      ClientIdAction
+  clientIdActionRefiner:      ClientIdAction,
+  authAction:                 AuthAction
 )(implicit ec:                ExecutionContext)
     extends BackendController(cc)
     with WithJsonBodyWithBadRequest {
 
   def initiate(isaManagerReferenceNumber: String): Action[JsValue] =
-    (Action andThen new IsaRefAction(isaManagerReferenceNumber) andThen clientIdActionRefiner).async(parse.json) { implicit request =>
+    (Action andThen
+      authAction andThen
+      new IsaRefAction(isaManagerReferenceNumber)
+      andThen clientIdActionRefiner).async(parse.json) { implicit request =>
       withJsonBody[SubmissionRequest] { submissionRequest =>
         (for {
           _     <- etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber)

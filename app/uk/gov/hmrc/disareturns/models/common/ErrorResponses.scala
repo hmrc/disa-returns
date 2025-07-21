@@ -18,9 +18,13 @@ package uk.gov.hmrc.disareturns.models.common
 
 import play.api.libs.json._
 
-sealed trait ErrorResponse {
+trait ErrorResponse {
   def code:    String
   def message: String
+}
+
+case class BadRequestErr(message: String) extends ErrorResponse {
+  val code = "BAD_REQUEST"
 }
 
 case object ObligationClosed extends ErrorResponse {
@@ -91,9 +95,9 @@ object ErrorResponse {
         Json.obj("code" -> BadRequestInvalidIsaRefErr.code, "message" -> BadRequestInvalidIsaRefErr.message)
       case BadRequestMissingHeaderErr =>
         Json.obj("code" -> BadRequestMissingHeaderErr.code, "message" -> BadRequestMissingHeaderErr.message)
-
+      case badRequestErr: BadRequestErr =>
+        Json.obj("code" -> badRequestErr.code, "message" -> badRequestErr.message)
       case other =>
-        // Optional: catch-all for future-proofing or logging
         Json.obj("code" -> "UNKNOWN", "message" -> "Unknown error response")
     }
   }
