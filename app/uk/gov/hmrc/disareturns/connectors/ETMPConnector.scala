@@ -45,7 +45,7 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implici
       http
         .get(url"$url")
         .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = "ETMPConnector"
+      context = "ETMPConnector: getReportingWindowStatus"
     )
   }
 }
