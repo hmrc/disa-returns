@@ -14,8 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.config
+package uk.gov.hmrc.disareturns.models.common
 
-object Constants {
-  val BoxName = "obligations/declaration/isa/return##1.0##callbackUrl"
+import scala.util.matching.Regex
+
+object IsaRefValidator {
+  private val isaRefRegex: Regex = "^Z([0-9]{4}|[0-9]{6})$".r
+
+  def isValid(ref: String): Boolean =
+    isaRefRegex.pattern.matcher(ref).matches()
 }

@@ -27,7 +27,7 @@ class ReturnMetadataService @Inject() (repository: ReturnMetadataRepository) {
 
   def saveReturnMetadata(boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String): Future[String] = {
     val returnMetadata =
-      ReturnMetadata.create(boxId = boxId, submissionRequest = submissionRequest, isaManagerReference = isaManagerReference)
+      ReturnMetadata(boxId = boxId, submissionRequest = submissionRequest, isaManagerReference = isaManagerReference)
     repository.insert(returnMetadata)
   }
 }

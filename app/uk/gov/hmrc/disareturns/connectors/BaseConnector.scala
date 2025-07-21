@@ -17,14 +17,15 @@
 package uk.gov.hmrc.disareturns.connectors
 
 import cats.data.EitherT
-import com.google.inject.Inject
 import play.api.Logging
 import play.api.http.Status.INTERNAL_SERVER_ERROR
-import uk.gov.hmrc.http.{HttpException, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse, HttpException}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class HttpClientResponse @Inject() ()(implicit ec: ExecutionContext) extends Logging {
+trait BaseConnector extends Logging {
+
+  implicit val ec: ExecutionContext
 
   def read[A <: HttpResponse](response: Future[Either[UpstreamErrorResponse, A]], context: String): EitherT[Future, UpstreamErrorResponse, A] = {
     val recoveredResponse: Future[Either[UpstreamErrorResponse, A]] = response.recover {

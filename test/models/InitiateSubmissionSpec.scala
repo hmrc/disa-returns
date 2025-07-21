@@ -41,7 +41,8 @@ class InitiateSubmissionSpec extends BaseUnitSpec {
       val json          = Json.parse(jsonString)
       val request       = json.as[SubmissionRequest]
 
-      val submissionRequestWithReturnId = ReturnMetadata.create(boxId, request, isaManagerReference, instantAt16)
+      val submissionRequestWithReturnId =
+        ReturnMetadata(boxId = boxId, submissionRequest = request, isaManagerReference = isaManagerReference, createdAt = instantAt16)
 
       val serialized   = Json.toJson(submissionRequestWithReturnId)
       val deserialized = serialized.validate[ReturnMetadata]
@@ -52,7 +53,7 @@ class InitiateSubmissionSpec extends BaseUnitSpec {
     "create a new instance with a UUID returnId" in {
       val json    = Json.parse(jsonString)
       val request = json.as[SubmissionRequest]
-      val result  = ReturnMetadata.create(boxId, request, isaManagerReference)
+      val result  = ReturnMetadata(boxId = boxId, submissionRequest = request, isaManagerReference = isaManagerReference)
 
       result.boxId               shouldBe "5"
       result.submissionRequest   shouldBe request

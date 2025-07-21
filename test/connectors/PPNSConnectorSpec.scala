@@ -42,7 +42,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
       )
       val httpResponse: HttpResponse = HttpResponse(200, Json.toJson(expectedResponse).toString())
 
-      when(mockHttpClientResponse.read(any(), any()))
+      when(mockBaseConnector.read(any(), any()))
         .thenAnswer { invocation =>
           val future = invocation
             .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
@@ -76,7 +76,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
     "return Left(UpstreamErrorResponse) when the call to PPNS fails with an unexpected Throwable exception" in new TestSetup {
       val runtimeException = new RuntimeException("Connection timeout")
 
-      when(mockHttpClientResponse.read(any(), any()))
+      when(mockBaseConnector.read(any(), any()))
         .thenAnswer { invocation =>
           val future = invocation
             .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
@@ -98,7 +98,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
   }
 
   trait TestSetup {
-    val connector: PPNSConnector = new PPNSConnector(mockHttpClient, mockAppConfig, mockHttpClientResponse)
+    val connector: PPNSConnector = new PPNSConnector(mockHttpClient, mockAppConfig)
     val testClientId = "test-client-id-12345"
     val testUrl: String = "http://localhost:6701"
     when(mockAppConfig.ppnsBaseUrl).thenReturn(testUrl)

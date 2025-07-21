@@ -25,7 +25,7 @@ import java.time.Instant
 import java.util.UUID
 
 case class ReturnMetadata(
-  returnId:            String,
+  returnId:            String = UUID.randomUUID().toString,
   boxId:               String,
   submissionRequest:   SubmissionRequest,
   isaManagerReference: String,
@@ -52,11 +52,4 @@ object ReturnMetadata {
 
   implicit val format: OFormat[ReturnMetadata] = OFormat(reads, writes)
 
-  def create(
-    boxId:               String,
-    submissionRequest:   SubmissionRequest,
-    isaManagerReference: String,
-    createdAt:           Instant = Instant.now()
-  ): ReturnMetadata =
-    ReturnMetadata(UUID.randomUUID().toString, boxId, submissionRequest, isaManagerReference, createdAt = createdAt)
 }

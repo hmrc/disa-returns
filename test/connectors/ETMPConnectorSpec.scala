@@ -39,7 +39,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockHttpClientResponse.read(any(), any()))
+      when(mockBaseConnector.read(any(), any()))
         .thenAnswer { invocation =>
           val future = invocation
             .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
@@ -72,7 +72,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
     "return Left(UpstreamErrorResponse) when the call to ETMP fails with an unexpected Throwable exception" in new TestSetup {
       val runtimeException = new RuntimeException("Connection timeout")
 
-      when(mockHttpClientResponse.read(any(), any()))
+      when(mockBaseConnector.read(any(), any()))
         .thenAnswer { invocation =>
           val future = invocation
             .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
@@ -139,7 +139,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
 
   trait TestSetup {
     val testIsaManagerReferenceNumber: String        = "123456"
-    val connector:                     ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig, mockHttpClientResponse)
+    val connector:                     ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
     val testUrl:                       String        = "http://localhost:1204"
     when(mockAppConfig.etmpBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.get(url"$testUrl/etmp/check-obligation-status/$testIsaManagerReferenceNumber"))

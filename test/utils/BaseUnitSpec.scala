@@ -28,8 +28,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.connectors.{ETMPConnector, HttpClientResponse, PPNSConnector}
-import uk.gov.hmrc.disareturns.repositories.ReturnMetadataRepository
+import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, PPNSConnector}
 import uk.gov.hmrc.disareturns.services.{ETMPService, PPNSService, ReturnMetadataService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
@@ -58,7 +57,7 @@ abstract class BaseUnitSpec
   val mockPPNSConnector:                 PPNSConnector         = mock[PPNSConnector]
   val mockETMPConnector:                 ETMPConnector         = mock[ETMPConnector]
   val mockETMPService:                   ETMPService           = mock[ETMPService]
-  val mockHttpClientResponse:            HttpClientResponse    = mock[HttpClientResponse]
+  val mockBaseConnector:                 BaseConnector         = mock[BaseConnector]
   val mockInitiateSubmissionDataService: ReturnMetadataService = mock[ReturnMetadataService]
   val mockAuthConnector:                 AuthConnector         = mock[AuthConnector]
 

@@ -25,20 +25,16 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class PPNSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig, httpClientResponse: HttpClientResponse)(implicit
-  ec:                                      ExecutionContext
-) {
+class PPNSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
 
   def getBox(clientId: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-
     val url = s"${appConfig.ppnsBaseUrl}/box"
-
-    httpClientResponse.read(
+    read(
       httpClient
         .get(url"$url")
         .transform(_.withQueryStringParameters(Seq("clientId" -> clientId, "boxName" -> Constants.BoxName): _*))
         .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = Constants.ppnsContext
+      context = "PPNSConnector"
     )
   }
 }

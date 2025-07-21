@@ -17,21 +17,21 @@
 package uk.gov.hmrc.disareturns.connectors
 
 import cats.data.EitherT
-import uk.gov.hmrc.disareturns.config.{AppConfig, Constants}
+import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
-import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig, httpClientResponse: HttpClientResponse)(implicit ec: ExecutionContext) {
+class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
 
   def getReturnsObligationStatus(
     isaManagerReferenceNumber: String
   )(implicit hc:               HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.etmpBaseUrl}/etmp/check-obligation-status/$isaManagerReferenceNumber"
-    httpClientResponse.read(
+    read(
       http
         .get(url"$url")
         .execute[Either[UpstreamErrorResponse, HttpResponse]],
@@ -41,11 +41,11 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig, httpCli
 
   def getReportingWindowStatus(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.etmpBaseUrl}/etmp/check-reporting-window"
-    httpClientResponse.read(
+    read(
       http
         .get(url"$url")
         .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = Constants.etmpContext
+      context = "ETMPConnector"
     )
   }
 }

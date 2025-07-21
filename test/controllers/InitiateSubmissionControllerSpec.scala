@@ -28,6 +28,7 @@ import uk.gov.hmrc.disareturns.controllers.InitiateSubmissionController
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed, Unauthorised}
 import utils.BaseUnitSpec
 
+import java.time.LocalDate
 import scala.concurrent.Future
 
 class InitiateSubmissionControllerSpec extends BaseUnitSpec {
@@ -43,7 +44,7 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
   val validSubmissionJson: JsValue = Json.obj(
     "totalRecords"     -> 400,
     "submissionPeriod" -> "JAN",
-    "taxYear"          -> 2025
+    "taxYear"          -> LocalDate.now.getYear
   )
 
   override def beforeEach(): Unit = {
@@ -78,7 +79,7 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
       val validSubmissionJson: JsValue = Json.obj(
         "totalRecords"     -> 0,
         "submissionPeriod" -> "JAN",
-        "taxYear"          -> 2025
+        "taxYear"          -> LocalDate.now.getYear
       )
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
@@ -122,7 +123,7 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
 
     "return 400 BadRequest for invalid JSON when submissionPeriod is not an enum" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      val invalidJson = Json.obj("totalRecords" -> 100, "submissionPeriod" -> "January", "taxYear" -> 2025)
+      val invalidJson = Json.obj("totalRecords" -> 100, "submissionPeriod" -> "January", "taxYear" -> LocalDate.now.getYear)
       val request = FakeRequest("POST", s"/initiate/$isaManagerRef")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(invalidJson)
@@ -136,6 +137,19 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
       errors.map(e => (e \ "code").as[String]).head    shouldBe "VALIDATION_ERROR"
       errors.map(e => (e \ "message").as[String]).head shouldBe "Invalid month provided"
       errors.map(e => (e \ "path").as[String]).head    shouldBe "/submissionPeriod"
+    }
+
+    "return 400 BadRequest for request providing an invalid IsaManagerRef" in {
+      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      val fakeRequest = FakeRequest("POST", "/initiate/InvalidRef")
+        .withHeaders("X-Client-ID" -> "client-999")
+        .withBody(validSubmissionJson)
+
+      val result = controller.initiate("InvalidRef")(fakeRequest)
+
+      status(result)                                 shouldBe BAD_REQUEST
+      (contentAsJson(result) \ "code").as[String]    shouldBe "BAD_REQUEST"
+      (contentAsJson(result) \ "message").as[String] shouldBe "ISA Manager Reference Number format is invalid"
     }
 
     "return 403 Forbidden when ETMP obligation has already been met" in {

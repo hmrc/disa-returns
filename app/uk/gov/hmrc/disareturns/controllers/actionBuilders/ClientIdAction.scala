@@ -32,8 +32,8 @@ class ClientIdAction @Inject() (implicit ec: ExecutionContext) extends ActionRef
   override protected def executionContext: ExecutionContext = ec
 
   override def refine[A](request: Request[A]): Future[Either[Result, ClientIdRequest[A]]] = {
-    val maybeClientId = request.headers.get(ClientIdHeader)
-    maybeClientId match {
+    val optionClientId = request.headers.get(ClientIdHeader)
+    optionClientId match {
       case Some(clientId) =>
         Future.successful(Right(ClientIdRequest(clientId, request)))
       case None =>

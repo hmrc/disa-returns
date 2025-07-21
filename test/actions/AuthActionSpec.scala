@@ -23,7 +23,7 @@ import play.api.mvc.{AnyContent, Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.InsufficientEnrolments
-import uk.gov.hmrc.disareturns.controllers.actionBuilders.{AuthAction, ClientIdAction}
+import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
