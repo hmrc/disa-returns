@@ -25,22 +25,12 @@ Reference instructions for [setting up docker](https://docs.tax.service.gov.uk/m
 ### Running the app
 
 ```bash
-sbt run
-```
-
-You can then query the app to ensure it is working with the following command:
-
-```bash
-# other useful commands
-sbt clean
-
-sbt reload
-
-sbt compile
+# Run the app locally with service manager
+sm2 --start DISA_RETURNS_ALL
 ```
 
 ```bash
-curl http://localhost:9000/api/definition
+curl http://localhost:1200/api/definition
 ```
 
 ### Running the test suite
@@ -104,7 +94,7 @@ open http://localhost:9680/api-documentation/docs/openapi/preview/
 From this page, you can enter the fully qualified url of the documentation you wish to view, for example:
 
 ```
-http://localhost:9000/api/conf/1.0/application.yaml
+http://localhost:1200/api/conf/1.0/application.yaml
 ```
 
 ### Further documentation
