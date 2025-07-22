@@ -14,16 +14,27 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.config
+package uk.gov.hmrc.disareturns.models.common
 
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.libs.json._
 
-import javax.inject.{Inject, Singleton}
+object Month extends Enumeration {
 
-@Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
+  type Month = Value
 
-  lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
-  lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
+  val JAN: Value = Value("JAN")
+  val FEB: Value = Value("FEB")
+  val MAR: Value = Value("MAR")
+  val APR: Value = Value("APR")
+  val MAY: Value = Value("MAY")
+  val JUN: Value = Value("JUN")
+  val JUL: Value = Value("JUL")
+  val AUG: Value = Value("AUG")
+  val SEP: Value = Value("SEP")
+  val OCT: Value = Value("OCT")
+  val NOV: Value = Value("NOV")
+  val DEC: Value = Value("DEC")
+
+  implicit val format: Format[Month.Value] = JsonUtils.enumFormat(Month)
 
 }

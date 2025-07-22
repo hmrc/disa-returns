@@ -14,16 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.config
+package uk.gov.hmrc.disareturns.controllers.apiDocumentation
 
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import controllers.Assets
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
+class DocumentationController @Inject() (assets: Assets, cc: ControllerComponents) extends BackendController(cc) {
 
-  lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
-  lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
+  def definition(): Action[AnyContent] =
+    assets.at("/public/api", "definition.json")
 
+  def specification(version: String, file: String): Action[AnyContent] =
+    assets.at(s"/public/api/conf/$version", file)
 }

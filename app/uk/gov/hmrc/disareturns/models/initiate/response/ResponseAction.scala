@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.config
+package uk.gov.hmrc.disareturns.models.initiate.response
 
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.libs.json.Format
+import uk.gov.hmrc.disareturns.models.common.JsonUtils
 
-import javax.inject.{Inject, Singleton}
+object ResponseAction extends Enumeration {
+  type ResponseAction = Value
 
-@Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
+  val SUBMIT_RETURN_TO_PAGINATED_API:        Value = Value("SUBMIT_RETURN_TO_PAGINATED_API")
+  val NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION: Value = Value("NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION")
 
-  lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
-  lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
+  implicit val format: Format[ResponseAction.Value] = JsonUtils.enumFormat(ResponseAction)
 
 }

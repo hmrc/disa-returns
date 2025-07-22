@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.config
+package uk.gov.hmrc.disareturns.models.common
 
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import scala.util.matching.Regex
 
-import javax.inject.{Inject, Singleton}
+object IsaRefValidator {
+  private val isaRefRegex: Regex = "^Z([0-9]{4}|[0-9]{6})$".r
 
-@Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
-
-  lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
-  lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
-
+  def isValid(ref: String): Boolean =
+    isaRefRegex.pattern.matcher(ref).matches()
 }

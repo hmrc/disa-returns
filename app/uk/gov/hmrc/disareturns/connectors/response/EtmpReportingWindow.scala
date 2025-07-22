@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.config
+package uk.gov.hmrc.disareturns.connectors.response
 
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.libs.json.{Json, OFormat}
 
-import javax.inject.{Inject, Singleton}
+case class EtmpReportingWindow(reportingWindowOpen: Boolean)
 
-@Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
-
-  lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
-  lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
-
+object EtmpReportingWindow {
+  implicit val format: OFormat[EtmpReportingWindow] = Json.format[EtmpReportingWindow]
 }

@@ -14,16 +14,8 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.config
+package uk.gov.hmrc.disareturns.models.common
 
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.mvc.{Request, WrappedRequest}
 
-import javax.inject.{Inject, Singleton}
-
-@Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
-
-  lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
-  lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
-
-}
+case class ClientIdRequest[A](clientId: String, request: Request[A]) extends WrappedRequest[A](request)

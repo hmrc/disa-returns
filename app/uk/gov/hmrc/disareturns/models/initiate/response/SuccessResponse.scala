@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.config
+package uk.gov.hmrc.disareturns.models.initiate.response
 
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.libs.json.{Json, OFormat}
+import ResponseAction.ResponseAction
 
-import javax.inject.{Inject, Singleton}
+case class SuccessResponse(returnId: String, action: ResponseAction, boxId: String)
 
-@Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
-
-  lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
-  lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
-
+object SuccessResponse {
+  implicit val format: OFormat[SuccessResponse] = Json.format[SuccessResponse]
 }

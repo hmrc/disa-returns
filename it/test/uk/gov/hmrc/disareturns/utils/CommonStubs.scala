@@ -14,16 +14,24 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.config
+package uk.gov.hmrc.disareturns.utils
 
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, stubFor}
+import play.api.http.Status.OK
 
-import javax.inject.{Inject, Singleton}
+trait CommonStubs {
 
-@Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
+  def stubAuth(): Unit =
+    stubFor {
+      post("/auth/authorise")
+        .willReturn {
+          aResponse.withStatus(OK).withBody("{}")
+        }
+    }
 
-  lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
-  lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
-
+  val testClientId = "test-client-id"
+  val testHeaders: Seq[(String, String)] = Seq(
+    "X-Client-ID"   -> testClientId,
+    "Authorization" -> "mock-bearer-token"
+  )
 }
