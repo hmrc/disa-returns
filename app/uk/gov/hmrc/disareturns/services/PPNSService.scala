@@ -35,10 +35,12 @@ class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionCon
       connector.getBox(clientId).value.map {
         case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
         case Right(response) =>
-          response.json.validate[Box] match {
-            case JsSuccess(box, _) => Right(box.boxId)
-            case JsError(_)        => Left(InternalServerErr)
-          }
+          response.json
+            .validate[Box]
+            .fold(
+              _ => Left(InternalServerErr),
+              box => Right(box.boxId)
+            )
       }
     }
 }

@@ -33,24 +33,28 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
   def getReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] =
     EitherT {
       connector.getReportingWindowStatus.value.map {
-        case Left(upStreamError) => Left(mapToErrorResponse(upStreamError))
+        case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
         case Right(response) =>
-          response.json.validate[EtmpReportingWindow] match {
-            case JsSuccess(reportingWindow, _) => Right(reportingWindow)
-            case JsError(_)                    => Left(InternalServerErr)
-          }
+          response.json
+            .validate[EtmpReportingWindow]
+            .fold(
+              _ => Left(InternalServerErr),
+              reportingWindow => Right(reportingWindow)
+            )
       }
     }
 
   def getObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] =
     EitherT {
       connector.getReturnsObligationStatus(isaManagerReferenceNumber).value.map {
-        case Left(upStreamError) => Left(mapToErrorResponse(upStreamError))
+        case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
         case Right(response) =>
-          response.json.validate[EtmpObligations] match {
-            case JsSuccess(obligations, _) => Right(obligations)
-            case JsError(_)                => Left(InternalServerErr)
-          }
+          response.json
+            .validate[EtmpObligations]
+            .fold(
+              _ => Left(InternalServerErr),
+              obligation => Right(obligation)
+            )
       }
     }
 
