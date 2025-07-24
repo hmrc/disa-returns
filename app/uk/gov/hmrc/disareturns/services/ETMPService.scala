@@ -17,10 +17,11 @@
 package uk.gov.hmrc.disareturns.services
 
 import cats.data.EitherT
+import play.api.libs.json.{JsError, JsSuccess}
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import javax.inject.{Inject, Singleton}
@@ -29,24 +30,29 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionContext) {
 
-  def getReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] = {
-    val result = connector.getReportingWindowStatus
-      .fold(
-        errors => Left(mapToErrorResponse(errors)),
-        httpResponse => Right(httpResponse.json.as[EtmpReportingWindow])
-      )
-    EitherT(result)
-  }
+  def getReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] =
+    EitherT {
+      connector.getReportingWindowStatus.value.map {
+        case Left(upStreamError) => Left(mapToErrorResponse(upStreamError))
+        case Right(response) =>
+          response.json.validate[EtmpReportingWindow] match {
+            case JsSuccess(reportingWindow, _) => Right(reportingWindow)
+            case JsError(_)                    => Left(InternalServerErr)
+          }
+      }
+    }
 
-  def getObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] = {
-    val result = connector
-      .getReturnsObligationStatus(isaManagerReferenceNumber)
-      .fold(
-        errors => Left(mapToErrorResponse(errors)),
-        httpResponse => Right(httpResponse.json.as[EtmpObligations])
-      )
-    EitherT(result)
-  }
+  def getObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] =
+    EitherT {
+      connector.getReturnsObligationStatus(isaManagerReferenceNumber).value.map {
+        case Left(upStreamError) => Left(mapToErrorResponse(upStreamError))
+        case Right(response) =>
+          response.json.validate[EtmpObligations] match {
+            case JsSuccess(obligations, _) => Right(obligations)
+            case JsError(_)                => Left(InternalServerErr)
+          }
+      }
+    }
 
   def validateEtmpSubmissionEligibility(
     isaManagerReferenceNumber: String
