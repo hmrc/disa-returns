@@ -1,6 +1,5 @@
 {
-  "scopes": [
-  ],
+  "scopes": [],
   "api": {
     "name": "DISA Returns API",
     "description": "API providing ISA managers the ability to submit their returns.",

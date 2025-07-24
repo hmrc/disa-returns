@@ -24,16 +24,16 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.controllers.InitiateSubmissionController
+import uk.gov.hmrc.disareturns.controllers.InitiateReturnsController
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed, Unauthorised}
 import utils.BaseUnitSpec
 
 import java.time.LocalDate
 import scala.concurrent.Future
 
-class InitiateSubmissionControllerSpec extends BaseUnitSpec {
+class InitiateReturnsControllerSpec extends BaseUnitSpec {
 
-  val controller: InitiateSubmissionController = app.injector.instanceOf[InitiateSubmissionController]
+  val controller: InitiateReturnsController = app.injector.instanceOf[InitiateReturnsController]
 
   val isaManagerRef = "Z123456"
   val boxId         = "box-123"
@@ -52,7 +52,7 @@ class InitiateSubmissionControllerSpec extends BaseUnitSpec {
     reset(mockETMPService, mockPPNSService, mockInitiateSubmissionDataService)
   }
 
-  "InitiateSubmissionController.initiate" should {
+  "InitiateReturnsController.initiate" should {
 
     "return 200 OK for valid submission" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))

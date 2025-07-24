@@ -31,7 +31,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class InitiateSubmissionController @Inject() (
+class InitiateReturnsController @Inject() (
   cc:                    ControllerComponents,
   etmpService:           ETMPService,
   ppnsService:           PPNSService,

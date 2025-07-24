@@ -28,7 +28,7 @@ import java.time.temporal.ChronoField.YEAR
 
 import java.time.LocalDateTime
 
-class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
+class InitiateReturnsControllerISpec extends BaseIntegrationSpec {
 
   implicit val mongo: ReturnMetadataRepository = app.injector.instanceOf[ReturnMetadataRepository]
   val isaManagerRef = "Z123456"
