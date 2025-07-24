@@ -639,8 +639,8 @@ components:
           tokenUrl: https://api.service.hmrc.gov.uk/oauth/token
           refreshUrl: https://api.service.hmrc.gov.uk/oauth/refresh
           scopes: {
-            write:isa-returns
-            read:isa-returns
+            "write:isa-returns": "submit data to the api",
+            "read:isa-returns": "read data from the api"
           }
   parameters:
     acceptHeader:
