@@ -5,30 +5,25 @@ info:
   title: DISA Returns API
   description: |
     # Overview
-    This API enables HMRC-approved Individual Savings Account (ISA) providers to submit monthly reports of 
-    current-year ISA subscription data. This supports the [Digitalisation of ISA Reporting (DISA) initiative]. 
-    Only approved providers that have enrolled through the [DISA Registration service] can access the API.
+    Use this API to submit monthly returns of current-year ISA subscription data. 
+    Before you can use the API, you must be approved by HMRC as an ISA provider and enrolled for digital ISA returns. 
+    If you are not yet approved, you can apply for both approval and enrolment through the DISA registration service.
 
     # Supported use cases
-    - Submit monthly returns, including transfers, withdrawals, and corrections.
+    - Submit monthly returns of current-year subscription data, including related transfers, withdrawals and corrections.
     - Check the status of submitted returns to confirm processing or availability of results.
     - Retrieve validation results to identify accepted records and correct any errors.
 
     # Integration requirements
-    - RESTful API using [JSON](https://www.json.org/json-en.html) over HTTPS.
-    - The reporting window runs from the 6th of each month to the 5th of the following month, with submissions due by the 20th.
-    - Authentication uses the [OAuth 2.0](https://oauth.net/2/) client credentials grant.
+    - REST API using JSON over HTTPS.
+    - Each return must cover activity from the 6th of one month to the 5th of the next.
+    - You must submit your monthly return between the 6th and midnight on the 19th.
+    - Authentication uses the OAuth 2.0 client credentials grant.
     - All API calls require a unique identifier (Z-Reference) assigned by HMRC to each approved provider.
 
-    # Onboarding
-    Start with the [service guide] on the Developer Hub, which covers setup, integration steps, 
-    and how the API fits into the DISA service.
-
-    # Changelog
-    Refer to the [changelog] for the latest updates to the API, including new features, fixes and breaking changes. 
-
     # Support
-    If you need help, complete the [support form](https://developer.service.hmrc.gov.uk/developer/support). The HMRC Software Developers Support Team will reply within 2 working days.
+    If you need help, complete the [support form](https://developer.service.hmrc.gov.uk/developer/support). 
+    The HMRC Software Developers Support Team will reply within 2 working days.
 
 servers:
   - url: https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return
