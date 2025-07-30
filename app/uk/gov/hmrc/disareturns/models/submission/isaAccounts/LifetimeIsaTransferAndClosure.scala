@@ -20,25 +20,25 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
 
 case class LifetimeIsaTransferAndClosure(
-                                          accountNumber: String,
-                                          nino: String,
-                                          firstName: String,
-                                          middleName: Option[String],
-                                          lastName: String,
-                                          dateOfBirth: String,
-                                          isaType: IsaType,
-                                          reportingATransfer: Boolean,
-                                          dateOfLastSubscription: String,
-                                          totalCurrentYearSubscriptionsToDate: BigDecimal,
-                                          marketValueOfAccount: BigDecimal,
-                                          accountNumberOfTransferringAccount: String,
-                                          amountTransferred: BigDecimal,
-                                          dateOfFirstSubscription: String,
-                                          closureDate: String,
-                                          reasonForClosure: String,
-                                          lisaQualifyingAddition: BigDecimal,
-                                          lisaBonusClaim: Boolean
-                                        ) extends IsaAccount
+  accountNumber:                       String,
+  nino:                                String,
+  firstName:                           String,
+  middleName:                          Option[String],
+  lastName:                            String,
+  dateOfBirth:                         String,
+  isaType:                             IsaType,
+  reportingATransfer:                  Boolean,
+  dateOfLastSubscription:              String,
+  totalCurrentYearSubscriptionsToDate: BigDecimal,
+  marketValueOfAccount:                BigDecimal,
+  accountNumberOfTransferringAccount:  String,
+  amountTransferred:                   BigDecimal,
+  dateOfFirstSubscription:             String,
+  closureDate:                         String,
+  reasonForClosure:                    String,
+  lisaQualifyingAddition:              BigDecimal,
+  lisaBonusClaim:                      Boolean
+) extends IsaAccount
 
 object LifetimeIsaTransferAndClosure {
   implicit val format: OFormat[LifetimeIsaTransferAndClosure] = Json.format[LifetimeIsaTransferAndClosure]

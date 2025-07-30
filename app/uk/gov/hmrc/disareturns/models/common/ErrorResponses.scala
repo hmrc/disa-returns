@@ -56,6 +56,13 @@ case object BadRequestMissingHeaderErr extends ErrorResponse {
   val message = "Missing required header: X-Client-ID"
 }
 
+//Submission validation errors
+
+case object NinoOrAccountNumMissingErr extends ErrorResponse {
+  val code    = "NINO_OR_ACC_NUM_MISSING"
+  val message = "All models send must include an account number and nino in order to process correctly"
+}
+
 object ErrorResponse {
 
   private val singletons: Map[String, ErrorResponse] = Map(
@@ -65,6 +72,7 @@ object ErrorResponse {
     InternalServerErr.code     -> InternalServerErr
   )
 
+  //TODO: feels like we could clean this up
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {
     override def reads(json: JsValue): JsResult[ErrorResponse] =
       (json \ "code").validate[String].flatMap {
@@ -79,26 +87,12 @@ object ErrorResponse {
       }
 
     override def writes(errorResponse: ErrorResponse): JsValue = errorResponse match {
-      case ObligationClosed =>
-        Json.obj("code" -> ObligationClosed.code, "message" -> ObligationClosed.message)
-      case ReportingWindowClosed =>
-        Json.obj("code" -> ReportingWindowClosed.code, "message" -> ReportingWindowClosed.message)
-      case Unauthorised =>
-        Json.obj("code" -> Unauthorised.code, "message" -> Unauthorised.message)
-      case InternalServerErr =>
-        Json.obj("code" -> InternalServerErr.code, "message" -> InternalServerErr.message)
       case m: MultipleErrorResponse =>
         Json.toJson(m)(MultipleErrorResponse.format)
       case v: FieldValidationError =>
         Json.obj("code" -> v.code, "message" -> v.message, "path" -> v.path)
-      case BadRequestInvalidIsaRefErr =>
-        Json.obj("code" -> BadRequestInvalidIsaRefErr.code, "message" -> BadRequestInvalidIsaRefErr.message)
-      case BadRequestMissingHeaderErr =>
-        Json.obj("code" -> BadRequestMissingHeaderErr.code, "message" -> BadRequestMissingHeaderErr.message)
-      case badRequestErr: BadRequestErr =>
-        Json.obj("code" -> badRequestErr.code, "message" -> badRequestErr.message)
-      case other =>
-        Json.obj("code" -> "UNKNOWN", "message" -> "Unknown error response")
+      case error: ErrorResponse =>
+        Json.obj("code" -> error.code, "message" -> error.message)
     }
   }
 }
@@ -122,29 +116,31 @@ case class ValidationFailureResponse(
 object ValidationFailureResponse {
   implicit val format: OFormat[ValidationFailureResponse] = Json.format[ValidationFailureResponse]
 
-  def convertErrors(jsError: JsError): ValidationFailureResponse = {
-    def mapCode(message: String): String = message match {
-      case "error.path.missing"             => "MISSING_FIELD"
-      case m if m.contains("error.taxYear") => "INVALID_YEAR"
-      case _                                => "VALIDATION_ERROR"
-    }
+  private def mapJsErrorToResponseCode(message: String): String = message match {
+    case "error.path.missing"             => "MISSING_FIELD"
+    case m if m.contains("error.taxYear") => "INVALID_YEAR"
+    case "error.missing.accNum.or.nino"   => "NINO_OR_ACC_NUM_MISSING"
+    case _                                => "VALIDATION_ERROR"
+  }
 
-    def formatPath(jsPath: JsPath): String = {
-      val pathString = jsPath.path
-        .map {
-          case KeyPathNode(key) => s"/$key"
-          case IdxPathNode(idx) => s"/$idx"
-        }
-        .mkString("")
+  private def formatFieldPath(jsPath: JsPath): String = {
+    val pathString = jsPath.path
+      .map {
+        case KeyPathNode(key) => s"/$key"
+        case IdxPathNode(idx) => s"/$idx"
+      }
+      .mkString("")
 
-      if (pathString.isEmpty) "/" else pathString
-    }
+    if (pathString.isEmpty) "/" else pathString
+  }
 
-    val fieldErrors: Seq[FieldValidationError] = jsError.errors.toSeq.flatMap { case (path, errs) =>
-      errs.map { ve =>
+  def convertErrorToValidationFailureResponse(jsError: JsError): ValidationFailureResponse = {
+
+    val fieldErrors: Seq[FieldValidationError] = jsError.errors.toSeq.flatMap { case (path, errors) =>
+      errors.map { validationError =>
         FieldValidationError(
-          code = mapCode(ve.message),
-          message = ve.message match {
+          code = mapJsErrorToResponseCode(validationError.message),
+          message = validationError.message match {
             case "error.path.missing"              => "This field is required"
             case "error.taxYear.not.whole.integer" => "Tax year must be a valid whole number"
             case "error.taxYear.in.past"           => "Tax year cannot be in the past"
@@ -156,7 +152,7 @@ object ValidationFailureResponse {
             case "error.expected.jsnumber"         => "This field must be greater than or equal to 0"
             case other                             => other
           },
-          path = formatPath(path)
+          path = formatFieldPath(path)
         )
       }
     }
@@ -173,4 +169,27 @@ case class FieldValidationError(
 
 object FieldValidationError {
   implicit val format: OFormat[FieldValidationError] = Json.format[FieldValidationError]
+}
+
+
+case class SecondLevelValidationResponse(
+                                      code:    String = "VALIDATION_FAILURE",
+                                      message: String = "One or more models failed validation",
+                                      errors:  Seq[SecondLevelValidationError]
+                                    ) extends ErrorResponse
+
+object SecondLevelValidationResponse {
+  implicit val format: OFormat[SecondLevelValidationResponse] = Json.format[SecondLevelValidationResponse]
+}
+
+
+case class SecondLevelValidationError(
+  nino:          String,
+  accountNumber: String,
+  code:          String,
+  message:       String,
+) extends ErrorResponse
+
+object SecondLevelValidationError {
+  implicit val format: OFormat[SecondLevelValidationError] = Json.format[SecondLevelValidationError]
 }

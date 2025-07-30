@@ -22,19 +22,19 @@ import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
 import java.time.LocalDate
 
 case class StandardIsaNewSubscription(
-                                       accountNumber: String,
-                                       nino: String,
-                                       firstName: String,
-                                       middleName: Option[String],
-                                       lastName: String,
-                                       dateOfBirth: LocalDate,
-                                       isaType: IsaType,
-                                       reportingATransfer: Boolean,
-                                       dateOfLastSubscription: LocalDate,
-                                       totalCurrentYearSubscriptionsToDate: BigDecimal,
-                                       marketValueOfAccount: BigDecimal,
-                                       flexibleIsa: Boolean
-                                     ) extends IsaAccount
+  accountNumber:                       String,
+  nino:                                String,
+  firstName:                           String,
+  middleName:                          Option[String],
+  lastName:                            String,
+  dateOfBirth:                         LocalDate,
+  isaType:                             IsaType,
+  reportingATransfer:                  Boolean,
+  dateOfLastSubscription:              LocalDate,
+  totalCurrentYearSubscriptionsToDate: BigDecimal,
+  marketValueOfAccount:                BigDecimal,
+  flexibleIsa:                         Boolean
+) extends IsaAccount
 
 object StandardIsaNewSubscription {
   implicit val format: OFormat[StandardIsaNewSubscription] = Json.format[StandardIsaNewSubscription]

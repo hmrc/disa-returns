@@ -39,7 +39,7 @@ trait WithJsonBodyWithBadRequest {
     json.validate[T] match {
       case JsSuccess(payload, _) => f(payload)
       case JsError(errors) =>
-        val validationFailure = ValidationFailureResponse.convertErrors(JsError(errors))
+        val validationFailure = ValidationFailureResponse.convertErrorToValidationFailureResponse(JsError(errors))
         Future.successful(BadRequest(Json.toJson(validationFailure)))
     }
 }

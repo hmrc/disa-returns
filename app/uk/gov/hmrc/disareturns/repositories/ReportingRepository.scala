@@ -17,71 +17,37 @@
 package uk.gov.hmrc.disareturns.repositories
 
 import com.google.inject.Inject
-import org.mongodb.scala.Document
-import org.mongodb.scala.model.Filters.equal
-import org.mongodb.scala.model.Updates.{addEachToSet, setOnInsert}
-import org.mongodb.scala.model.{FindOneAndUpdateOptions, IndexModel, IndexOptions, Indexes, Updates}
-import play.api.libs.json.Json
+import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaAccount, MonthlyReportDocument}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
-
 class ReportingRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
-  extends PlayMongoRepository[MonthlyReportDocument](
-    mongoComponent = mc,
-    collectionName = "reportingRepository",
-    domainFormat = MonthlyReportDocument.format,
-    indexes = Seq(IndexModel(
-      keys = Indexes.ascending("returnId"),
-      indexOptions = IndexOptions().unique(true)
-    ))
-  ) {
-  //TODO: add ttl index for 30 days, store with createdAt timestamp
+    extends PlayMongoRepository[MonthlyReportDocument](
+      mongoComponent = mc,
+      collectionName = "reportingRepository",
+      domainFormat = MonthlyReportDocument.format,
+      indexes = Seq(
+        IndexModel(
+          keys = Indexes.ascending("createdAt"),
+          indexOptions = IndexOptions()
+            .name("createdAtTtlIdx")
+            .expireAfter(30, TimeUnit.DAYS)
+        )
+      )
+    ) {
+
+  //Do we want to validate if the data submitted already exists?
+  //What happens if they submit the same data twice?
+  def dropCollection(): Future[Unit] =
+    collection.drop().toFuture().map(_ => ())
 
   def insertBatch(isaManagerId: String, returnId: String, reports: Seq[IsaAccount]): Future[Unit] = {
-    val wrapperJson = MonthlyReportDocument(
-      returnId = returnId,
-      isaManagerReferenceNumber = isaManagerId,
-      isaReport = reports)
+    val wrapperJson = MonthlyReportDocument(returnId = returnId, isaManagerReferenceNumber = isaManagerId, isaReport = reports)
 
     collection.insertOne(wrapperJson).toFuture().map(_ => ())
   }
-
-  def insertOrUpdate(isaManagerId: String, returnId: String, reports: Seq[IsaAccount]): Future[Unit] = {
-    val documents: Seq[Document] = reports.map { isaAccount =>
-      Document(Json.stringify(Json.toJson(isaAccount)))
-    }
-
-    val update = Updates.combine(
-      addEachToSet("isaReport", documents: _*),
-      setOnInsert("returnId", returnId),
-      setOnInsert("isaManagerReferenceNumber", isaManagerId)
-    )
-
-    collection
-      .findOneAndUpdate(
-        filter = equal("returnId", returnId),
-        update = update,
-        options = FindOneAndUpdateOptions().upsert(true)
-      )
-      .toFuture()
-      .map(_ => ())
-  }
-
-  def getMonthlyReport(returnId: String): Future[Option[MonthlyReportDocument]] = {
-    collection.find(equal("returnId", returnId)).headOption()
-  }.recover {
-    case ex =>
-      logger.error(s"Failed to fetch report for returnId $returnId", ex)
-      None
-  }
-
-  def dropCollection(): Future[Unit] = {
-    collection.drop().toFuture().map(_ => ())
-  }
-
 }

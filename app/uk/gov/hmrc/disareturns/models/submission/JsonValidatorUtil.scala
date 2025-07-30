@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.submission.isaAccounts
+package uk.gov.hmrc.disareturns.models.submission
 
 import play.api.libs.json._
+import uk.gov.hmrc.disareturns.models.common.ValidationFailureResponse
 
-import java.time.Instant
+object JsonValidatorUtil {
 
-case class MonthlyReportDocument(returnId: String,
-                                 isaManagerReferenceNumber: String,
-                                 isaReport: Seq[IsaAccount],
-                                 createdAt: Instant = Instant.now()) //TODO: does lastUpdated make more sense??
+  def validateJson[T](json: JsValue)(implicit reads: Reads[T]): Either[ValidationFailureResponse, T] =
+    json.validate[T] match {
+      case JsSuccess(value, _) =>
+        Right(value)
 
-object MonthlyReportDocument {
-  implicit val format: OFormat[MonthlyReportDocument] = Json.format[MonthlyReportDocument]
+      case JsError(errors) =>
+        Left(ValidationFailureResponse.convertErrorToValidationFailureResponse(JsError(errors)))
+    }
 }

@@ -20,21 +20,21 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
 
 case class LifetimeIsaNewSubscription(
-                                       accountNumber: String,
-                                       nino: String,
-                                       firstName: String,
-                                       middleName: Option[String],
-                                       lastName: String,
-                                       dateOfBirth: String,
-                                       isaType: IsaType,
-                                       reportingATransfer: Boolean,
-                                       dateOfLastSubscription: String,
-                                       totalCurrentYearSubscriptionsToDate: BigDecimal,
-                                       marketValueOfAccount: BigDecimal,
-                                       dateOfFirstSubscription: String,
-                                       lisaQualifyingAddition: BigDecimal,
-                                       lisaBonusClaim: Boolean
-                                     ) extends IsaAccount
+  accountNumber:                       String,
+  nino:                                String,
+  firstName:                           String,
+  middleName:                          Option[String],
+  lastName:                            String,
+  dateOfBirth:                         String,
+  isaType:                             IsaType,
+  reportingATransfer:                  Boolean,
+  dateOfLastSubscription:              String,
+  totalCurrentYearSubscriptionsToDate: BigDecimal,
+  marketValueOfAccount:                BigDecimal,
+  dateOfFirstSubscription:             String,
+  lisaQualifyingAddition:              BigDecimal,
+  lisaBonusClaim:                      Boolean
+) extends IsaAccount
 
 object LifetimeIsaNewSubscription {
   implicit val format: OFormat[LifetimeIsaNewSubscription] = Json.format[LifetimeIsaNewSubscription]

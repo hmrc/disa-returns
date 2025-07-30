@@ -20,7 +20,7 @@ import play.api.libs.json._
 
 trait IsaAccount {
   def accountNumber: String
-  def nino: String
+  def nino:          String
 }
 
 object IsaAccount {
@@ -28,34 +28,32 @@ object IsaAccount {
   implicit val isaAccountReads: Reads[IsaAccount] = Reads { json =>
     (json \ "reportingATransfer").validate[Boolean].flatMap {
       case true =>
-        // Check for distinguishing fields
-        if ((json \ "lisaBonusClaim").isDefined) {
-          json.validate[LifetimeIsaTransfer]
-        } else if ((json \ "flexibleIsa").isDefined) {
-          json.validate[StandardIsaTransfer]
-        } else {
-          JsError("Cannot determine IsaAccount subtype when reportingATransfer is true")
+        ((json \ "reasonForClosure").isDefined, (json \ "lisaBonusClaim").isDefined, (json \ "flexibleIsa").isDefined) match {
+          case (true, _, _)         => json.validate[LifetimeIsaTransferAndClosure]
+          case (false, true, _)     => json.validate[LifetimeIsaTransfer]
+          case (false, false, true) => json.validate[StandardIsaTransfer]
+          case _                    => JsError("Cannot determine IsaAccount subtype when reportingATransfer is true")
         }
 
       case false =>
-        if ((json \ "lisaBonusClaim").isDefined) {
-          json.validate[LifetimeIsaNewSubscription]
-        } else if ((json \ "flexibleIsa").isDefined) {
-          json.validate[StandardIsaNewSubscription]
-        } else {
-          JsError("Cannot determine IsaAccount subtype when reportingATransfer is true")
+        ((json \ "reasonForClosure").isDefined, (json \ "flexibleIsa").isDefined, (json \ "lisaBonusClaim").isDefined) match {
+          case (true, _, _)         => json.validate[LifetimeIsaClosure]
+          case (false, true, _)     => json.validate[StandardIsaNewSubscription]
+          case (false, false, true) => json.validate[LifetimeIsaNewSubscription]
+          case _                    => JsError("Cannot determine IsaAccount subtype when reportingATransfer is false")
         }
+
     }
   }
 
   implicit val writes: Writes[IsaAccount] = new Writes[IsaAccount] {
     def writes(report: IsaAccount): JsValue = report match {
-      case lns: LifetimeIsaNewSubscription      => Json.toJson(lns)(LifetimeIsaNewSubscription.format)
-      case lt: LifetimeIsaTransfer             => Json.toJson(lt)(LifetimeIsaTransfer.format)
-      case ltc: LifetimeIsaTransferAndClosure   => Json.toJson(ltc)(LifetimeIsaTransferAndClosure.format)
-      case lc: LifetimeIsaClosure              => Json.toJson(lc)(LifetimeIsaClosure.format)
-      case sns: StandardIsaNewSubscription      => Json.toJson(sns)(StandardIsaNewSubscription.format)
-      case st: StandardIsaTransfer             => Json.toJson(st)(StandardIsaTransfer.format)
+      case lns: LifetimeIsaNewSubscription    => Json.toJson(lns)(LifetimeIsaNewSubscription.format)
+      case lt:  LifetimeIsaTransfer           => Json.toJson(lt)(LifetimeIsaTransfer.format)
+      case ltc: LifetimeIsaTransferAndClosure => Json.toJson(ltc)(LifetimeIsaTransferAndClosure.format)
+      case lc:  LifetimeIsaClosure            => Json.toJson(lc)(LifetimeIsaClosure.format)
+      case sns: StandardIsaNewSubscription    => Json.toJson(sns)(StandardIsaNewSubscription.format)
+      case st:  StandardIsaTransfer           => Json.toJson(st)(StandardIsaTransfer.format)
     }
   }
 }
