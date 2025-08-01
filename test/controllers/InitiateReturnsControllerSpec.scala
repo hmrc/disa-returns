@@ -63,11 +63,11 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       when(mockInitiateSubmissionDataService.saveReturnMetadata(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
-      val fakeRequest = FakeRequest("POST", s"/initiate/$isaManagerRef")
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-999")
         .withBody(validSubmissionJson)
 
-      val result = controller.initiate(isaManagerRef)(fakeRequest)
+      val result = controller.initiate(isaManagerRef)(request)
 
       status(result)                                  shouldBe OK
       (contentAsJson(result) \ "returnId").as[String] shouldBe returnId
@@ -89,11 +89,11 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       when(mockInitiateSubmissionDataService.saveReturnMetadata(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
-      val fakeRequest = FakeRequest("POST", s"/initiate/$isaManagerRef")
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-999")
         .withBody(validSubmissionJson)
 
-      val result = controller.initiate(isaManagerRef)(fakeRequest)
+      val result = controller.initiate(isaManagerRef)(request)
 
       status(result)                                  shouldBe OK
       (contentAsJson(result) \ "returnId").as[String] shouldBe returnId
@@ -104,7 +104,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
     "return 400 BadRequest for invalid JSON when missing fields" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       val invalidJson = Json.obj("totalRecords" -> 1)
-      val request = FakeRequest("POST", s"/initiate/$isaManagerRef")
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(invalidJson)
 
@@ -124,7 +124,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
     "return 400 BadRequest for invalid JSON when submissionPeriod is not an enum" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       val invalidJson = Json.obj("totalRecords" -> 100, "submissionPeriod" -> "January", "taxYear" -> LocalDate.now.getYear)
-      val request = FakeRequest("POST", s"/initiate/$isaManagerRef")
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(invalidJson)
 
@@ -141,11 +141,11 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
 
     "return 400 BadRequest for request providing an invalid IsaManagerRef" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      val fakeRequest = FakeRequest("POST", "/initiate/InvalidRef")
+      val request = FakeRequest("POST", s"/monthly/invalidRef/init")
         .withHeaders("X-Client-ID" -> "client-999")
         .withBody(validSubmissionJson)
 
-      val result = controller.initiate("InvalidRef")(fakeRequest)
+      val result = controller.initiate("InvalidRef")(request)
 
       status(result)                                 shouldBe BAD_REQUEST
       (contentAsJson(result) \ "code").as[String]    shouldBe "BAD_REQUEST"
@@ -157,7 +157,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.leftT(ObligationClosed))
 
-      val request = FakeRequest("POST", s"/initiate/$isaManagerRef")
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
 
@@ -173,7 +173,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.leftT(ReportingWindowClosed))
 
-      val request = FakeRequest("POST", s"/initiate/$isaManagerRef")
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
 
@@ -189,7 +189,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.leftT(MultipleErrorResponse(errors = Seq(ObligationClosed, ReportingWindowClosed))))
 
-      val request = FakeRequest("POST", s"/initiate/$isaManagerRef")
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
 
@@ -212,7 +212,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(EitherT.leftT(InternalServerErr))
-      val request = FakeRequest("POST", s"/initiate/$isaManagerRef")
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
 
@@ -229,7 +229,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.leftT(InternalServerErr))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(EitherT.rightT(boxId))
-      val request = FakeRequest("POST", s"/initiate/$isaManagerRef")
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
 
@@ -243,7 +243,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.leftT(Unauthorised))
-      val request = FakeRequest("POST", s"/initiate/$isaManagerRef")
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
 

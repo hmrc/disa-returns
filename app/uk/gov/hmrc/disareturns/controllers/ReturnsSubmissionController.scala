@@ -19,34 +19,29 @@ package uk.gov.hmrc.disareturns.controllers
 import com.google.inject.Inject
 import jakarta.inject.Singleton
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
+import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
-import play.api.libs.json.{JsError, JsSuccess, Json}
+import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc.{Action, BodyParser, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.SubmissionRequest
-import uk.gov.hmrc.disareturns.models.submission.DataValidator
-import uk.gov.hmrc.disareturns.models.submission.JsonValidatorUtil.validateJson
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
-import uk.gov.hmrc.disareturns.repositories.ReportingRepository
-import uk.gov.hmrc.disareturns.services.{ETMPService, PPNSService, StreamingParserService}
+import uk.gov.hmrc.disareturns.services.{ETMPService, StreamingParserService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class ReturnsSubmissionController @Inject() (
-  cc:                     ControllerComponents,
-  implicit val mat:       Materializer,
-  etmpService:            ETMPService,
-  ppnsService:            PPNSService,
-  streamingParserService: StreamingParserService,
-  reportingRepository:    ReportingRepository,
-  clientIdAction:         ClientIdAction,
-  authAction:             AuthAction
-)(implicit ec:            ExecutionContext) extends BackendController(cc) {
+  cc:                       ControllerComponents,
+  implicit val mat:         Materializer,
+  streamingParserService:   StreamingParserService,
+  clientIdAction:           ClientIdAction,
+  authAction:               AuthAction,
+  implicit val etmpService: ETMPService
+)(implicit ec:              ExecutionContext)
+    extends BackendController(cc)
+    with WithEtmpValidation {
 
   // Is there a play in built ndJson parser??
   //parse.tolerantStream (if available) gives you a BodyParser[Source[ByteString, _]]?
@@ -56,19 +51,23 @@ class ReturnsSubmissionController @Inject() (
 
   def submit(isaManagerReferenceNumber: String, returnId: String): Action[Source[ByteString, _]] =
     (Action andThen authAction andThen clientIdAction).async(streamingParser) { implicit request =>
-      val source: Source[ByteString, _] = request.body
-      val validatedStream = streamingParserService.validatedStream(source)
-
-      streamingParserService
-        .processValidatedStream(isaManagerReferenceNumber, returnId, validatedStream)
-        .map(_ => NoContent)
-        .recover {
-          case FirstLevelValidationException(err) =>
-            BadRequest(Json.toJson(err))
-          case SecondLevelValidationException(errResponse) =>
-            BadRequest(Json.toJson(errResponse))
-          case ex =>
-            InternalServerError(Json.obj("error" -> ex.getMessage))
-        }
+      validateEtmpAndThen(isaManagerReferenceNumber) { () =>
+        val source: Source[ByteString, _] = request.body
+        val validatedStream = streamingParserService.validatedStream(source)
+        streamingParserService
+          .processValidatedStream(isaManagerReferenceNumber, returnId, validatedStream)
+          .map(_ => NoContent)
+          .recover {
+            case FirstLevelValidationException(err) =>
+              BadRequest(Json.toJson(err))
+            case SecondLevelValidationException(errResponse) =>
+              BadRequest(Json.toJson(errResponse))
+            case error: ErrorResponse =>
+              println(Console.YELLOW + "here" + Console.RESET)
+              Forbidden(Json.toJson(error: ErrorResponse))
+            case ex =>
+              InternalServerError(Json.obj("error" -> ex.getMessage))
+          }
+      }
     }
 }

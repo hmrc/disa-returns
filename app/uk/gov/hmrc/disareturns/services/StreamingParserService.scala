@@ -21,22 +21,21 @@ import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
 import play.api.libs.json.{JsError, JsSuccess, Json}
-import uk.gov.hmrc.disareturns.models.common.{FirstLevelValidationException, NinoOrAccountNumMissingErr, SecondLevelValidationError, SecondLevelValidationException, SecondLevelValidationResponse}
-import uk.gov.hmrc.disareturns.models.submission.DataValidator
-import uk.gov.hmrc.disareturns.models.submission.DataValidator.jsErrorToDomainError
+import uk.gov.hmrc.disareturns.models.common.{FirstLevelValidationException, FirstLevelValidationFailure, SecondLevelValidationError, SecondLevelValidationException, SecondLevelValidationFailure, SecondLevelValidationResponse, ValidationError}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.repositories.ReportingRepository
+import uk.gov.hmrc.disareturns.services.validation.DataValidator
+import uk.gov.hmrc.disareturns.services.validation.DataValidator.jsErrorToDomainError
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class StreamingParserService @Inject()(reportingRepository: ReportingRepository,
-                                       implicit val mat: Materializer)(implicit ec: ExecutionContext) {
+class StreamingParserService @Inject() (reportingRepository: ReportingRepository, implicit val mat: Materializer)(implicit ec: ExecutionContext) {
 
-  def validatedStream(source: Source[ByteString, _]): Source[Either[SecondLevelValidationError, IsaAccount], _] =
+  def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
     source
-      .via(Framing.delimiter(ByteString("\n"), maximumFrameLength = 65536, allowTruncation = false))
+      .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = false))
       .map(_.utf8String.trim)
       .filter(_.nonEmpty)
       .map { line =>
@@ -45,43 +44,48 @@ class StreamingParserService @Inject()(reportingRepository: ReportingRepository,
           case Right((nino, accountNumber)) =>
             jsValue.validate[IsaAccount] match {
               case JsSuccess(account, _) =>
-                DataValidator.validateAccount(account) match {
-                  case Right(_)                            => Right(account)
-                  case Left(err: SecondLevelValidationError) => Left(err)
+                DataValidator.validate(account) match {
+                  case Right(_)  => Right(account)
+                  case Left(err) => Left(SecondLevelValidationFailure(err))
                 }
-
               case JsError(errors) =>
                 val domainErrors = jsErrorToDomainError(errors, nino, accountNumber)
-                // first failure, since stream emits Either[SecondLevelValidationError, IsaAccount]
-                Left(domainErrors.headOption.getOrElse(
-                  SecondLevelValidationError(nino, accountNumber, "UNKNOWN_VALIDATION", "Unknown validation error")
-                ))
-
+                Left(
+                  SecondLevelValidationFailure(
+                    domainErrors.headOption.getOrElse(
+                      SecondLevelValidationError(nino, accountNumber, "UNKNOWN_VALIDATION", "Unknown validation error")
+                    )
+                  )
+                )
             }
-          case Left(_) =>
-            throw FirstLevelValidationException(NinoOrAccountNumMissingErr)
+          case Left(firstLevelErr) =>
+            Left(FirstLevelValidationFailure(firstLevelErr))
         }
       }
 
-
   def processValidatedStream(
-                              isaManagerReferenceNumber: String,
-                              returnId: String,
-                              validatedStream: Source[Either[SecondLevelValidationError, IsaAccount], _]
-                            ): Future[Done] = {
-
+    isaManagerReferenceNumber: String,
+    returnId:                  String,
+    validatedStream:           Source[Either[ValidationError, IsaAccount], _]
+  ): Future[Done] =
     validatedStream
       .grouped(25000)
       .mapAsync(1) { batch =>
         val (errors, validAccounts) = batch.partitionMap(identity)
-        if (errors.nonEmpty)
-          Future.failed(SecondLevelValidationException(
-            SecondLevelValidationResponse(errors = errors.toList)
-          ))
-        else
+
+        if (errors.nonEmpty) {
+          val firstLevelErrors  = errors.collect { case FirstLevelValidationFailure(err) => err }
+          val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err }
+
+          val failureException = if (firstLevelErrors.nonEmpty) {
+            FirstLevelValidationException(firstLevelErrors.head)
+          } else {
+            SecondLevelValidationException(SecondLevelValidationResponse(errors = secondLevelErrors.toList))
+          }
+          Future.failed(failureException)
+        } else {
           reportingRepository.insertBatch(isaManagerReferenceNumber, returnId, validAccounts)
+        }
       }
       .runWith(Sink.ignore)
-  }
-
 }

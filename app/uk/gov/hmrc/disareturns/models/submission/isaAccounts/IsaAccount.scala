@@ -17,16 +17,28 @@
 package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 
 import play.api.libs.json._
+import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
+
+import java.time.LocalDate
 
 trait IsaAccount {
-  def accountNumber: String
-  def nino:          String
+  def accountNumber:                       String
+  def nino:                                String
+  def firstName:                           String
+  def middleName:                          Option[String]
+  def lastName:                            String
+  def dateOfBirth:                         LocalDate
+  def isaType:                             IsaType
+  def reportingATransfer:                  Boolean
+  def dateOfLastSubscription:              LocalDate
+  def totalCurrentYearSubscriptionsToDate: BigDecimal
+  def marketValueOfAccount:                BigDecimal
 }
 
 object IsaAccount {
 
   implicit val isaAccountReads: Reads[IsaAccount] = Reads { json =>
-    (json \ "reportingATransfer").validate[Boolean].flatMap {
+    (__ \ "reportingATransfer").read[Boolean].reads(json).flatMap {
       case true =>
         ((json \ "reasonForClosure").isDefined, (json \ "lisaBonusClaim").isDefined, (json \ "flexibleIsa").isDefined) match {
           case (true, _, _)         => json.validate[LifetimeIsaTransferAndClosure]
@@ -42,7 +54,6 @@ object IsaAccount {
           case (false, false, true) => json.validate[LifetimeIsaNewSubscription]
           case _                    => JsError("Cannot determine IsaAccount subtype when reportingATransfer is false")
         }
-
     }
   }
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.disareturns.models.common
 
 import play.api.libs.json._
+import uk.gov.hmrc.disareturns.models.common
 
 trait ErrorResponse {
   def code:    String
@@ -57,19 +58,25 @@ case object BadRequestMissingHeaderErr extends ErrorResponse {
 }
 
 //Submission validation errors
-
 case object NinoOrAccountNumMissingErr extends ErrorResponse {
   val code    = "NINO_OR_ACC_NUM_MISSING"
   val message = "All models send must include an account number and nino in order to process correctly"
 }
 
+case object NinoOrAccountNumInvalidErr extends ErrorResponse {
+  val code    = "NINO_OR_ACC_NUM_INVALID"
+  val message = "All models send must include a valid account number and nino in order to process correctly"
+}
+
 object ErrorResponse {
 
   private val singletons: Map[String, ErrorResponse] = Map(
-    ObligationClosed.code      -> ObligationClosed,
-    ReportingWindowClosed.code -> ReportingWindowClosed,
-    Unauthorised.code          -> Unauthorised,
-    InternalServerErr.code     -> InternalServerErr
+    ObligationClosed.code           -> ObligationClosed,
+    ReportingWindowClosed.code      -> ReportingWindowClosed,
+    Unauthorised.code               -> Unauthorised,
+    InternalServerErr.code          -> InternalServerErr,
+    NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
+    NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr
   )
 
   //TODO: feels like we could clean this up
@@ -80,8 +87,16 @@ object ErrorResponse {
           Json.fromJson[MultipleErrorResponse](json)
         case code if (json \ "path").isDefined =>
           Json.fromJson[FieldValidationError](json)
+        case "VALIDATION_FAILURE" =>
+          if ((json \ "errors").validate[Seq[FieldValidationError]].isSuccess)
+            Json.fromJson[ValidationFailureResponse](json)
+          else if ((json \ "errors").validate[Seq[SecondLevelValidationError]].isSuccess)
+            Json.fromJson[SecondLevelValidationResponse](json)
+          else
+            JsError("Unknown structure for VALIDATION_FAILURE")
         case code if singletons.contains(code) =>
           JsSuccess(singletons(code))
+
         case other =>
           JsError(s"Unknown error code: $other")
       }
@@ -119,7 +134,6 @@ object ValidationFailureResponse {
   private def mapJsErrorToResponseCode(message: String): String = message match {
     case "error.path.missing"             => "MISSING_FIELD"
     case m if m.contains("error.taxYear") => "INVALID_YEAR"
-    case "error.missing.accNum.or.nino"   => "NINO_OR_ACC_NUM_MISSING"
     case _                                => "VALIDATION_ERROR"
   }
 
@@ -171,23 +185,21 @@ object FieldValidationError {
   implicit val format: OFormat[FieldValidationError] = Json.format[FieldValidationError]
 }
 
-
 case class SecondLevelValidationResponse(
-                                      code:    String = "VALIDATION_FAILURE",
-                                      message: String = "One or more models failed validation",
-                                      errors:  Seq[SecondLevelValidationError]
-                                    ) extends ErrorResponse
+  code:    String = "VALIDATION_FAILURE",
+  message: String = "One or more models failed validation",
+  errors:  Seq[SecondLevelValidationError]
+) extends ErrorResponse
 
 object SecondLevelValidationResponse {
   implicit val format: OFormat[SecondLevelValidationResponse] = Json.format[SecondLevelValidationResponse]
 }
 
-
 case class SecondLevelValidationError(
   nino:          String,
   accountNumber: String,
   code:          String,
-  message:       String,
+  message:       String
 ) extends ErrorResponse
 
 object SecondLevelValidationError {

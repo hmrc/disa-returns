@@ -18,6 +18,9 @@ package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
+import uk.gov.hmrc.disareturns.models.submission.isaAccounts.ReasonForClosure.ReasonForClosure
+
+import java.time.LocalDate
 
 case class LifetimeIsaTransferAndClosure(
   accountNumber:                       String,
@@ -25,19 +28,19 @@ case class LifetimeIsaTransferAndClosure(
   firstName:                           String,
   middleName:                          Option[String],
   lastName:                            String,
-  dateOfBirth:                         String,
+  dateOfBirth:                         LocalDate,
   isaType:                             IsaType,
   reportingATransfer:                  Boolean,
-  dateOfLastSubscription:              String,
+  dateOfFirstSubscription:             LocalDate,
+  dateOfLastSubscription:              LocalDate,
+  closureDate:                         LocalDate,
   totalCurrentYearSubscriptionsToDate: BigDecimal,
   marketValueOfAccount:                BigDecimal,
   accountNumberOfTransferringAccount:  String,
   amountTransferred:                   BigDecimal,
-  dateOfFirstSubscription:             String,
-  closureDate:                         String,
-  reasonForClosure:                    String,
+  reasonForClosure:                    ReasonForClosure,
   lisaQualifyingAddition:              BigDecimal,
-  lisaBonusClaim:                      Boolean
+  lisaBonusClaim:                      BigDecimal
 ) extends IsaAccount
 
 object LifetimeIsaTransferAndClosure {

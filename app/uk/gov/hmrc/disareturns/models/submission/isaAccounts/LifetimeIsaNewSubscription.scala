@@ -19,21 +19,23 @@ package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
 
-case class LifetimeIsaNewSubscription(
+import java.time.LocalDate
+
+case class  LifetimeIsaNewSubscription(
   accountNumber:                       String,
   nino:                                String,
   firstName:                           String,
   middleName:                          Option[String],
   lastName:                            String,
-  dateOfBirth:                         String,
+  dateOfBirth:                         LocalDate,
   isaType:                             IsaType,
   reportingATransfer:                  Boolean,
-  dateOfLastSubscription:              String,
+  dateOfFirstSubscription:             LocalDate,
+  dateOfLastSubscription:              LocalDate,
   totalCurrentYearSubscriptionsToDate: BigDecimal,
   marketValueOfAccount:                BigDecimal,
-  dateOfFirstSubscription:             String,
   lisaQualifyingAddition:              BigDecimal,
-  lisaBonusClaim:                      Boolean
+  lisaBonusClaim:                      BigDecimal
 ) extends IsaAccount
 
 object LifetimeIsaNewSubscription {

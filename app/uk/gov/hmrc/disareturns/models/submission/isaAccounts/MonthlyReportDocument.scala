@@ -20,10 +20,12 @@ import play.api.libs.json._
 
 import java.time.Instant
 
-case class MonthlyReportDocument(returnId: String,
-                                 isaManagerReferenceNumber: String,
-                                 isaReport: Seq[IsaAccount],
-                                 createdAt: Instant = Instant.now()) //TODO: does lastUpdated make more sense??
+case class MonthlyReportDocument(
+  returnId:                  String,
+  isaManagerReferenceNumber: String,
+  isaReport:                 Seq[IsaAccount],
+  createdAt:                 Instant = Instant.now()
+) //TODO: does lastUpdated make more sense??
 
 object MonthlyReportDocument {
   implicit val format: OFormat[MonthlyReportDocument] = Json.format[MonthlyReportDocument]

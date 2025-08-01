@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.submission
+package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 
-import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.common.ValidationFailureResponse
+import play.api.libs.json.Format
+import uk.gov.hmrc.disareturns.models.common.JsonUtils
 
-object JsonValidatorUtil {
+object ReasonForClosure extends Enumeration {
+  type ReasonForClosure = Value
 
-  def validateJson[T](json: JsValue)(implicit reads: Reads[T]): Either[ValidationFailureResponse, T] =
-    json.validate[T] match {
-      case JsSuccess(value, _) =>
-        Right(value)
+  val CANCELLED:           Value = Value("CANCELLED")
+  val CLOSED:              Value = Value("CLOSED")
+  val VOID:                Value = Value("VOID")
+  val TRANSFERRED_IN_FULL: Value = Value("TRANSFERRED_IN_FULL")
+  val ALL_FUNDS_WITHDRAWN: Value = Value("ALL_FUNDS_WITHDRAWN")
 
-      case JsError(errors) =>
-        Left(ValidationFailureResponse.convertErrorToValidationFailureResponse(JsError(errors)))
-    }
+  implicit val format: Format[ReasonForClosure.Value] = JsonUtils.enumFormat(ReasonForClosure)
+
 }
