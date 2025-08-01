@@ -21,7 +21,7 @@ import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
 
 import java.time.LocalDate
 
-case class  LifetimeIsaNewSubscription(
+case class LifetimeIsaNewSubscription(
   accountNumber:                       String,
   nino:                                String,
   firstName:                           String,

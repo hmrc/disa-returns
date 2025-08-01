@@ -25,15 +25,14 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 
-
 trait WithEtmpValidation {
 
-  def validateEtmpAndThen[A](isaManagerReference: String)(block: () => Future[Result])(
-                              implicit etmpService: ETMPService,
-                              hc: HeaderCarrier,
-                              ec: ExecutionContext,
-                              writes: Writes[ErrorResponse]
-                            ): Future[Result] = {
+  def validateEtmpAndThen[A](isaManagerReference: String)(block: () => Future[Result])(implicit
+    etmpService:                                  ETMPService,
+    hc:                                           HeaderCarrier,
+    ec:                                           ExecutionContext,
+    writes:                                       Writes[ErrorResponse]
+  ): Future[Result] =
     etmpService
       .validateEtmpSubmissionEligibility(isaManagerReference)
       .value
@@ -44,13 +43,11 @@ trait WithEtmpValidation {
           error match {
             case ReportingWindowClosed | ObligationClosed =>
               Future.successful(Forbidden(Json.toJson(error)))
-            case MultipleErrorResponse(_, _, errors)
-              if errors.exists(e => e == ReportingWindowClosed || e == ObligationClosed) =>
+            case MultipleErrorResponse(_, _, errors) if errors.exists(e => e == ReportingWindowClosed || e == ObligationClosed) =>
               Future.successful(Forbidden(Json.toJson(error)))
             case _ =>
               Future.successful(InternalServerError(Json.toJson(error)))
           }
       }
 
-  }
 }

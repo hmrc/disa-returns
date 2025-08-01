@@ -30,7 +30,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
   implicit val mongo: ReportingRepository = app.injector.instanceOf[ReportingRepository]
 
   val isaManagerRef = "Z123456"
-  val returnId = "return-789"
+  val returnId      = "return-789"
 
   val validNdJson =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
@@ -99,10 +99,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_FIRST_NAME",
-          message = "First name must be a valid string"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_FIRST_NAME",
+            message = "First name must be a valid string"
+          )
+        )
       )
     }
 
@@ -116,10 +120,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_FIRST_NAME",
-          message = "First name field is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_FIRST_NAME",
+            message = "First name field is missing"
+          )
+        )
       )
     }
 
@@ -133,10 +141,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_MIDDLE_NAME",
-          message = "Middle name must be a valid string"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_MIDDLE_NAME",
+            message = "Middle name must be a valid string"
+          )
+        )
       )
     }
 
@@ -150,10 +162,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_LAST_NAME",
-          message = "Last name must be a valid string"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_LAST_NAME",
+            message = "Last name must be a valid string"
+          )
+        )
       )
     }
 
@@ -167,10 +183,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_LAST_NAME",
-          message = "Last name field is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_LAST_NAME",
+            message = "Last name field is missing"
+          )
+        )
       )
     }
 
@@ -184,10 +204,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_DOB_FORMAT",
-          message = "Date of birth must be in YYYY-MM-DD format"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_DOB_FORMAT",
+            message = "Date of birth must be in YYYY-MM-DD format"
+          )
+        )
       )
     }
 
@@ -201,10 +225,8 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_DOB",
-          message = "Date of birth is missing"))
+        errors =
+          Seq(SecondLevelValidationError(nino = "AB000001C", accountNumber = "STD000001", code = "MISSING_DOB", message = "Date of birth is missing"))
       )
     }
 
@@ -218,10 +240,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_ISA_TYPE",
-          message = "ISA type must be one of: CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE, LIFETIME_CASH, or LIFETIME_STOCKS_AND_SHARES"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_ISA_TYPE",
+            message = "ISA type must be one of: CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE, LIFETIME_CASH, or LIFETIME_STOCKS_AND_SHARES"
+          )
+        )
       )
     }
 
@@ -235,10 +261,8 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_ISA_TYPE",
-          message = "ISA type is missing"))
+        errors =
+          Seq(SecondLevelValidationError(nino = "AB000001C", accountNumber = "STD000001", code = "MISSING_ISA_TYPE", message = "ISA type is missing"))
       )
     }
 
@@ -252,10 +276,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_REPORTING_A_TRANSFER_FORMAT",
-          message = "Reporting a transfer must be a boolean value (true or false)"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_REPORTING_A_TRANSFER_FORMAT",
+            message = "Reporting a transfer must be a boolean value (true or false)"
+          )
+        )
       )
     }
 
@@ -269,10 +297,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_REPORTING_A_TRANSFER",
-          message = "Reporting a transfer is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_REPORTING_A_TRANSFER",
+            message = "Reporting a transfer is missing"
+          )
+        )
       )
     }
 
@@ -286,10 +318,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_DATE_OF_LAST_SUBSCRIPTION_FORMAT",
-          message = "Date of last subscription must be in YYYY-MM-DD format"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_DATE_OF_LAST_SUBSCRIPTION_FORMAT",
+            message = "Date of last subscription must be in YYYY-MM-DD format"
+          )
+        )
       )
     }
 
@@ -303,13 +339,16 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_DATE_OF_LAST_SUBSCRIPTION",
-          message = "Date of last subscription is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_DATE_OF_LAST_SUBSCRIPTION",
+            message = "Date of last subscription is missing"
+          )
+        )
       )
     }
-
 
     "return 400 with correct error response body request body with invalid totalCurrentYearSubscriptionsToDate" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
@@ -321,10 +360,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_TOTAL_CURRENT_YEAR_SUBSCRIPTION_TO_DATE",
-          message = "Total current year subscriptions to date must be decimal (e.g. 123.45)"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_TOTAL_CURRENT_YEAR_SUBSCRIPTION_TO_DATE",
+            message = "Total current year subscriptions to date must be decimal (e.g. 123.45)"
+          )
+        )
       )
     }
 
@@ -338,10 +381,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_TOTAL_CURRENT_YEAR_SUBSCRIPTION_TO_DATE",
-          message = "Total current year subscription to date is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_TOTAL_CURRENT_YEAR_SUBSCRIPTION_TO_DATE",
+            message = "Total current year subscription to date is missing"
+          )
+        )
       )
     }
 
@@ -355,10 +402,15 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_MARKET_VALUE_OF_ACCOUNT",
-          message = "Market value of account must be decimal (e.g. 123.45)")))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_MARKET_VALUE_OF_ACCOUNT",
+            message = "Market value of account must be decimal (e.g. 123.45)"
+          )
+        )
+      )
     }
 
     "return 400 with correct error response body request body with missing marketValueOfAccount" in {
@@ -371,10 +423,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_MARKET_VALUE_OF_ACCOUNT",
-          message = "Market value of account is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_MARKET_VALUE_OF_ACCOUNT",
+            message = "Market value of account is missing"
+          )
+        )
       )
     }
 
@@ -388,10 +444,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_ACCOUNT_NUMBER_OF_TRANSFERRING_ACCOUNT",
-          message = "Account number of transferring account must be a valid string"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_ACCOUNT_NUMBER_OF_TRANSFERRING_ACCOUNT",
+            message = "Account number of transferring account must be a valid string"
+          )
+        )
       )
     }
 
@@ -405,10 +465,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_ACCOUNT_NUMBER_OF_TRANSFERRING_ACCOUNT",
-          message = "Account number of transferring account is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_ACCOUNT_NUMBER_OF_TRANSFERRING_ACCOUNT",
+            message = "Account number of transferring account is missing"
+          )
+        )
       )
     }
 
@@ -422,10 +486,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_AMOUNT_TRANSFERRED",
-          message = "Amount transferred must have 2 decimal places"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_AMOUNT_TRANSFERRED",
+            message = "Amount transferred must have 2 decimal places"
+          )
+        )
       )
     }
 
@@ -439,10 +507,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_AMOUNT_TRANSFERRED",
-          message = "Amount transferred is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_AMOUNT_TRANSFERRED",
+            message = "Amount transferred is missing"
+          )
+        )
       )
     }
 
@@ -456,10 +528,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_FLEXIBLE_ISA",
-          message = "Flexible ISA must be a boolean value (true or false)"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_FLEXIBLE_ISA",
+            message = "Flexible ISA must be a boolean value (true or false)"
+          )
+        )
       )
     }
 
@@ -473,16 +549,22 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors = Seq(SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "MISSING_FLEXIBLE_ISA",
-          message = "Flexible ISA is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_FLEXIBLE_ISA",
+            message = "Flexible ISA is missing"
+          )
+        )
       )
     }
 
     "return 400 with correct error response body request body when missing errors displayed across multiple records submitted" in {
-      val invalidNdJsonLine1 = """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
-      val invalidNdJsonLine2 = """{"accountNumber":"STD000002","nino":"AB000002C","firstName":"First2","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+      val invalidNdJsonLine1 =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+      val invalidNdJsonLine2 =
+        """{"accountNumber":"STD000002","nino":"AB000002C","firstName":"First2","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
@@ -490,14 +572,18 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
         errors = Seq(
-          SecondLevelValidationError(nino = "AB000001C",
-          accountNumber = "STD000001",
-          code = "INVALID_FIRST_NAME",
-          message = "First name must not be empty"),
-          SecondLevelValidationError(nino = "AB000002C",
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_FIRST_NAME",
+            message = "First name must not be empty"
+          ),
+          SecondLevelValidationError(
+            nino = "AB000002C",
             accountNumber = "STD000002",
             code = "MISSING_LAST_NAME",
-            message = "Last name field is missing")
+            message = "Last name field is missing"
+          )
         )
       )
     }
@@ -508,7 +594,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), isaManagerRef = isaManagerRef)
 
       val result = initiateRequest(validNdJson)
-      result.status shouldBe FORBIDDEN
+      result.status                 shouldBe FORBIDDEN
       result.json.as[ErrorResponse] shouldBe ObligationClosed
 
     }
@@ -519,7 +605,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
 
       val result = initiateRequest(validNdJson)
-      result.status shouldBe FORBIDDEN
+      result.status                 shouldBe FORBIDDEN
       result.json.as[ErrorResponse] shouldBe ReportingWindowClosed
 
     }
@@ -530,7 +616,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), isaManagerRef = isaManagerRef)
 
       val result = initiateRequest(validNdJson)
-      result.status shouldBe FORBIDDEN
+      result.status                 shouldBe FORBIDDEN
       result.json.as[ErrorResponse] shouldBe MultipleErrorResponse(errors = Seq(ReportingWindowClosed, ObligationClosed))
 
     }
@@ -552,7 +638,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
   override val testHeaders: Seq[(String, String)] = Seq(
     "X-Client-ID"   -> testClientId,
     "Authorization" -> "mock-bearer-token",
-    "Content-Type" -> "application/x-ndjson"
+    "Content-Type"  -> "application/x-ndjson"
   )
 
   def initiateRequest(

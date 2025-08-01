@@ -32,19 +32,17 @@ import utils.BaseUnitSpec
 
 import scala.concurrent.Future
 
-class WithEtmpValidationSpec
-  extends BaseUnitSpec {
-
+class WithEtmpValidationSpec extends BaseUnitSpec {
 
   trait Setup extends WithEtmpValidation {
-    implicit val hc: HeaderCarrier                = HeaderCarrier()
-    val etmpService: ETMPService                  = mock[ETMPService]
-    val isaManagerRef                             = "Z123456"
-    val testSuccessResult: Result                 = Ok("success")
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val etmpService: ETMPService   = mock[ETMPService]
+    val isaManagerRef = "Z123456"
+    val testSuccessResult: Result = Ok("success")
 
-    def testBlock(): () => Future[Result] = () => Future.successful(testSuccessResult)
-    val obligation:      EtmpObligations     = EtmpObligations(false)
-    val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
+    def testBlock():     () => Future[Result] = () => Future.successful(testSuccessResult)
+    val obligation:      EtmpObligations      = EtmpObligations(false)
+    val reportingWindow: EtmpReportingWindow  = EtmpReportingWindow(true)
   }
 
   "validateEtmpAndThen" should {
@@ -54,10 +52,10 @@ class WithEtmpValidationSpec
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
 
       val result: Future[Result] = validateEtmpAndThen(isaManagerRef)(testBlock())(etmpService, hc, ec, ErrorResponse.format)
-        status(result) shouldBe OK
-        contentAsString(result) shouldBe "success"
-      }
+      status(result)          shouldBe OK
+      contentAsString(result) shouldBe "success"
     }
+  }
 
   "return Forbidden with error JSON when ETMP validation returns ReportingWindowClosed" in new Setup {
     val error: ReportingWindowClosed.type = ReportingWindowClosed
@@ -65,7 +63,7 @@ class WithEtmpValidationSpec
       .thenReturn(EitherT.leftT(error))
 
     val result: Future[Result] = validateEtmpAndThen(isaManagerRef)(testBlock())(etmpService, hc, ec, ErrorResponse.format)
-    status(result) shouldBe FORBIDDEN
+    status(result)        shouldBe FORBIDDEN
     contentAsJson(result) shouldBe Json.toJson(error: ErrorResponse)
   }
 
@@ -75,7 +73,7 @@ class WithEtmpValidationSpec
       .thenReturn(EitherT.leftT(error))
 
     val result: Future[Result] = validateEtmpAndThen(isaManagerRef)(testBlock())(etmpService, hc, ec, ErrorResponse.format)
-    status(result) shouldBe FORBIDDEN
+    status(result)        shouldBe FORBIDDEN
     contentAsJson(result) shouldBe Json.toJson(error: ErrorResponse)
   }
 
@@ -85,7 +83,7 @@ class WithEtmpValidationSpec
       .thenReturn(EitherT.leftT(errors))
 
     val result: Future[Result] = validateEtmpAndThen(isaManagerRef)(testBlock())(etmpService, hc, ec, ErrorResponse.format)
-    status(result) shouldBe FORBIDDEN
+    status(result)        shouldBe FORBIDDEN
     contentAsJson(result) shouldBe Json.toJson(errors: ErrorResponse)
   }
 }

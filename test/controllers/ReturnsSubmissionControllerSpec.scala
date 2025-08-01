@@ -42,9 +42,9 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
   val isaManagerRef = "Z123456"
   val boxId         = "box-123"
   val returnId      = "return-789"
-  val obligation:      EtmpObligations     = EtmpObligations(false)
-  val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
-  implicit val materializer: Materializer = app.materializer
+  val obligation:            EtmpObligations     = EtmpObligations(false)
+  val reportingWindow:       EtmpReportingWindow = EtmpReportingWindow(true)
+  implicit val materializer: Materializer        = app.materializer
 
   val ndJsonLine =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
@@ -53,7 +53,6 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
     .withBody(Source.single(ByteString(ndJsonString + "\n")))
     .withHeaders("X-Client-ID" -> "client-999")
     .withHeaders("Content-Type" -> "application/x-ndjson")
-
 
   val validSubmissionJson: JsValue = Json.obj(
     "totalRecords"     -> 400,
@@ -77,8 +76,7 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
       when(mockReportingRepository.insertBatch(any(), any(), any()))
         .thenReturn(Future.successful())
 
-      val result = controller.submit(isaManagerReferenceNumber = isaManagerRef,
-        returnId = returnId)(fakeRequestWithStream())
+      val result = controller.submit(isaManagerReferenceNumber = isaManagerRef, returnId = returnId)(fakeRequestWithStream())
 
       status(result) shouldBe NO_CONTENT
     }
@@ -96,7 +94,7 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
 
       val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream(ndJsonLineError))
 
-      status(result) shouldBe BAD_REQUEST
+      status(result)                                 shouldBe BAD_REQUEST
       (contentAsJson(result) \ "code").as[String]    shouldBe "NINO_OR_ACC_NUM_MISSING"
       (contentAsJson(result) \ "message").as[String] shouldBe "All models send must include an account number and nino in order to process correctly"
     }
@@ -111,25 +109,38 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(EitherT.rightT(boxId))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
-        .thenReturn(Future.failed(SecondLevelValidationException(SecondLevelValidationResponse(errors =Seq(
-          SecondLevelValidationError(nino = "AB000001C", accountNumber = "STD000001", code = "INVALID_DOB_FORMAT", message = "Date of birth must be in YYYY-MM-DD format"))))))
+        .thenReturn(
+          Future.failed(
+            SecondLevelValidationException(
+              SecondLevelValidationResponse(errors =
+                Seq(
+                  SecondLevelValidationError(
+                    nino = "AB000001C",
+                    accountNumber = "STD000001",
+                    code = "INVALID_DOB_FORMAT",
+                    message = "Date of birth must be in YYYY-MM-DD format"
+                  )
+                )
+              )
+            )
+          )
+        )
 
       val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream(ndJsonLine))
-      val json = contentAsJson(result)
+      val json   = contentAsJson(result)
 
-
-      status(result) shouldBe BAD_REQUEST
-      (json \ "code").as[String] shouldBe "VALIDATION_FAILURE"
+      status(result)                shouldBe BAD_REQUEST
+      (json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
       (json \ "message").as[String] shouldBe "One or more models failed validation"
 
       val errors = (json \ "errors").as[Seq[JsValue]]
       errors should have size 1
 
       val error = errors.head
-      (error \ "nino").as[String]           shouldBe "AB000001C"
-      (error \ "accountNumber").as[String]  shouldBe "STD000001"
-      (error \ "code").as[String]           shouldBe "INVALID_DOB_FORMAT"
-      (error \ "message").as[String]        shouldBe "Date of birth must be in YYYY-MM-DD format"
+      (error \ "nino").as[String]          shouldBe "AB000001C"
+      (error \ "accountNumber").as[String] shouldBe "STD000001"
+      (error \ "code").as[String]          shouldBe "INVALID_DOB_FORMAT"
+      (error \ "message").as[String]       shouldBe "Date of birth must be in YYYY-MM-DD format"
     }
 
     "return 400 for SecondLevelValidationException - invalid DOB & firstName - should only return first failure for each model" in {
@@ -142,25 +153,38 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(EitherT.rightT(boxId))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
-        .thenReturn(Future.failed(SecondLevelValidationException(SecondLevelValidationResponse(errors =Seq(
-          SecondLevelValidationError(nino = "AB000001C", accountNumber = "STD000001", code = "INVALID_DOB_FORMAT", message = "Date of birth must be in YYYY-MM-DD format"))))))
+        .thenReturn(
+          Future.failed(
+            SecondLevelValidationException(
+              SecondLevelValidationResponse(errors =
+                Seq(
+                  SecondLevelValidationError(
+                    nino = "AB000001C",
+                    accountNumber = "STD000001",
+                    code = "INVALID_DOB_FORMAT",
+                    message = "Date of birth must be in YYYY-MM-DD format"
+                  )
+                )
+              )
+            )
+          )
+        )
 
       val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream(ndJsonLine))
-      val json = contentAsJson(result)
+      val json   = contentAsJson(result)
 
-
-      status(result) shouldBe BAD_REQUEST
-      (json \ "code").as[String] shouldBe "VALIDATION_FAILURE"
+      status(result)                shouldBe BAD_REQUEST
+      (json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
       (json \ "message").as[String] shouldBe "One or more models failed validation"
 
       val errors = (json \ "errors").as[Seq[JsValue]]
       errors should have size 1
 
       val error = errors.head
-      (error \ "nino").as[String]           shouldBe "AB000001C"
-      (error \ "accountNumber").as[String]  shouldBe "STD000001"
-      (error \ "code").as[String]           shouldBe "INVALID_DOB_FORMAT"
-      (error \ "message").as[String]        shouldBe "Date of birth must be in YYYY-MM-DD format"
+      (error \ "nino").as[String]          shouldBe "AB000001C"
+      (error \ "accountNumber").as[String] shouldBe "STD000001"
+      (error \ "code").as[String]          shouldBe "INVALID_DOB_FORMAT"
+      (error \ "message").as[String]       shouldBe "Date of birth must be in YYYY-MM-DD format"
     }
 
     "return 400 for SecondLevelValidationException - invalid DOB & firstName in two different models - should report both errors" in {
@@ -175,16 +199,29 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(EitherT.rightT(boxId))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
-        .thenReturn(Future.failed(SecondLevelValidationException(SecondLevelValidationResponse(errors =Seq(
-          SecondLevelValidationError(nino = "AB000001C", accountNumber = "STD000001", code = "INVALID_DOB_FORMAT", message = "Date of birth must be in YYYY-MM-DD format"))))))
+        .thenReturn(
+          Future.failed(
+            SecondLevelValidationException(
+              SecondLevelValidationResponse(errors =
+                Seq(
+                  SecondLevelValidationError(
+                    nino = "AB000001C",
+                    accountNumber = "STD000001",
+                    code = "INVALID_DOB_FORMAT",
+                    message = "Date of birth must be in YYYY-MM-DD format"
+                  )
+                )
+              )
+            )
+          )
+        )
 
       val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream(ndJsonLine))
-      val json = contentAsJson(result)
-
+      val json   = contentAsJson(result)
 
       status(result) shouldBe BAD_REQUEST
 
-      (json \ "code").as[String] shouldBe "VALIDATION_FAILURE"
+      (json \ "code").as[String]    shouldBe "VALIDATION_FAILURE"
       (json \ "message").as[String] shouldBe "One or more models failed validation"
 
       val errors = (json \ "errors").as[Seq[JsValue]]
@@ -208,7 +245,7 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
 
       val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream())
 
-      status(result) shouldBe FORBIDDEN
+      status(result)                                 shouldBe FORBIDDEN
       (contentAsJson(result) \ "code").as[String]    shouldBe "OBLIGATION_CLOSED"
       (contentAsJson(result) \ "message").as[String] shouldBe "Obligation closed"
     }
@@ -218,10 +255,10 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream())
-      val json = contentAsJson(result)
+      val json   = contentAsJson(result)
 
-      status(result) shouldBe INTERNAL_SERVER_ERROR
-      (json \ "code").as[String] shouldBe "INTERNAL_SERVER_ERROR"
+      status(result)                shouldBe INTERNAL_SERVER_ERROR
+      (json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
       (json \ "message").as[String] shouldBe "There has been an issue processing your request"
     }
   }
