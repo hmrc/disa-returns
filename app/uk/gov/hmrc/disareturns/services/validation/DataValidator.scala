@@ -43,7 +43,6 @@ object DataValidator {
       case (_, JsError(_)) if accountPath.isInstanceOf[JsUndefined] =>
         Left(NinoOrAccountNumMissingErr)
       case _ =>
-        println(Console.YELLOW + "Herre" + Console.RESET)
         Left(NinoOrAccountNumInvalidErr)
     }
   }
@@ -58,28 +57,28 @@ object DataValidator {
       val errorMessages = errors.flatMap(_.messages).toSet
       // We could make this a bit better so it builds the error code/message based on field name instead of matching on each?
       // Only thing it we loose visibility on what's actually defined?
-
+      println(Console.MAGENTA + jsErrors + Console.RESET)
       val (code, message) = errorMessages.toList match {
         case msgs if msgs.exists(_.contains("error.path.missing")) =>
           fieldName match {
             case "firstName"               => ("MISSING_FIRST_NAME", "First name field is missing")
             case "lastName"                => ("MISSING_LAST_NAME", "Last name field is missing")
-            case "dateOfBirth"             => ("MISSING_DOB", "Date of birth is missing")
-            case "isaType"                 => ("MISSING_ISA_TYPE", "ISA type is missing")
-            case "reportingATransfer"      => ("MISSING_REPORTING_A_TRANSFER", "Reporting a transfer is missing")
-            case "dateOfFirstSubscription" => ("MISSING_DATE_OF_FIRST_SUBSCRIPTION", "Date of first subscription is missing")
-            case "dateOfLastSubscription"  => ("MISSING_DATE_OF_LAST_SUBSCRIPTION", "Date of last subscription is missing")
+            case "dateOfBirth"             => ("MISSING_DOB", "Date of birth field is missing")
+            case "isaType"                 => ("MISSING_ISA_TYPE", "ISA type field is missing")
+            case "reportingATransfer"      => ("MISSING_REPORTING_A_TRANSFER", "Reporting a transfer field is missing")
+            case "dateOfFirstSubscription" => ("MISSING_DATE_OF_FIRST_SUBSCRIPTION", "Date of first subscription field is missing")
+            case "dateOfLastSubscription"  => ("MISSING_DATE_OF_LAST_SUBSCRIPTION", "Date of last subscription field is missing")
             case "totalCurrentYearSubscriptionsToDate" =>
-              ("MISSING_TOTAL_CURRENT_YEAR_SUBSCRIPTION_TO_DATE", "Total current year subscription to date is missing")
-            case "marketValueOfAccount" => ("MISSING_MARKET_VALUE_OF_ACCOUNT", "Market value of account is missing")
+              ("MISSING_TOTAL_CURRENT_YEAR_SUBSCRIPTION_TO_DATE", "Total current year subscription to date field is missing")
+            case "marketValueOfAccount" => ("MISSING_MARKET_VALUE_OF_ACCOUNT", "Market value of account field is missing")
             case "accountNumberOfTransferringAccount" =>
-              ("MISSING_ACCOUNT_NUMBER_OF_TRANSFERRING_ACCOUNT", "Account number of transferring account is missing")
-            case "amountTransferred"      => ("MISSING_AMOUNT_TRANSFERRED", "Amount transferred is missing")
-            case "flexibleIsa"            => ("MISSING_FLEXIBLE_ISA", "Flexible ISA is missing")
-            case "lisaQualifyingAddition" => ("MISSING_LISA_QUALIFYING_ADDITION", "LISA qualifying addition is missing")
-            case "lisaBonusClaim"         => ("MISSING_LISA_BONUS_CLAIM", "LISA bonus claim is missing")
-            case "closureDate"            => ("MISSING_CLOSURE_DATE", "Closure date is missing")
-            case "reasonForClosure"       => ("MISSING_REASON_FOR_CLOSURE", "Reason for closure is missing")
+              ("MISSING_ACCOUNT_NUMBER_OF_TRANSFERRING_ACCOUNT", "Account number of transferring account field is missing")
+            case "amountTransferred"      => ("MISSING_AMOUNT_TRANSFERRED", "Amount transferred field is missing")
+            case "flexibleIsa"            => ("MISSING_FLEXIBLE_ISA", "Flexible ISA field is missing")
+            case "lisaQualifyingAddition" => ("MISSING_LISA_QUALIFYING_ADDITION", "LISA qualifying addition field is missing")
+            case "lisaBonusClaim"         => ("MISSING_LISA_BONUS_CLAIM", "LISA bonus claim field is missing")
+            case "closureDate"            => ("MISSING_CLOSURE_DATE", "Closure date field is missing")
+            case "reasonForClosure"       => ("MISSING_REASON_FOR_CLOSURE", "Reason for closure field is missing")
             case other                    => ("MISSING_UNKNOWN", s"Missing required field: $other")
           }
         case msgs if msgs.exists(_.contains("error.expected.date.isoformat")) =>
@@ -155,7 +154,7 @@ object DataValidator {
 
   def validateMoneyDecimal(value: BigDecimal): Boolean =
     value.scale == 2
-  //Half up
+  //TODO: look at Half up
 
   def validateString(value: String): Boolean =
     value.trim.nonEmpty
@@ -190,79 +189,79 @@ object DataValidator {
   }
 
   def validateIsaAccountUniqueFields(account: IsaAccount): Either[SecondLevelValidationError, Unit] = account match {
-    case lc: LifetimeIsaClosure =>
+    case lifetimeIsaClosure: LifetimeIsaClosure =>
       validateField(
-        lc.lisaQualifyingAddition,
+        lifetimeIsaClosure.lisaQualifyingAddition,
         validateMoneyDecimal,
         "INVALID_LISA_QUALIFYING_ADDITION",
         "LISA qualifying addition must have 2 decimal places",
-        lc.nino,
-        lc.accountNumber
+        lifetimeIsaClosure.nino,
+        lifetimeIsaClosure.accountNumber
       )
 
-    case lns: LifetimeIsaNewSubscription =>
+    case lifetimeIsaNewSubscription: LifetimeIsaNewSubscription =>
       validateField(
-        lns.lisaQualifyingAddition,
+        lifetimeIsaNewSubscription.lisaQualifyingAddition,
         validateMoneyDecimal,
         "INVALID_LISA_QUALIFYING_ADDITION",
         "LISA qualifying addition must have 2 decimal places",
-        lns.nino,
-        lns.accountNumber
+        lifetimeIsaNewSubscription.nino,
+        lifetimeIsaNewSubscription.accountNumber
       )
 
-    case lt: LifetimeIsaTransfer =>
+    case lifetimeIsaTransfer: LifetimeIsaTransfer =>
       val validations = Seq(
         validateField(
-          lt.lisaQualifyingAddition,
+          lifetimeIsaTransfer.lisaQualifyingAddition,
           validateMoneyDecimal,
           "INVALID_LISA_QUALIFYING_ADDITION",
           "LISA qualifying addition must have 2 decimal places",
-          lt.nino,
-          lt.accountNumber
+          lifetimeIsaTransfer.nino,
+          lifetimeIsaTransfer.accountNumber
         ),
         validateField(
-          lt.amountTransferred,
+          lifetimeIsaTransfer.amountTransferred,
           validateMoneyDecimal,
           "INVALID_AMOUNT_TRANSFERRED",
           "Amount transferred must have 2 decimal places",
-          lt.nino,
-          lt.accountNumber
+          lifetimeIsaTransfer.nino,
+          lifetimeIsaTransfer.accountNumber
         )
       )
       validations.collectFirst { case Left(err) => Left(err) }.getOrElse(Right(()))
 
-    case ltc: LifetimeIsaTransferAndClosure =>
+    case lifetimeIsaTransferAndClosure: LifetimeIsaTransferAndClosure =>
       val validations = Seq(
         validateField(
-          ltc.lisaQualifyingAddition,
+          lifetimeIsaTransferAndClosure.lisaQualifyingAddition,
           validateMoneyDecimal,
           "INVALID_LISA_QUALIFYING_ADDITION",
           "LISA qualifying addition must have 2 decimal places",
-          ltc.nino,
-          ltc.accountNumber
+          lifetimeIsaTransferAndClosure.nino,
+          lifetimeIsaTransferAndClosure.accountNumber
         ),
         validateField(
-          ltc.amountTransferred,
+          lifetimeIsaTransferAndClosure.amountTransferred,
           validateMoneyDecimal,
           "INVALID_AMOUNT_TRANSFERRED",
           "Amount transferred must have 2 decimal places",
-          ltc.nino,
-          ltc.accountNumber
+          lifetimeIsaTransferAndClosure.nino,
+          lifetimeIsaTransferAndClosure.accountNumber
         )
       )
       validations.collectFirst { case Left(err) => Left(err) }.getOrElse(Right(()))
 
-    case sns: StandardIsaNewSubscription =>
+    case standardIsaNewSubscription: StandardIsaNewSubscription =>
       Right(()) // no additional BigDecimal fields beyond common ones validated already
 
-    case st: StandardIsaTransfer =>
+    case standardIsaTransfer: StandardIsaTransfer =>
       validateField(
-        st.amountTransferred,
+        standardIsaTransfer.amountTransferred,
         validateMoneyDecimal,
         "INVALID_AMOUNT_TRANSFERRED",
         "Amount transferred must have 2 decimal places",
-        st.nino,
-        st.accountNumber
+        standardIsaTransfer.nino,
+        standardIsaTransfer.accountNumber
       )
   }
 

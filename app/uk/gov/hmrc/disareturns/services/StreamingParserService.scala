@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.disareturns.services
 
+import com.fasterxml.jackson.core.JsonParseException
 import org.apache.pekko.Done
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
-import play.api.libs.json.{JsError, JsSuccess, Json}
-import uk.gov.hmrc.disareturns.models.common.{FirstLevelValidationException, FirstLevelValidationFailure, SecondLevelValidationError, SecondLevelValidationException, SecondLevelValidationFailure, SecondLevelValidationResponse, ValidationError}
+import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, FirstLevelValidationException, FirstLevelValidationFailure, MalformedJsonFailureErr, SecondLevelValidationError, SecondLevelValidationException, SecondLevelValidationFailure, SecondLevelValidationResponse, ValidationError}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.repositories.ReportingRepository
 import uk.gov.hmrc.disareturns.services.validation.DataValidator
@@ -29,6 +30,7 @@ import uk.gov.hmrc.disareturns.services.validation.DataValidator.jsErrorToDomain
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class StreamingParserService @Inject() (reportingRepository: ReportingRepository, implicit val mat: Materializer)(implicit ec: ExecutionContext) {
@@ -39,27 +41,39 @@ class StreamingParserService @Inject() (reportingRepository: ReportingRepository
       .map(_.utf8String.trim)
       .filter(_.nonEmpty)
       .map { line =>
-        val jsValue = Json.parse(line)
-        DataValidator.FirstLevelValidatorExtractNinoAndAccount(jsValue) match {
-          case Right((nino, accountNumber)) =>
-            jsValue.validate[IsaAccount] match {
-              case JsSuccess(account, _) =>
-                DataValidator.validate(account) match {
-                  case Right(_)  => Right(account)
-                  case Left(err) => Left(SecondLevelValidationFailure(err))
+        Try(Json.parse(line)) match {
+          case Success(jsValue) =>
+            DataValidator.FirstLevelValidatorExtractNinoAndAccount(jsValue) match {
+              case Right((nino, accountNumber)) =>
+                jsValue.validate[IsaAccount] match {
+                  case JsSuccess(account, _) =>
+                    DataValidator.validate(account) match {
+                      case Right(_)  => Right(account)
+                      case Left(err) => Left(SecondLevelValidationFailure(err))
+                    }
+                  case JsError(errors) =>
+                    val domainErrors = jsErrorToDomainError(errors, nino, accountNumber)
+                    domainErrors.headOption match {
+                      case Some(error) => Left(SecondLevelValidationFailure(error))
+                      case None =>
+                        Left(
+                          //TODO: Do we need a generic second level validation malformed js error?
+                          SecondLevelValidationFailure(
+                            SecondLevelValidationError(
+                              nino,
+                              accountNumber,
+                              "UNKNOWN_VALIDATION",
+                              "Unknown validation error"
+                            )
+                          )
+                        )
+                    }
                 }
-              case JsError(errors) =>
-                val domainErrors = jsErrorToDomainError(errors, nino, accountNumber)
-                Left(
-                  SecondLevelValidationFailure(
-                    domainErrors.headOption.getOrElse(
-                      SecondLevelValidationError(nino, accountNumber, "UNKNOWN_VALIDATION", "Unknown validation error")
-                    )
-                  )
-                )
+              case Left(firstLevelErr) =>
+                Left(FirstLevelValidationFailure(firstLevelErr))
             }
-          case Left(firstLevelErr) =>
-            Left(FirstLevelValidationFailure(firstLevelErr))
+          case Failure(ex) =>
+            Left(FirstLevelValidationFailure(MalformedJsonFailureErr: ErrorResponse))
         }
       }
 

@@ -63,7 +63,6 @@ class ReturnsSubmissionController @Inject() (
             case SecondLevelValidationException(errResponse) =>
               BadRequest(Json.toJson(errResponse))
             case error: ErrorResponse =>
-              println(Console.YELLOW + "here" + Console.RESET)
               Forbidden(Json.toJson(error: ErrorResponse))
             case ex =>
               InternalServerError(Json.obj("error" -> ex.getMessage))

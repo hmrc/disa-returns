@@ -51,7 +51,6 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
         """{"nino":"AB000001C","firstName":"First1","lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
       val result = initiateRequest(invalidJson)
-      println(Console.YELLOW + result.body + Console.RESET)
       result.json.as[ErrorResponse] shouldBe NinoOrAccountNumMissingErr
 
     }
@@ -225,8 +224,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors =
-          Seq(SecondLevelValidationError(nino = "AB000001C", accountNumber = "STD000001", code = "MISSING_DOB", message = "Date of birth is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_DOB",
+            message = "Date of birth field is missing"
+          )
+        )
       )
     }
 
@@ -261,8 +266,14 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
-        errors =
-          Seq(SecondLevelValidationError(nino = "AB000001C", accountNumber = "STD000001", code = "MISSING_ISA_TYPE", message = "ISA type is missing"))
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_ISA_TYPE",
+            message = "ISA type field is missing"
+          )
+        )
       )
     }
 
@@ -302,7 +313,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "MISSING_REPORTING_A_TRANSFER",
-            message = "Reporting a transfer is missing"
+            message = "Reporting a transfer field is missing"
           )
         )
       )
@@ -344,7 +355,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "MISSING_DATE_OF_LAST_SUBSCRIPTION",
-            message = "Date of last subscription is missing"
+            message = "Date of last subscription field is missing"
           )
         )
       )
@@ -386,7 +397,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "MISSING_TOTAL_CURRENT_YEAR_SUBSCRIPTION_TO_DATE",
-            message = "Total current year subscription to date is missing"
+            message = "Total current year subscription to date field is missing"
           )
         )
       )
@@ -428,7 +439,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "MISSING_MARKET_VALUE_OF_ACCOUNT",
-            message = "Market value of account is missing"
+            message = "Market value of account field is missing"
           )
         )
       )
@@ -470,7 +481,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "MISSING_ACCOUNT_NUMBER_OF_TRANSFERRING_ACCOUNT",
-            message = "Account number of transferring account is missing"
+            message = "Account number of transferring account field is missing"
           )
         )
       )
@@ -512,7 +523,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "MISSING_AMOUNT_TRANSFERRED",
-            message = "Amount transferred is missing"
+            message = "Amount transferred field is missing"
           )
         )
       )
@@ -554,7 +565,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "MISSING_FLEXIBLE_ISA",
-            message = "Flexible ISA is missing"
+            message = "Flexible ISA field is missing"
           )
         )
       )
@@ -587,6 +598,10 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
         )
       )
     }
+
+    //TODO: missing headers -> clientId
+    //TODO: invalid returnId for Zref - Forbidden/NotFound
+    //TODO: return doesn't exist - NotFound
 
     "return FORBIDDEN if ETMP obligationAlreadyMet check returns true" in {
 

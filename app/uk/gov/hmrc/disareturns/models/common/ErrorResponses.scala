@@ -68,6 +68,11 @@ case object NinoOrAccountNumInvalidErr extends ErrorResponse {
   val message = "All models send must include a valid account number and nino in order to process correctly"
 }
 
+case object MalformedJsonFailureErr extends ErrorResponse {
+  val code    = "MALFORMED JSON"
+  val message = "malformed JSON"
+}
+
 object ErrorResponse {
 
   private val singletons: Map[String, ErrorResponse] = Map(

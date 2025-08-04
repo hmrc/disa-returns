@@ -46,7 +46,6 @@ object IsaAccount {
           case (false, false, true) => json.validate[StandardIsaTransfer]
           case _                    => JsError("Cannot determine IsaAccount subtype when reportingATransfer is true")
         }
-
       case false =>
         ((json \ "reasonForClosure").isDefined, (json \ "flexibleIsa").isDefined, (json \ "lisaBonusClaim").isDefined) match {
           case (true, _, _)         => json.validate[LifetimeIsaClosure]
