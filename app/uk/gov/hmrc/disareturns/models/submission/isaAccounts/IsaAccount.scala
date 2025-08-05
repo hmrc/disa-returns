@@ -18,7 +18,6 @@ package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.ReasonForClosure.ReasonForClosure
 
 import java.time.LocalDate
 
@@ -57,80 +56,16 @@ object IsaAccount {
     }
   }
 
-//  implicit val isaAccountReads: Reads[IsaAccount] = Reads { json =>
-//    (__ \ "reportingATransfer").read[Boolean].reads(json).flatMap {
-//      case true =>
-//        val reasonR = (__ \ "reasonForClosure").read[ReasonForClosure].reads(json)
-//        val bonusR  = (__ \ "lisaBonusClaim").read[BigDecimal].reads(json)
-//        val flexR   = (__ \ "flexibleIsa").read[Boolean].reads(json)
-//
-//        (reasonR, bonusR, flexR) match {
-//          case (JsSuccess(_, _), JsSuccess(_, _), JsError(_)) =>
-//            json.validate[LifetimeIsaTransferAndClosure]
-//          case (JsError(_), JsSuccess(_, _), JsError(_)) =>
-//            json.validate[LifetimeIsaTransfer]
-//          case (JsError(_), JsError(_), JsSuccess(_, _)) =>
-//            json.validate[StandardIsaTransfer]
-//          case _ =>
-//            // Accumulate all errors if any
-//            val allErrors = reasonR.asEither.left.getOrElse(Nil) ++
-//              bonusR.asEither.left.getOrElse(Nil) ++
-//              flexR.asEither.left.getOrElse(Nil)
-//            JsError(allErrors)
-//        }
-//
-//      case false =>
-//        val reasonR = (__ \ "reasonForClosure").read[ReasonForClosure].reads(json)
-//        val bonusR  = (__ \ "lisaBonusClaim").read[BigDecimal].reads(json)
-//        val flexR   = (__ \ "flexibleIsa").read[Boolean].reads(json)
-//
-//        (reasonR, bonusR, flexR) match {
-//          case (JsSuccess(_, _), JsSuccess(_, _), JsError(_)) =>
-//            json.validate[LifetimeIsaClosure]
-//          case (JsError(_), JsSuccess(_, _), JsError(_)) =>
-//            json.validate[LifetimeIsaNewSubscription]
-//          case (JsError(_), JsError(_), JsSuccess(_, _)) =>
-//            json.validate[StandardIsaNewSubscription]
-//          case _ =>
-//            val allErrors = reasonR.asEither.left.getOrElse(Nil) ++
-//              bonusR.asEither.left.getOrElse(Nil) ++
-//              flexR.asEither.left.getOrElse(Nil)
-//            JsError(allErrors)
-//        }
-//    }
-//  }
 
-  //
-//  implicit val isaAccountReads2: Reads[IsaAccount] = Reads { json =>
-//    (json \ "reportingATransfer").validate[Boolean] match {
-//      case JsSuccess(true, _) =>
-//        // This is a transfer
-//        LifetimeIsaTransferAndClosure.format
-//          .reads(json)
-//          .orElse(LifetimeIsaTransfer.format.reads(json))
-//          .orElse(StandardIsaTransfer.format.reads(json))
-//
-//      case JsSuccess(false, _) =>
-//        // This is NOT a transfer
-//        LifetimeIsaClosure.format
-//          .reads(json)
-//          .orElse(StandardIsaNewSubscription.format.reads(json))
-//          .orElse(LifetimeIsaNewSubscription.format.reads(json))
-//
-//      case JsError(_) =>
-//        JsError(__ \ "reportingATransfer", "Missing or invalid reportingATransfer field")
+//    implicit val combinedRead: Reads[IsaAccount] = Reads { json =>
+//      LifetimeIsaTransferAndClosure.reads
+//        .reads(json)
+//        .orElse(LifetimeIsaClosure.reads.reads(json))
+//        .orElse(LifetimeIsaTransfer.reads.reads(json))
+//        .orElse(LifetimeIsaNewSubscription.reads.reads(json))
+//        .orElse(StandardIsaTransfer.reads.reads(json))
+//        .orElse(StandardIsaNewSubscription.reads.reads(json))
 //    }
-//  }
-
-  //  implicit val combinedRead: Reads[IsaAccount] = Reads { json =>
-  //    LifetimeIsaTransferAndClosure.format
-  //      .reads(json)
-  //      .orElse(LifetimeIsaClosure.format.reads(json))
-  //      .orElse(LifetimeIsaTransfer.format.reads(json))
-  //      .orElse(LifetimeIsaNewSubscription.format.reads(json))
-  //      .orElse(StandardIsaTransfer.format.reads(json))
-  //      .orElse(StandardIsaNewSubscription.format.reads(json))
-  //  }
 
   implicit val writes: Writes[IsaAccount] = new Writes[IsaAccount] {
     def writes(report: IsaAccount): JsValue = report match {

@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json.{JsError, Json, JsonValidationError, OFormat, Reads, __}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.ReasonForClosure.ReasonForClosure
 
@@ -44,5 +45,38 @@ case class LifetimeIsaTransferAndClosure(
 ) extends IsaAccount
 
 object LifetimeIsaTransferAndClosure {
-  implicit val format: OFormat[LifetimeIsaTransferAndClosure] = Json.format[LifetimeIsaTransferAndClosure]
+
+  implicit val reads: Reads[LifetimeIsaTransferAndClosure] = Reads { json =>
+    if (!(json \ "reasonForClosure").isDefined)
+      JsError("reasonForClosure must be defined")
+    else if (!(json \ "lisaBonusClaim").isDefined)
+      JsError("lisaBonusClaim must be defined")
+    else {
+      (
+        (__ \ "accountNumber").read[String] and
+          (__ \ "nino").read[String] and
+          (__ \ "firstName").read[String] and
+          (__ \ "middleName").readNullable[String] and
+          (__ \ "lastName").read[String] and
+          (__ \ "dateOfBirth").read[LocalDate] and
+          (__ \ "isaType").read[IsaType] and
+          (__ \ "reportingATransfer")
+            .read[Boolean]
+            .filter(JsonValidationError("reportingATransfer must be true"))(_ == true) and
+          (__ \ "dateOfFirstSubscription").read[LocalDate] and
+          (__ \ "dateOfLastSubscription").read[LocalDate] and
+          (__ \ "closureDate").read[LocalDate] and
+          (__ \ "totalCurrentYearSubscriptionsToDate").read[BigDecimal] and
+          (__ \ "marketValueOfAccount").read[BigDecimal] and
+          (__ \ "accountNumberOfTransferringAccount").read[String] and
+          (__ \ "amountTransferred").read[BigDecimal] and
+          (__ \ "reasonForClosure").read[ReasonForClosure] and
+          (__ \ "lisaQualifyingAddition").read[BigDecimal] and
+          (__ \ "lisaBonusClaim").read[BigDecimal]
+        )(LifetimeIsaTransferAndClosure.apply _).reads(json)
+    }
+  }
+
+  implicit val format: OFormat[LifetimeIsaTransferAndClosure] =
+    OFormat(reads, Json.writes[LifetimeIsaTransferAndClosure])
 }

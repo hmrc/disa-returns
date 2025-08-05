@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json.{Json, OFormat, Reads, __}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.ReasonForClosure.ReasonForClosure
 
@@ -42,5 +43,25 @@ case class LifetimeIsaClosure(
 ) extends IsaAccount
 
 object LifetimeIsaClosure {
-  implicit val format: OFormat[LifetimeIsaClosure] = Json.format[LifetimeIsaClosure]
+
+  implicit val reads: Reads[LifetimeIsaClosure] = (
+    (__ \ "accountNumber").read[String] and
+      (__ \ "nino").read[String] and
+      (__ \ "firstName").read[String] and
+      (__ \ "middleName").readNullable[String] and
+      (__ \ "lastName").read[String] and
+      (__ \ "dateOfBirth").read[LocalDate] and
+      (__ \ "isaType").read[IsaType] and
+      (__ \ "reportingATransfer").read[Boolean](Reads.verifying[Boolean](_ == false)) and
+      (__ \ "dateOfLastSubscription").read[LocalDate] and
+      (__ \ "totalCurrentYearSubscriptionsToDate").read[BigDecimal] and
+      (__ \ "marketValueOfAccount").read[BigDecimal] and
+      (__ \ "dateOfFirstSubscription").read[LocalDate] and
+      (__ \ "closureDate").read[LocalDate] and
+      (__ \ "reasonForClosure").read[ReasonForClosure] and
+      (__ \ "lisaQualifyingAddition").read[BigDecimal] and
+      (__ \ "lisaBonusClaim").read[BigDecimal]
+    )(LifetimeIsaClosure.apply _)
+
+  implicit val format: OFormat[LifetimeIsaClosure] = OFormat(reads, Json.writes[LifetimeIsaClosure])
 }

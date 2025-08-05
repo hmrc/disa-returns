@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
 
 import java.time.LocalDate
@@ -39,5 +40,33 @@ case class LifetimeIsaNewSubscription(
 ) extends IsaAccount
 
 object LifetimeIsaNewSubscription {
-  implicit val format: OFormat[LifetimeIsaNewSubscription] = Json.format[LifetimeIsaNewSubscription]
+
+  implicit val reads: Reads[LifetimeIsaNewSubscription] = (
+    (__ \ "accountNumber").read[String] and
+      (__ \ "nino").read[String] and
+      (__ \ "firstName").read[String] and
+      (__ \ "middleName").readNullable[String] and
+      (__ \ "lastName").read[String] and
+      (__ \ "dateOfBirth").read[LocalDate] and
+      (__ \ "isaType").read[IsaType] and
+      (__ \ "reportingATransfer")
+        .read[Boolean]
+        .filter(JsonValidationError("reportingATransfer must be false"))(_ == false) and
+      (__ \ "dateOfFirstSubscription").read[LocalDate] and
+      (__ \ "dateOfLastSubscription").read[LocalDate] and
+      (__ \ "totalCurrentYearSubscriptionsToDate").read[BigDecimal] and
+      (__ \ "marketValueOfAccount").read[BigDecimal] and
+      (__ \ "lisaQualifyingAddition").read[BigDecimal] and
+      (__ \ "lisaBonusClaim").read[BigDecimal]
+    )(LifetimeIsaNewSubscription.apply _)
+//    .filter(JsonValidationError("reasonForClosure must NOT be defined"))(json =>
+//      (json \ "reasonForClosure").isInstanceOf[JsUndefined]
+//    )
+//    .filter(JsonValidationError("flexibleIsa must NOT be defined"))(json =>
+//      (json \ "flexibleIsa").isInstanceOf[JsUndefined]
+//    )
+
+  implicit val format: OFormat[LifetimeIsaNewSubscription] =
+    OFormat(reads, Json.writes[LifetimeIsaNewSubscription])
 }
+
