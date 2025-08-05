@@ -51,25 +51,25 @@ abstract class BaseUnitSpec
   implicit val hc: HeaderCarrier    = HeaderCarrier()
 
   //MOCKS
-  val mockHttpClient:                    HttpClientV2           = mock[HttpClientV2]
-  val mockAppConfig:                     AppConfig              = mock[AppConfig]
-  val mockRequestBuilder:                RequestBuilder         = mock[RequestBuilder]
-  val mockPPNSService:                   PPNSService            = mock[PPNSService]
-  val mockPPNSConnector:                 PPNSConnector          = mock[PPNSConnector]
-  val mockETMPConnector:                 ETMPConnector          = mock[ETMPConnector]
-  val mockETMPService:                   ETMPService            = mock[ETMPService]
-  val mockBaseConnector:                 BaseConnector          = mock[BaseConnector]
-  val mockInitiateSubmissionDataService: ReturnMetadataService  = mock[ReturnMetadataService]
-  val mockReportingRepository:           ReportingRepository    = mock[ReportingRepository]
-  val mockAuthConnector:                 AuthConnector          = mock[AuthConnector]
-  val mockStreamingParserService:        StreamingParserService = mock[StreamingParserService]
+  val mockHttpClient:             HttpClientV2           = mock[HttpClientV2]
+  val mockAppConfig:              AppConfig              = mock[AppConfig]
+  val mockRequestBuilder:         RequestBuilder         = mock[RequestBuilder]
+  val mockPPNSService:            PPNSService            = mock[PPNSService]
+  val mockPPNSConnector:          PPNSConnector          = mock[PPNSConnector]
+  val mockETMPConnector:          ETMPConnector          = mock[ETMPConnector]
+  val mockETMPService:            ETMPService            = mock[ETMPService]
+  val mockBaseConnector:          BaseConnector          = mock[BaseConnector]
+  val mockReturnMetadataService:  ReturnMetadataService  = mock[ReturnMetadataService]
+  val mockReportingRepository:    ReportingRepository    = mock[ReportingRepository]
+  val mockAuthConnector:          AuthConnector          = mock[AuthConnector]
+  val mockStreamingParserService: StreamingParserService = mock[StreamingParserService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .overrides(
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[ETMPService].toInstance(mockETMPService),
       bind[PPNSService].toInstance(mockPPNSService),
-      bind[ReturnMetadataService].toInstance(mockInitiateSubmissionDataService)
+      bind[ReturnMetadataService].toInstance(mockReturnMetadataService)
     )
     .build()
 }

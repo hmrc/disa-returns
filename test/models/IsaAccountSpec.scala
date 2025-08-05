@@ -20,15 +20,13 @@ import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts._
 import utils.BaseUnitSpec
 
-import java.time.LocalDate
-
 class IsaAccountSpec extends BaseUnitSpec {
 
   def lifetimeIsaClosureJson: JsValue = Json.obj(
     "accountNumber"                       -> "ACC123",
     "nino"                                -> "AB123456C",
     "firstName"                           -> "John",
-    "middleName"                          -> JsNull,
+    "middleName"                          -> "middleName",
     "lastName"                            -> "Doe",
     "dateOfBirth"                         -> "1980-01-01",
     "isaType"                             -> "STOCKS_AND_SHARES",
@@ -64,7 +62,7 @@ class IsaAccountSpec extends BaseUnitSpec {
     "accountNumber"                       -> "ACC125",
     "nino"                                -> "AB123456E",
     "firstName"                           -> "Bob",
-    "middleName"                          -> JsNull,
+    "middleName"                          -> "middleName",
     "lastName"                            -> "Brown",
     "dateOfBirth"                         -> "1975-03-03",
     "isaType"                             -> "STOCKS_AND_SHARES",
@@ -104,7 +102,7 @@ class IsaAccountSpec extends BaseUnitSpec {
     "accountNumber"                       -> "ACC127",
     "nino"                                -> "AB123456G",
     "firstName"                           -> "David",
-    "middleName"                          -> JsNull,
+    "middleName"                          -> "middleName",
     "lastName"                            -> "Miller",
     "dateOfBirth"                         -> "1995-05-05",
     "isaType"                             -> "STOCKS_AND_SHARES",
@@ -192,52 +190,39 @@ class IsaAccountSpec extends BaseUnitSpec {
   "IsaAccount Writes" should {
 
     "serialize LifetimeIsaClosure correctly" in {
-      val account = lifetimeIsaClosureJson.as[LifetimeIsaClosure]
-      val json    = Json.toJson(account: IsaAccount)
-      (json \ "accountNumber").as[String]    shouldBe "ACC123"
-      (json \ "reasonForClosure").as[String] shouldBe "VOID"
-      (json \ "closureDate").as[LocalDate]   shouldBe LocalDate.of(2025, 6, 1)
+      val account = lifetimeIsaClosureJson.as[IsaAccount]
+      val json    = Json.toJson(account)
+      json shouldBe lifetimeIsaClosureJson
     }
 
     "serialize LifetimeIsaNewSubscription correctly" in {
-      val account = lifetimeIsaNewSubscriptionJson.as[LifetimeIsaNewSubscription]
-      val json    = Json.toJson(account: IsaAccount)
-      (json \ "accountNumber").as[String]             shouldBe "ACC124"
-      (json \ "lisaBonusClaim").as[BigDecimal]        shouldBe 1000.00
-      (json \ "dateOfLastSubscription").as[LocalDate] shouldBe LocalDate.of(2025, 1, 1)
+      val account = lifetimeIsaNewSubscriptionJson.as[IsaAccount]
+      val json    = Json.toJson(account)
+      json shouldBe lifetimeIsaNewSubscriptionJson
     }
 
     "serialize StandardIsaTransfer correctly" in {
-      val account = standardIsaTransferJson.as[StandardIsaTransfer]
-      val json    = Json.toJson(account: IsaAccount)
-      (json \ "accountNumber").as[String]         shouldBe "ACC128"
-      (json \ "flexibleIsa").as[Boolean]          shouldBe false
-      (json \ "amountTransferred").as[BigDecimal] shouldBe 5000.00
+      val account = standardIsaTransferJson.as[IsaAccount]
+      val json    = Json.toJson(account)
+      json shouldBe standardIsaTransferJson
     }
 
     "serialize LifetimeIsaTransfer correctly" in {
-      val account = lifetimeIsaTransferJson.as[LifetimeIsaTransfer]
-      val json    = Json.toJson(account: IsaAccount)
-      (json \ "accountNumber").as[String]         shouldBe "ACC125"
-      (json \ "amountTransferred").as[BigDecimal] shouldBe 1000.00
-      (json \ "reportingATransfer").as[Boolean]   shouldBe true
+      val account = lifetimeIsaTransferJson.as[IsaAccount]
+      val json    = Json.toJson(account)
+      json shouldBe lifetimeIsaTransferJson
     }
 
     "serialize LifetimeIsaTransferAndClosure correctly" in {
-      val account = lifetimeIsaTransferAndClosureJson.as[LifetimeIsaTransferAndClosure]
-      val json    = Json.toJson(account: IsaAccount)
-      (json \ "accountNumber").as[String]       shouldBe "ACC126"
-      (json \ "closureDate").as[String]         shouldBe "2025-07-01"
-      (json \ "reasonForClosure").as[String]    shouldBe "VOID"
-      (json \ "reportingATransfer").as[Boolean] shouldBe true
+      val account = lifetimeIsaTransferAndClosureJson.as[IsaAccount]
+      val json    = Json.toJson(account)
+      json shouldBe lifetimeIsaTransferAndClosureJson
     }
 
     "serialize StandardIsaNewSubscription correctly" in {
-      val account = standardIsaNewSubscriptionJson.as[StandardIsaNewSubscription]
-      val json    = Json.toJson(account: IsaAccount)
-      (json \ "accountNumber").as[String]       shouldBe "ACC127"
-      (json \ "flexibleIsa").as[Boolean]        shouldBe true
-      (json \ "reportingATransfer").as[Boolean] shouldBe false
+      val account = standardIsaNewSubscriptionJson.as[IsaAccount]
+      val json    = Json.toJson(account)
+      json shouldBe standardIsaNewSubscriptionJson
     }
   }
 }

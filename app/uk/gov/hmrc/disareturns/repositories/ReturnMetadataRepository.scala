@@ -17,7 +17,7 @@
 package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model.Filters.equal
-import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -54,4 +54,15 @@ class ReturnMetadataRepository @Inject() (mc: MongoComponent)(implicit ec: Execu
 
   def dropCollection(): Future[Unit] =
     collection.drop().toFuture().map(_ => ())
+
+  def findByIsaManagerReferenceAndReturnId(
+    isaManagerReference: String,
+    returnId:            String
+  ): Future[Option[ReturnMetadata]] = {
+    val filter = Filters.and(
+      equal("isaManagerReference", isaManagerReference),
+      equal("returnId", returnId)
+    )
+    collection.find(filter).headOption()
+  }
 }

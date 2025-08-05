@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import com.fasterxml.jackson.core.JsonParseException
 import org.apache.pekko.Done
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
-import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, FirstLevelValidationException, FirstLevelValidationFailure, MalformedJsonFailureErr, SecondLevelValidationError, SecondLevelValidationException, SecondLevelValidationFailure, SecondLevelValidationResponse, ValidationError}
+import play.api.libs.json.{JsError, JsSuccess, Json}
+import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.repositories.ReportingRepository
 import uk.gov.hmrc.disareturns.services.validation.DataValidator

@@ -49,7 +49,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockETMPService, mockPPNSService, mockInitiateSubmissionDataService)
+    reset(mockETMPService, mockPPNSService, mockReturnMetadataService)
   }
 
   "InitiateReturnsController.initiate" should {
@@ -60,7 +60,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(EitherT.rightT(boxId))
-      when(mockInitiateSubmissionDataService.saveReturnMetadata(any(), any(), any()))
+      when(mockReturnMetadataService.saveReturnMetadata(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
@@ -86,7 +86,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(EitherT.rightT(boxId))
-      when(mockInitiateSubmissionDataService.saveReturnMetadata(any(), any(), any()))
+      when(mockReturnMetadataService.saveReturnMetadata(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")

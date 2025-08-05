@@ -21,13 +21,19 @@ import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
 import uk.gov.hmrc.disareturns.repositories.ReturnMetadataRepository
 
 import javax.inject.Inject
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class ReturnMetadataService @Inject() (repository: ReturnMetadataRepository) {
+class ReturnMetadataService @Inject() (repository: ReturnMetadataRepository)(implicit ec: ExecutionContext) {
 
   def saveReturnMetadata(boxId: String, submissionRequest: SubmissionRequest, isaManagerReference: String): Future[String] = {
     val returnMetadata =
       ReturnMetadata(boxId = boxId, submissionRequest = submissionRequest, isaManagerReference = isaManagerReference)
     repository.insert(returnMetadata)
   }
+
+  def existsByIsaManagerReferenceAndReturnId(isaManagerReference: String, returnId: String): Future[Boolean] =
+    repository
+      .findByIsaManagerReferenceAndReturnId(isaManagerReference, returnId)
+      .map(_.isDefined)
+
 }

@@ -61,6 +61,44 @@ class ReturnMetadataRepositorySpec extends BaseUnitSpec {
     }
   }
 
+  "findByIsaManagerReferenceAndReturnId" should {
+    "return the matching document when both isaManagerReference and returnId match" in new testSetup {
+      await(repository.insert(testReturnMetadata))
+
+      val result: Option[ReturnMetadata] = await(
+        repository.findByIsaManagerReferenceAndReturnId("test-isa-ref", "test-return-id")
+      )
+      result shouldBe Some(testReturnMetadata)
+    }
+
+    "return None if isaManagerReference matches but returnId does not" in new testSetup {
+      await(repository.insert(testReturnMetadata))
+
+      val result: Option[ReturnMetadata] = await(
+        repository.findByIsaManagerReferenceAndReturnId("test-isa-ref", "wrong-return-id")
+      )
+      result shouldBe None
+    }
+
+    "return None if returnId matches but isaManagerReference does not" in new testSetup {
+      await(repository.insert(testReturnMetadata))
+
+      val result: Option[ReturnMetadata] = await(
+        repository.findByIsaManagerReferenceAndReturnId("wrong-isa-ref", "test-return-id")
+      )
+      result shouldBe None
+    }
+
+    "return None if neither isaManagerReference nor returnId match" in new testSetup {
+      await(repository.insert(testReturnMetadata))
+
+      val result: Option[ReturnMetadata] = await(
+        repository.findByIsaManagerReferenceAndReturnId("wrong-isa-ref", "wrong-return-id")
+      )
+      result shouldBe None
+    }
+  }
+
   "dropCollection" should {
     "remove all documents from the collection" in new testSetup {
       await(repository.insert(testReturnMetadata))

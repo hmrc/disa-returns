@@ -120,19 +120,19 @@ class DataValidatorSpec extends BaseUnitSpec {
       )
 
       val result = DataValidator.jsErrorToDomainError(errors, "AB123456C", "STD000001")
-      result should contain allOf (
+      result shouldBe Seq(
         SecondLevelValidationError("AB123456C", "STD000001", "MISSING_FIRST_NAME", "First name field is missing"),
         SecondLevelValidationError("AB123456C", "STD000001", "MISSING_LAST_NAME", "Last name field is missing"),
-        SecondLevelValidationError("AB123456C", "STD000001", "MISSING_DOB", "Date of birth field is missing"),
-        SecondLevelValidationError("AB123456C", "STD000001", "MISSING_ISA_TYPE", "ISA type field is missing"),
+        SecondLevelValidationError("AB123456C", "STD000001", "MISSING_DATE_OF_BIRTH", "Date of birth field is missing"),
+        SecondLevelValidationError("AB123456C", "STD000001", "MISSING_ISA_TYPE", "Isa type field is missing"),
         SecondLevelValidationError("AB123456C", "STD000001", "MISSING_REPORTING_A_TRANSFER", "Reporting a transfer field is missing"),
         SecondLevelValidationError("AB123456C", "STD000001", "MISSING_DATE_OF_FIRST_SUBSCRIPTION", "Date of first subscription field is missing"),
         SecondLevelValidationError("AB123456C", "STD000001", "MISSING_DATE_OF_LAST_SUBSCRIPTION", "Date of last subscription field is missing"),
         SecondLevelValidationError(
           "AB123456C",
           "STD000001",
-          "MISSING_TOTAL_CURRENT_YEAR_SUBSCRIPTION_TO_DATE",
-          "Total current year subscription to date field is missing"
+          "MISSING_TOTAL_CURRENT_YEAR_SUBSCRIPTIONS_TO_DATE",
+          "Total current year subscriptions to date field is missing"
         ),
         SecondLevelValidationError("AB123456C", "STD000001", "MISSING_MARKET_VALUE_OF_ACCOUNT", "Market value of account field is missing"),
         SecondLevelValidationError(
@@ -142,9 +142,9 @@ class DataValidatorSpec extends BaseUnitSpec {
           "Account number of transferring account field is missing"
         ),
         SecondLevelValidationError("AB123456C", "STD000001", "MISSING_AMOUNT_TRANSFERRED", "Amount transferred field is missing"),
-        SecondLevelValidationError("AB123456C", "STD000001", "MISSING_FLEXIBLE_ISA", "Flexible ISA field is missing"),
-        SecondLevelValidationError("AB123456C", "STD000001", "MISSING_LISA_QUALIFYING_ADDITION", "LISA qualifying addition field is missing"),
-        SecondLevelValidationError("AB123456C", "STD000001", "MISSING_LISA_BONUS_CLAIM", "LISA bonus claim field is missing"),
+        SecondLevelValidationError("AB123456C", "STD000001", "MISSING_FLEXIBLE_ISA", "Flexible isa field is missing"),
+        SecondLevelValidationError("AB123456C", "STD000001", "MISSING_LISA_QUALIFYING_ADDITION", "Lisa qualifying addition field is missing"),
+        SecondLevelValidationError("AB123456C", "STD000001", "MISSING_LISA_BONUS_CLAIM", "Lisa bonus claim field is missing"),
         SecondLevelValidationError("AB123456C", "STD000001", "MISSING_CLOSURE_DATE", "Closure date field is missing"),
         SecondLevelValidationError("AB123456C", "STD000001", "MISSING_REASON_FOR_CLOSURE", "Reason for closure field is missing")
       )
@@ -161,9 +161,9 @@ class DataValidatorSpec extends BaseUnitSpec {
           "AB123456C",
           "STD000001",
           "INVALID_ISA_TYPE",
-          "ISA type must be one of: CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE, LIFETIME_CASH, or LIFETIME_STOCKS_AND_SHARES"
+          "Isa type is not formatted correctly"
         ),
-        SecondLevelValidationError("AB123456C", "STD000001", "INVALID_FLEXIBLE_ISA", "Flexible ISA must be a boolean value (true or false)")
+        SecondLevelValidationError("AB123456C", "STD000001", "INVALID_FLEXIBLE_ISA", "Flexible isa is not formatted correctly")
       )
     }
 

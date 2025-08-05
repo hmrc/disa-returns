@@ -73,6 +73,11 @@ case object MalformedJsonFailureErr extends ErrorResponse {
   val message = "malformed JSON"
 }
 
+case object ReturnIdNotMatchedErr extends ErrorResponse {
+  val code    = "RETURN_ID_NOT_FOUND"
+  val message = "The provided returnId could not be found"
+}
+
 object ErrorResponse {
 
   private val singletons: Map[String, ErrorResponse] = Map(
@@ -81,7 +86,9 @@ object ErrorResponse {
     Unauthorised.code               -> Unauthorised,
     InternalServerErr.code          -> InternalServerErr,
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
-    NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr
+    NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
+    ReturnIdNotMatchedErr.code      -> ReturnIdNotMatchedErr,
+    MalformedJsonFailureErr.code    -> MalformedJsonFailureErr
   )
 
   //TODO: feels like we could clean this up

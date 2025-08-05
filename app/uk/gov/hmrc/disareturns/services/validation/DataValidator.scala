@@ -47,6 +47,34 @@ object DataValidator {
     }
   }
 
+  def toErrorCodePrefix(fieldName: String): String =
+    fieldName
+      .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
+      .replaceAll("([a-z\\d])([A-Z])", "$1_$2")
+      .toUpperCase
+
+  def humanizeFieldName(fieldName: String): String = {
+    val acronymFix = fieldName
+      .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2") // e.g. "ATransfer" -> "A_Transfer"
+      .replaceAll("([a-z\\d])([A-Z])", "$1_$2") // camelCase to snake_case
+      .toLowerCase
+      .split("_")
+
+    acronymFix.head.capitalize + acronymFix.tail.map(" " + _).mkString
+  }
+
+  def buildMissingFieldError(fieldName: String): (String, String) = {
+    val code    = s"MISSING_${toErrorCodePrefix(fieldName)}"
+    val message = s"${humanizeFieldName(fieldName)} field is missing"
+    (code, message)
+  }
+
+  def buildInvalidFieldError(fieldName: String): (String, String) = {
+    val code    = s"INVALID_${toErrorCodePrefix(fieldName)}"
+    val message = s"${humanizeFieldName(fieldName)} is not formatted correctly"
+    (code, message)
+  }
+
   def jsErrorToDomainError(
     jsErrors:      Seq[(JsPath, Seq[JsonValidationError])],
     nino:          String,
@@ -54,74 +82,19 @@ object DataValidator {
   ): Seq[SecondLevelValidationError] =
     jsErrors.map { case (path, errors) =>
       val fieldName     = path.toString.stripPrefix("/").split("/").last
-      val errorMessages = errors.flatMap(_.messages).toSet
-      // We could make this a bit better so it builds the error code/message based on field name instead of matching on each?
-      // Only thing it we loose visibility on what's actually defined?
-      println(Console.MAGENTA + jsErrors + Console.RESET)
+      val errorMessages = errors.flatMap(_.messages)
+      println(Console.YELLOW + errorMessages + Console.RESET)
       val (code, message) = errorMessages.toList match {
         case msgs if msgs.exists(_.contains("error.path.missing")) =>
           fieldName match {
-            case "firstName"               => ("MISSING_FIRST_NAME", "First name field is missing")
-            case "lastName"                => ("MISSING_LAST_NAME", "Last name field is missing")
-            case "dateOfBirth"             => ("MISSING_DOB", "Date of birth field is missing")
-            case "isaType"                 => ("MISSING_ISA_TYPE", "ISA type field is missing")
-            case "reportingATransfer"      => ("MISSING_REPORTING_A_TRANSFER", "Reporting a transfer field is missing")
-            case "dateOfFirstSubscription" => ("MISSING_DATE_OF_FIRST_SUBSCRIPTION", "Date of first subscription field is missing")
-            case "dateOfLastSubscription"  => ("MISSING_DATE_OF_LAST_SUBSCRIPTION", "Date of last subscription field is missing")
-            case "totalCurrentYearSubscriptionsToDate" =>
-              ("MISSING_TOTAL_CURRENT_YEAR_SUBSCRIPTION_TO_DATE", "Total current year subscription to date field is missing")
-            case "marketValueOfAccount" => ("MISSING_MARKET_VALUE_OF_ACCOUNT", "Market value of account field is missing")
-            case "accountNumberOfTransferringAccount" =>
-              ("MISSING_ACCOUNT_NUMBER_OF_TRANSFERRING_ACCOUNT", "Account number of transferring account field is missing")
-            case "amountTransferred"      => ("MISSING_AMOUNT_TRANSFERRED", "Amount transferred field is missing")
-            case "flexibleIsa"            => ("MISSING_FLEXIBLE_ISA", "Flexible ISA field is missing")
-            case "lisaQualifyingAddition" => ("MISSING_LISA_QUALIFYING_ADDITION", "LISA qualifying addition field is missing")
-            case "lisaBonusClaim"         => ("MISSING_LISA_BONUS_CLAIM", "LISA bonus claim field is missing")
-            case "closureDate"            => ("MISSING_CLOSURE_DATE", "Closure date field is missing")
-            case "reasonForClosure"       => ("MISSING_REASON_FOR_CLOSURE", "Reason for closure field is missing")
-            case other                    => ("MISSING_UNKNOWN", s"Missing required field: $other")
+            case field => buildMissingFieldError(field)
+            case _     => ("MISSING_FIELD", "Not js field found")
           }
-        case msgs if msgs.exists(_.contains("error.expected.date.isoformat")) =>
+        case msgs if msgs.exists(_.contains("error.expected")) =>
           fieldName match {
-            case "dateOfBirth"             => ("INVALID_DOB_FORMAT", "Date of birth must be in YYYY-MM-DD format")
-            case "dateOfFirstSubscription" => ("INVALID_DATE_OF_FIRST_SUBSCRIPTION_FORMAT", "Date of first subscription must be in YYYY-MM-DD format")
-            case "dateOfLastSubscription"  => ("INVALID_DATE_OF_LAST_SUBSCRIPTION_FORMAT", "Date of last subscription must be in YYYY-MM-DD format")
-            case "closureDate"             => ("INVALID_CLOSURE_DATE_FORMAT", "Closure date must be in YYYY-MM-DD format")
-            case other                     => ("INVALID_DATE_FORMAT", s"Invalid date format for field: $other")
+            case field => buildInvalidFieldError(field)
+            case _     => ("MISSING_FIELD", "Not js field found")
           }
-        case msgs if msgs.exists(_.contains("error.expected.jsboolean")) =>
-          fieldName match {
-            case "reportingATransfer" => ("INVALID_REPORTING_A_TRANSFER_FORMAT", "Reporting a transfer must be a boolean value (true or false)")
-            case "flexibleIsa"        => ("INVALID_FLEXIBLE_ISA", "Flexible ISA must be a boolean value (true or false)")
-            case other                => ("INVALID_BOOLEAN_FORMAT", s"Invalid boolean format for field: $other")
-          }
-        case msgs if msgs.exists(_.contains("error.expected.validenumvalue")) =>
-          fieldName match {
-            case "isaType" =>
-              (
-                "INVALID_ISA_TYPE",
-                "ISA type must be one of: CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE, LIFETIME_CASH, or LIFETIME_STOCKS_AND_SHARES"
-              )
-            case "reasonForClosure" =>
-              (
-                "INVALID_REASON_FOR_CLOSURE",
-                "Reason for closure must be one of: CANCELLED, CLOSED, VOID, TRANSFERRED_IN_FULL, or ALL_FUNDS_WITHDRAWN"
-              )
-            case other => ("INVALID_ENUM_FORMAT", s"Invalid enum format for field: $other")
-          }
-
-        case msgs if msgs.exists(_.contains("error.expected.jsstring")) =>
-          fieldName match {
-            case "accountNumber" => ("INVALID_ACCOUNT_NUMBER", "Account number must be a valid string")
-            case "nino"          => ("INVALID_NINO", "NINO must be a valid string")
-            case "firstName"     => ("INVALID_FIRST_NAME", "First name must be a valid string")
-            case "middleName"    => ("INVALID_MIDDLE_NAME", "Middle name must be a valid string")
-            case "lastName"      => ("INVALID_LAST_NAME", "Last name must be a valid string")
-            case "accountNumberOfTransferringAccount" =>
-              ("INVALID_ACCOUNT_NUMBER_OF_TRANSFERRING_ACCOUNT", "Account number of transferring account must be a valid string")
-            case other => ("INVALID_STRING_FORMAT", s"Invalid string format for field: $other")
-          }
-
         case _ =>
           ("UNKNOWN_ERROR", s"Validation failed for field: $fieldName")
       }

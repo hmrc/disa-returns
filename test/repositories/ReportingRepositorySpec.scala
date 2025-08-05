@@ -16,6 +16,7 @@
 
 package repositories
 
+import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaType, LifetimeIsaTransferAndClosure, MonthlyReportDocument, ReasonForClosure}
 import uk.gov.hmrc.disareturns.repositories.ReportingRepository
@@ -36,8 +37,8 @@ class ReportingRepositorySpec extends BaseUnitSpec {
   "insertBatch" should {
     "insert a batch of IsaAccounts wrapped in MonthlyReportDocument" in new TestSetup {
       await(repository.insertBatch("Z123456", "return-001", testIsaAccounts))
-
       val stored: Seq[MonthlyReportDocument] = await(repository.collection.find().toFuture())
+
       stored                                  should have size 1
       stored.head.returnId                  shouldBe "return-001"
       stored.head.isaManagerReferenceNumber shouldBe "Z123456"

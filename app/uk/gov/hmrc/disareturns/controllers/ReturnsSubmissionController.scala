@@ -26,10 +26,10 @@ import play.api.libs.streams.Accumulator
 import play.api.mvc.{Action, BodyParser, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.services.{ETMPService, StreamingParserService}
+import uk.gov.hmrc.disareturns.services.{ETMPService, ReturnMetadataService, StreamingParserService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ReturnsSubmissionController @Inject() (
@@ -38,6 +38,7 @@ class ReturnsSubmissionController @Inject() (
   streamingParserService:   StreamingParserService,
   clientIdAction:           ClientIdAction,
   authAction:               AuthAction,
+  returnMetadataService:    ReturnMetadataService,
   implicit val etmpService: ETMPService
 )(implicit ec:              ExecutionContext)
     extends BackendController(cc)
@@ -51,22 +52,27 @@ class ReturnsSubmissionController @Inject() (
 
   def submit(isaManagerReferenceNumber: String, returnId: String): Action[Source[ByteString, _]] =
     (Action andThen authAction andThen clientIdAction).async(streamingParser) { implicit request =>
-      validateEtmpAndThen(isaManagerReferenceNumber) { () =>
-        val source: Source[ByteString, _] = request.body
-        val validatedStream = streamingParserService.validatedStream(source)
-        streamingParserService
-          .processValidatedStream(isaManagerReferenceNumber, returnId, validatedStream)
-          .map(_ => NoContent)
-          .recover {
-            case FirstLevelValidationException(err) =>
-              BadRequest(Json.toJson(err))
-            case SecondLevelValidationException(errResponse) =>
-              BadRequest(Json.toJson(errResponse))
-            case error: ErrorResponse =>
-              Forbidden(Json.toJson(error: ErrorResponse))
-            case ex =>
-              InternalServerError(Json.obj("error" -> ex.getMessage))
+      returnMetadataService.existsByIsaManagerReferenceAndReturnId(isaManagerReferenceNumber, returnId).flatMap {
+        case true =>
+          validateEtmpAndThen(isaManagerReferenceNumber) { () =>
+            val source: Source[ByteString, _] = request.body
+            val validatedStream = streamingParserService.validatedStream(source)
+            streamingParserService
+              .processValidatedStream(isaManagerReferenceNumber, returnId, validatedStream)
+              .map(_ => NoContent)
+              .recover {
+                case FirstLevelValidationException(err) =>
+                  BadRequest(Json.toJson(err))
+                case SecondLevelValidationException(errResponse) =>
+                  BadRequest(Json.toJson(errResponse))
+                case error: ErrorResponse =>
+                  Forbidden(Json.toJson(error: ErrorResponse))
+                case ex =>
+                  InternalServerError(Json.obj("error" -> ex.getMessage))
+              }
           }
+        case false =>
+          Future.successful(NotFound(Json.toJson(ReturnIdNotMatchedErr: ErrorResponse)))
       }
     }
 }

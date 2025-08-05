@@ -62,13 +62,15 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockETMPService, mockPPNSService, mockInitiateSubmissionDataService)
+    reset(mockETMPService, mockPPNSService, mockReturnMetadataService)
   }
 
   "ReturnsSubmissionController#submit" should {
 
     "return 204 when processing is successful" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+        .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
       when(mockPPNSService.getBoxId(any())(any()))
@@ -85,6 +87,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
       val ndJsonLineError =
         """{"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+        .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
       when(mockPPNSService.getBoxId(any())(any()))
@@ -104,6 +108,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+        .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
       when(mockPPNSService.getBoxId(any())(any()))
@@ -117,8 +123,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
                   SecondLevelValidationError(
                     nino = "AB000001C",
                     accountNumber = "STD000001",
-                    code = "INVALID_DOB_FORMAT",
-                    message = "Date of birth must be in YYYY-MM-DD format"
+                    code = "INVALID_DATE_OF_BIRTH",
+                    message = "Date of birth is not formatted correctly"
                   )
                 )
               )
@@ -139,8 +145,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
       val error = errors.head
       (error \ "nino").as[String]          shouldBe "AB000001C"
       (error \ "accountNumber").as[String] shouldBe "STD000001"
-      (error \ "code").as[String]          shouldBe "INVALID_DOB_FORMAT"
-      (error \ "message").as[String]       shouldBe "Date of birth must be in YYYY-MM-DD format"
+      (error \ "code").as[String]          shouldBe "INVALID_DATE_OF_BIRTH"
+      (error \ "message").as[String]       shouldBe "Date of birth is not formatted correctly"
     }
 
     "return 400 for SecondLevelValidationException - invalid DOB & firstName - should only return first failure for each model" in {
@@ -148,6 +154,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+        .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
       when(mockPPNSService.getBoxId(any())(any()))
@@ -161,8 +169,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
                   SecondLevelValidationError(
                     nino = "AB000001C",
                     accountNumber = "STD000001",
-                    code = "INVALID_DOB_FORMAT",
-                    message = "Date of birth must be in YYYY-MM-DD format"
+                    code = "INVALID_DATE_OF_BIRTH",
+                    message = "Date of birth is not formatted correctly"
                   )
                 )
               )
@@ -183,8 +191,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
       val error = errors.head
       (error \ "nino").as[String]          shouldBe "AB000001C"
       (error \ "accountNumber").as[String] shouldBe "STD000001"
-      (error \ "code").as[String]          shouldBe "INVALID_DOB_FORMAT"
-      (error \ "message").as[String]       shouldBe "Date of birth must be in YYYY-MM-DD format"
+      (error \ "code").as[String]          shouldBe "INVALID_DATE_OF_BIRTH"
+      (error \ "message").as[String]       shouldBe "Date of birth is not formatted correctly"
     }
 
     "return 400 for SecondLevelValidationException - invalid DOB & firstName in two different models - should report both errors" in {
@@ -194,6 +202,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
           |""".stripMargin
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+        .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
       when(mockPPNSService.getBoxId(any())(any()))
@@ -207,8 +217,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
                   SecondLevelValidationError(
                     nino = "AB000001C",
                     accountNumber = "STD000001",
-                    code = "INVALID_DOB_FORMAT",
-                    message = "Date of birth must be in YYYY-MM-DD format"
+                    code = "INVALID_DATE_OF_BIRTH",
+                    message = "Date of birth is not formatted correctly"
                   )
                 )
               )
@@ -229,8 +239,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
 
       val error1 = errors.find(e => (e \ "nino").as[String] == "AB000001C").get
       (error1 \ "accountNumber").as[String] shouldBe "STD000001"
-      (error1 \ "code").as[String]          shouldBe "INVALID_DOB_FORMAT"
-      (error1 \ "message").as[String]       shouldBe "Date of birth must be in YYYY-MM-DD format"
+      (error1 \ "code").as[String]          shouldBe "INVALID_DATE_OF_BIRTH"
+      (error1 \ "message").as[String]       shouldBe "Date of birth is not formatted correctly"
 
       val error2 = errors.find(e => (e \ "nino").as[String] == "AB000002C").get
       (error2 \ "accountNumber").as[String] shouldBe "STD000002"
@@ -240,6 +250,8 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
 
     "return 403 when ETMP returns ErrorResponse" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+        .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.leftT(ObligationClosed))
 
