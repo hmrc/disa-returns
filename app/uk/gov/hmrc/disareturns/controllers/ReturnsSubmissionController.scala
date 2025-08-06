@@ -21,6 +21,7 @@ import jakarta.inject.Singleton
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
+import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc.{Action, BodyParser, ControllerComponents}
@@ -29,6 +30,7 @@ import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.services.{ETMPService, ReturnMetadataService, StreamingParserService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.lang.System.Logger
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -42,7 +44,8 @@ class ReturnsSubmissionController @Inject() (
   implicit val etmpService: ETMPService
 )(implicit ec:              ExecutionContext)
     extends BackendController(cc)
-    with WithEtmpValidation {
+    with WithEtmpValidation
+    with Logging {
 
   // Is there a play in built ndJson parser??
   //parse.tolerantStream (if available) gives you a BodyParser[Source[ByteString, _]]?
@@ -65,10 +68,9 @@ class ReturnsSubmissionController @Inject() (
                   BadRequest(Json.toJson(err))
                 case SecondLevelValidationException(errResponse) =>
                   BadRequest(Json.toJson(errResponse))
-                case error: ErrorResponse =>
-                  Forbidden(Json.toJson(error: ErrorResponse))
                 case ex =>
-                  InternalServerError(Json.obj("error" -> ex.getMessage))
+                  logger.error(s"streamingParserService.processValidatedStream has failed with the exception: $ex")
+                  InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
               }
           }
         case false =>

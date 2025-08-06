@@ -83,17 +83,14 @@ object DataValidator {
     jsErrors.map { case (path, errors) =>
       val fieldName     = path.toString.stripPrefix("/").split("/").last
       val errorMessages = errors.flatMap(_.messages)
-      println(Console.YELLOW + errorMessages + Console.RESET)
       val (code, message) = errorMessages.toList match {
         case msgs if msgs.exists(_.contains("error.path.missing")) =>
           fieldName match {
             case field => buildMissingFieldError(field)
-            case _     => ("MISSING_FIELD", "Not js field found")
           }
         case msgs if msgs.exists(_.contains("error.expected")) =>
           fieldName match {
             case field => buildInvalidFieldError(field)
-            case _     => ("MISSING_FIELD", "Not js field found")
           }
         case _ =>
           ("UNKNOWN_ERROR", s"Validation failed for field: $fieldName")
@@ -107,140 +104,136 @@ object DataValidator {
       )
     }
 
+  // --- Validators ---
+
+  case class AccountIdentifiers(nino: String, accountNumber: String)
+
   def validateField[A](
-    value:         A,
-    isValid:       A => Boolean,
-    errorCode:     String,
-    errorMsg:      String,
-    nino:          String,
-    accountNumber: String
+    value:       A,
+    isValid:     A => Boolean,
+    errorCode:   String,
+    errorMsg:    String,
+    identifiers: AccountIdentifiers
   ): Either[SecondLevelValidationError, Unit] =
     if (isValid(value)) Right(())
     else
-      Left(SecondLevelValidationError(nino = nino, accountNumber = accountNumber, code = errorCode, message = errorMsg))
-
-  def validateNinoField(nino: String, accountNumber: String): Either[SecondLevelValidationError, Unit] =
-    validateField(nino, ninoRegex.matches, "INVALID_NINO", "The NINO provided is invalid", nino, accountNumber)
-
-  def validateAccountNumberField(nino: String, accountNumber: String): Either[SecondLevelValidationError, Unit] =
-    validateField(accountNumber, accountNumberRegex.matches, "INVALID_ACCOUNT_NUMBER", "The ACCOUNT_NUMBER provided is invalid", nino, accountNumber)
-
-  def validateMoneyDecimal(value: BigDecimal): Boolean =
-    value.scale == 2
-  //TODO: look at Half up
-
-  def validateString(value: String): Boolean =
-    value.trim.nonEmpty
-
-  def validateAccount(account: IsaAccount): Either[SecondLevelValidationError, Unit] = {
-    import account._
-
-    val validations = Seq(
-      validateNinoField(nino, accountNumber),
-      validateAccountNumberField(nino, accountNumber),
-      validateField(firstName, validateString, "INVALID_FIRST_NAME", "First name must not be empty", nino, accountNumber),
-      validateField(lastName, validateString, "INVALID_LAST_NAME", "Last name must not be empty", nino, accountNumber),
-      validateField(
-        totalCurrentYearSubscriptionsToDate,
-        validateMoneyDecimal,
-        "INVALID_TOTAL_CURRENT_YEAR_SUBSCRIPTION_TO_DATE",
-        "Total current year subscriptions to date must be decimal (e.g. 123.45)",
-        nino,
-        accountNumber
-      ),
-      validateField(
-        marketValueOfAccount,
-        validateMoneyDecimal,
-        "INVALID_MARKET_VALUE_OF_ACCOUNT",
-        "Market value of account must be decimal (e.g. 123.45)",
-        nino,
-        accountNumber
+      Left(
+        SecondLevelValidationError(
+          nino = identifiers.nino,
+          accountNumber = identifiers.accountNumber,
+          code = errorCode,
+          message = errorMsg
+        )
       )
+
+  def validateNonEmptyString(
+    value:       String,
+    fieldName:   String,
+    identifiers: AccountIdentifiers
+  ): Either[SecondLevelValidationError, Unit] =
+    validateField[String](
+      value,
+      (v: String) => v.trim.nonEmpty,
+      s"INVALID_${fieldName.toUpperCase}",
+      s"${humanizeFieldName(fieldName)} must not be empty",
+      identifiers
     )
 
+  def validateTwoDecimal(
+    value:       BigDecimal,
+    fieldName:   String,
+    identifiers: AccountIdentifiers
+  ): Either[SecondLevelValidationError, Unit] =
+    validateField[BigDecimal](
+      value,
+      (v: BigDecimal) => v.scale == 2,
+      s"INVALID_${fieldName.toUpperCase}",
+      s"${humanizeFieldName(fieldName)} must have 2 decimal places (e.g. 123.45)",
+      identifiers
+    )
+
+  def validateRegex(
+    value:       String,
+    regex:       scala.util.matching.Regex,
+    errorCode:   String,
+    errorMsg:    String,
+    identifiers: AccountIdentifiers
+  ): Either[SecondLevelValidationError, Unit] =
+    validateField(value, regex.matches, errorCode, errorMsg, identifiers)
+
+  def runValidations(
+    validations: Seq[Either[SecondLevelValidationError, Unit]]
+  ): Either[SecondLevelValidationError, Unit] =
     validations.collectFirst { case Left(err) => Left(err) }.getOrElse(Right(()))
+
+  // --- Main Validators ---
+
+  def validateAccount(account: IsaAccount): Either[SecondLevelValidationError, Unit] = {
+    val identifiers = AccountIdentifiers(account.nino, account.accountNumber)
+
+    runValidations(
+      Seq(
+        validateRegex(account.nino, ninoRegex, "INVALID_NINO", "The NINO provided is invalid", identifiers),
+        validateRegex(account.accountNumber, accountNumberRegex, "INVALID_ACCOUNT_NUMBER", "The ACCOUNT_NUMBER provided is invalid", identifiers),
+        validateNonEmptyString(account.firstName, "first_name", identifiers),
+        validateNonEmptyString(account.lastName, "last_name", identifiers),
+        validateTwoDecimal(account.totalCurrentYearSubscriptionsToDate, "total_current_year_subscriptions_to_date", identifiers),
+        validateTwoDecimal(account.marketValueOfAccount, "market_value_of_account", identifiers)
+      )
+    )
   }
 
   def validateIsaAccountUniqueFields(account: IsaAccount): Either[SecondLevelValidationError, Unit] = account match {
-    case lifetimeIsaClosure: LifetimeIsaClosure =>
-      validateField(
-        lifetimeIsaClosure.lisaQualifyingAddition,
-        validateMoneyDecimal,
-        "INVALID_LISA_QUALIFYING_ADDITION",
-        "LISA qualifying addition must have 2 decimal places",
-        lifetimeIsaClosure.nino,
-        lifetimeIsaClosure.accountNumber
-      )
 
-    case lifetimeIsaNewSubscription: LifetimeIsaNewSubscription =>
-      validateField(
-        lifetimeIsaNewSubscription.lisaQualifyingAddition,
-        validateMoneyDecimal,
-        "INVALID_LISA_QUALIFYING_ADDITION",
-        "LISA qualifying addition must have 2 decimal places",
-        lifetimeIsaNewSubscription.nino,
-        lifetimeIsaNewSubscription.accountNumber
-      )
-
-    case lifetimeIsaTransfer: LifetimeIsaTransfer =>
-      val validations = Seq(
-        validateField(
-          lifetimeIsaTransfer.lisaQualifyingAddition,
-          validateMoneyDecimal,
-          "INVALID_LISA_QUALIFYING_ADDITION",
-          "LISA qualifying addition must have 2 decimal places",
-          lifetimeIsaTransfer.nino,
-          lifetimeIsaTransfer.accountNumber
-        ),
-        validateField(
-          lifetimeIsaTransfer.amountTransferred,
-          validateMoneyDecimal,
-          "INVALID_AMOUNT_TRANSFERRED",
-          "Amount transferred must have 2 decimal places",
-          lifetimeIsaTransfer.nino,
-          lifetimeIsaTransfer.accountNumber
+    case a: LifetimeIsaClosure =>
+      val ids = AccountIdentifiers(a.nino, a.accountNumber)
+      runValidations(
+        Seq(
+          validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
+          validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
         )
       )
-      validations.collectFirst { case Left(err) => Left(err) }.getOrElse(Right(()))
 
-    case lifetimeIsaTransferAndClosure: LifetimeIsaTransferAndClosure =>
-      val validations = Seq(
-        validateField(
-          lifetimeIsaTransferAndClosure.lisaQualifyingAddition,
-          validateMoneyDecimal,
-          "INVALID_LISA_QUALIFYING_ADDITION",
-          "LISA qualifying addition must have 2 decimal places",
-          lifetimeIsaTransferAndClosure.nino,
-          lifetimeIsaTransferAndClosure.accountNumber
-        ),
-        validateField(
-          lifetimeIsaTransferAndClosure.amountTransferred,
-          validateMoneyDecimal,
-          "INVALID_AMOUNT_TRANSFERRED",
-          "Amount transferred must have 2 decimal places",
-          lifetimeIsaTransferAndClosure.nino,
-          lifetimeIsaTransferAndClosure.accountNumber
+    case a: LifetimeIsaNewSubscription =>
+      val ids = AccountIdentifiers(a.nino, a.accountNumber)
+      runValidations(
+        Seq(
+          validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
+          validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
         )
       )
-      validations.collectFirst { case Left(err) => Left(err) }.getOrElse(Right(()))
 
-    case standardIsaNewSubscription: StandardIsaNewSubscription =>
-      Right(()) // no additional BigDecimal fields beyond common ones validated already
-
-    case standardIsaTransfer: StandardIsaTransfer =>
-      validateField(
-        standardIsaTransfer.amountTransferred,
-        validateMoneyDecimal,
-        "INVALID_AMOUNT_TRANSFERRED",
-        "Amount transferred must have 2 decimal places",
-        standardIsaTransfer.nino,
-        standardIsaTransfer.accountNumber
+    case a: LifetimeIsaTransfer =>
+      val ids = AccountIdentifiers(a.nino, a.accountNumber)
+      runValidations(
+        Seq(
+          validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
+          validateTwoDecimal(a.amountTransferred, "amount_transferred", ids),
+          validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
+        )
       )
+
+    case a: LifetimeIsaTransferAndClosure =>
+      val ids = AccountIdentifiers(a.nino, a.accountNumber)
+      runValidations(
+        Seq(
+          validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
+          validateTwoDecimal(a.amountTransferred, "amount_transferred", ids),
+          validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
+        )
+      )
+
+    case _: StandardIsaNewSubscription =>
+      Right(()) // No additional validations
+
+    case a: StandardIsaTransfer =>
+      val ids = AccountIdentifiers(a.nino, a.accountNumber)
+      validateTwoDecimal(a.amountTransferred, "amount_transferred", ids)
   }
 
   def validate(account: IsaAccount): Either[SecondLevelValidationError, Unit] =
     for {
-      _ <- validateAccount(account) // validates shared/common fields
-      _ <- validateIsaAccountUniqueFields(account) // validates subtype-specific fields
+      _ <- validateAccount(account)
+      _ <- validateIsaAccountUniqueFields(account)
     } yield ()
 }

@@ -25,7 +25,7 @@ import org.mockito.Mockito._
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaAccount, IsaType, LifetimeIsaTransferAndClosure, ReasonForClosure}
-import uk.gov.hmrc.disareturns.repositories.ReportingRepository
+import uk.gov.hmrc.disareturns.repositories.MonthlyReportingMetadataRepository
 import uk.gov.hmrc.disareturns.services.StreamingParserService
 import utils.BaseUnitSpec
 
@@ -35,9 +35,9 @@ import scala.concurrent.{ExecutionContext, Future}
 class StreamingParserServiceSpec extends BaseUnitSpec {
 
   trait Setup {
-    implicit val ec:             ExecutionContext    = scala.concurrent.ExecutionContext.Implicits.global
-    val mockReportingRepository: ReportingRepository = mock[ReportingRepository]
-    implicit val materializer:   Materializer        = app.materializer
+    implicit val ec:             ExecutionContext                   = scala.concurrent.ExecutionContext.Implicits.global
+    val mockReportingRepository: MonthlyReportingMetadataRepository = mock[MonthlyReportingMetadataRepository]
+    implicit val materializer:   Materializer                       = app.materializer
     val service = new StreamingParserService(mockReportingRepository, materializer)
 
     val testIsaAccount: LifetimeIsaTransferAndClosure = LifetimeIsaTransferAndClosure(
@@ -73,8 +73,8 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
       val validIsaAccountJson: String =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
-      val source = Source.single(ByteString(validIsaAccountJson + "\n"))
-      val result = service.validatedStream(source).runWith(Sink.seq).futureValue
+      val source: Source[ByteString, NotUsed]              = Source.single(ByteString(validIsaAccountJson + "\n"))
+      val result: Seq[Either[ValidationError, IsaAccount]] = service.validatedStream(source).runWith(Sink.seq).futureValue
 
       result                should have size 1
       result.head.isRight shouldBe true
@@ -84,8 +84,8 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
       val invalidIsaAccountJson: String =
         """{"accountNumber":"STD000001","nino":"AB000001C","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
-      val source = Source.single(ByteString(invalidIsaAccountJson + "\n"))
-      val result = service.validatedStream(source).runWith(Sink.seq).futureValue
+      val source: Source[ByteString, NotUsed]              = Source.single(ByteString(invalidIsaAccountJson + "\n"))
+      val result: Seq[Either[ValidationError, IsaAccount]] = service.validatedStream(source).runWith(Sink.seq).futureValue
 
       result        should have size 1
       result.head shouldBe a[Left[_, _]]
@@ -103,8 +103,8 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
 
     "return a Left when NINO or account number is missing" in new Setup {
       val invalidJson = """{ "nothing": "wrong" }"""
-      val source      = Source.single(ByteString(invalidJson + "\n"))
-      val result      = service.validatedStream(source).runWith(Sink.seq).futureValue
+      val source: Source[ByteString, NotUsed]              = Source.single(ByteString(invalidJson + "\n"))
+      val result: Seq[Either[ValidationError, IsaAccount]] = service.validatedStream(source).runWith(Sink.seq).futureValue
 
       result        should have size 1
       result.head shouldBe a[Left[_, _]]
@@ -127,18 +127,18 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
       val source: Source[Right[Nothing, LifetimeIsaTransferAndClosure], NotUsed] =
         Source(List(Right(testIsaAccount)))
 
-      val result = service.processValidatedStream("manager1", "return1", source).futureValue
+      val result: Done = service.processValidatedStream("manager1", "return1", source).futureValue
 
       result shouldBe Done
       verify(mockReportingRepository).insertBatch("manager1", "return1", Seq(testIsaAccount))
     }
 
     "fail with SecondLevelValidationException when there are validation errors" in new Setup {
-      val error = SecondLevelValidationError("AA000003A", "ACC123", "INVALID_TYPE", "Invalid account type")
+      val error: SecondLevelValidationError = SecondLevelValidationError("AA000003A", "ACC123", "INVALID_TYPE", "Invalid account type")
       val source: Source[Left[ValidationError, Nothing], NotUsed] =
         Source(List(Left(SecondLevelValidationFailure(error))))
 
-      val ex = the[SecondLevelValidationException] thrownBy {
+      val ex: SecondLevelValidationException = the[SecondLevelValidationException] thrownBy {
         await(service.processValidatedStream("manager1", "return1", source))
       }
 
@@ -147,8 +147,8 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
     }
 
     "insert batch only when all entries are valid" in new Setup {
-      val isa1 = testIsaAccount
-      val isa2 = testIsaAccount.copy(accountNumber = "test1234")
+      val isa1: LifetimeIsaTransferAndClosure = testIsaAccount
+      val isa2: LifetimeIsaTransferAndClosure = testIsaAccount.copy(accountNumber = "test1234")
 
       when(mockReportingRepository.insertBatch(any(), any(), any()))
         .thenReturn(Future.successful(Done))
@@ -156,7 +156,7 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
       val source: Source[Right[Nothing, LifetimeIsaTransferAndClosure], NotUsed] =
         Source(List(Right(isa1), Right(isa2)))
 
-      val result = service.processValidatedStream("isaManagerX", "returnX", source).futureValue
+      val result: Done = service.processValidatedStream("isaManagerX", "returnX", source).futureValue
 
       result shouldBe Done
       verify(mockReportingRepository).insertBatch("isaManagerX", "returnX", Seq(isa1, isa2))

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
 
@@ -40,32 +39,7 @@ case class StandardIsaTransfer(
 ) extends IsaAccount
 
 object StandardIsaTransfer {
-  implicit val reads: Reads[StandardIsaTransfer] = Reads { json =>
-    val flexibleIsaExists = (json \ "flexibleIsa").toOption.isDefined
 
-    if (!flexibleIsaExists)
-      JsError("flexibleIsa must be defined")
-    else {
-      (
-        (__ \ "accountNumber").read[String] and
-          (__ \ "nino").read[String] and
-          (__ \ "firstName").read[String] and
-          (__ \ "middleName").readNullable[String] and
-          (__ \ "lastName").read[String] and
-          (__ \ "dateOfBirth").read[LocalDate] and
-          (__ \ "isaType").read[IsaType] and
-          (__ \ "reportingATransfer")
-            .read[Boolean]
-            .filter(JsonValidationError("reportingATransfer must be true"))(_ == true) and
-          (__ \ "dateOfLastSubscription").read[LocalDate] and
-          (__ \ "totalCurrentYearSubscriptionsToDate").read[BigDecimal] and
-          (__ \ "marketValueOfAccount").read[BigDecimal] and
-          (__ \ "accountNumberOfTransferringAccount").read[String] and
-          (__ \ "amountTransferred").read[BigDecimal] and
-          (__ \ "flexibleIsa").read[Boolean]
-        )(StandardIsaTransfer.apply _).reads(json)
-    }
-  }
+  implicit val format: OFormat[StandardIsaTransfer] = Json.format[StandardIsaTransfer]
 
-  implicit val format: OFormat[StandardIsaTransfer] =
-    OFormat(reads, Json.writes[StandardIsaTransfer])}
+}

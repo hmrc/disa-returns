@@ -25,7 +25,7 @@ import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
-class ReportingRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
+class MonthlyReportingMetadataRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
     extends PlayMongoRepository[MonthlyReportDocument](
       mongoComponent = mc,
       collectionName = "reportingRepository",
@@ -40,14 +40,11 @@ class ReportingRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionC
       )
     ) {
 
-  //Do we want to validate if the data submitted already exists?
-  //What happens if they submit the same data twice?
   def dropCollection(): Future[Unit] =
     collection.drop().toFuture().map(_ => ())
 
   def insertBatch(isaManagerId: String, returnId: String, reports: Seq[IsaAccount]): Future[Unit] = {
     val wrapperJson = MonthlyReportDocument(returnId = returnId, isaManagerReferenceNumber = isaManagerId, isaReport = reports)
-
     collection.insertOne(wrapperJson).toFuture().map(_ => ())
   }
 }

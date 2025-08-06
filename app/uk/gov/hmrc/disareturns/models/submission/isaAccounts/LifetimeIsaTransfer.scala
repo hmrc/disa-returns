@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{JsError, Json, JsonValidationError, OFormat, Reads, __}
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
 
 import java.time.LocalDate
@@ -43,35 +42,6 @@ case class LifetimeIsaTransfer(
 
 object LifetimeIsaTransfer {
 
-  implicit val reads: Reads[LifetimeIsaTransfer] = Reads { json =>
-    // Optional: Enforce lisaBonusClaim presence before decoding (technically handled by `.read`)
-    if ((json \ "lisaBonusClaim").isDefined) {
-      (
-        (__ \ "accountNumber").read[String] and
-          (__ \ "nino").read[String] and
-          (__ \ "firstName").read[String] and
-          (__ \ "middleName").readNullable[String] and
-          (__ \ "lastName").read[String] and
-          (__ \ "dateOfBirth").read[LocalDate] and
-          (__ \ "isaType").read[IsaType] and
-          (__ \ "reportingATransfer")
-            .read[Boolean]
-            .filter(JsonValidationError("reportingATransfer must be true"))(_ == true) and
-          (__ \ "dateOfFirstSubscription").read[LocalDate] and
-          (__ \ "dateOfLastSubscription").read[LocalDate] and
-          (__ \ "totalCurrentYearSubscriptionsToDate").read[BigDecimal] and
-          (__ \ "marketValueOfAccount").read[BigDecimal] and
-          (__ \ "accountNumberOfTransferringAccount").read[String] and
-          (__ \ "amountTransferred").read[BigDecimal] and
-          (__ \ "lisaQualifyingAddition").read[BigDecimal] and
-          (__ \ "lisaBonusClaim").read[BigDecimal]
-        )(LifetimeIsaTransfer.apply _).reads(json)
-    } else {
-      JsError("lisaBonusClaim must be defined")
-    }
-  }
+  implicit val format: OFormat[LifetimeIsaTransfer] = Json.format[LifetimeIsaTransfer]
 
-  implicit val format: OFormat[LifetimeIsaTransfer] =
-    OFormat(reads, Json.writes[LifetimeIsaTransfer])
 }
-

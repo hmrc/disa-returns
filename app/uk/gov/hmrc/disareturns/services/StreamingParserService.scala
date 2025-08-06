@@ -23,7 +23,7 @@ import org.apache.pekko.util.ByteString
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
-import uk.gov.hmrc.disareturns.repositories.ReportingRepository
+import uk.gov.hmrc.disareturns.repositories.MonthlyReportingMetadataRepository
 import uk.gov.hmrc.disareturns.services.validation.DataValidator
 import uk.gov.hmrc.disareturns.services.validation.DataValidator.jsErrorToDomainError
 
@@ -32,7 +32,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class StreamingParserService @Inject() (reportingRepository: ReportingRepository, implicit val mat: Materializer)(implicit ec: ExecutionContext) {
+class StreamingParserService @Inject() (reportingRepository: MonthlyReportingMetadataRepository, implicit val mat: Materializer)(implicit
+  ec:                                                        ExecutionContext
+) {
 
   def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
     source
@@ -56,7 +58,6 @@ class StreamingParserService @Inject() (reportingRepository: ReportingRepository
                       case Some(error) => Left(SecondLevelValidationFailure(error))
                       case None =>
                         Left(
-                          //TODO: Do we need a generic second level validation malformed js error?
                           SecondLevelValidationFailure(
                             SecondLevelValidationError(
                               nino,

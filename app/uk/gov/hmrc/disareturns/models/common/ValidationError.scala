@@ -18,18 +18,16 @@ package uk.gov.hmrc.disareturns.models.common
 
 import play.api.libs.json.{Json, OFormat}
 
-sealed trait ValidationException extends Exception {
-  def error: ErrorResponse
+
+sealed trait ValidationError
+
+case class FirstLevelValidationFailure(error: ErrorResponse) extends ValidationError
+case class SecondLevelValidationFailure(error: SecondLevelValidationError) extends ValidationError
+
+object FirstLevelValidationFailure {
+  implicit val format: OFormat[FirstLevelValidationFailure] = Json.format[FirstLevelValidationFailure]
 }
 
-case class FirstLevelValidationException(error: ErrorResponse) extends ValidationException
-
-object FirstLevelValidationException {
-  implicit val format: OFormat[FirstLevelValidationException] = Json.format[FirstLevelValidationException]
-}
-
-case class SecondLevelValidationException(error: SecondLevelValidationResponse) extends ValidationException
-
-object SecondLevelValidationException {
-  implicit val format: OFormat[SecondLevelValidationException] = Json.format[SecondLevelValidationException]
+object SecondLevelValidationFailure {
+  implicit val format: OFormat[SecondLevelValidationFailure] = Json.format[SecondLevelValidationFailure]
 }

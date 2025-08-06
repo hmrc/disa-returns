@@ -17,6 +17,7 @@
 package controllers
 
 import cats.data.EitherT
+import org.apache.pekko.Done
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
@@ -30,6 +31,7 @@ import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.controllers.ReturnsSubmissionController
 import uk.gov.hmrc.disareturns.models.common._
+import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaAccount, IsaType, StandardIsaTransfer}
 import utils.BaseUnitSpec
 
 import java.time.LocalDate
@@ -49,6 +51,22 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
   val ndJsonLine =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
+  val validModel: StandardIsaTransfer = StandardIsaTransfer(
+    accountNumber = "STD000001",
+    nino = "AB000001C",
+    firstName = "First1",
+    middleName = None,
+    lastName = "Last1",
+    dateOfBirth = LocalDate.parse("1980-01-02"),
+    isaType = IsaType.STOCKS_AND_SHARES,
+    reportingATransfer = true,
+    dateOfLastSubscription = LocalDate.parse("2025-06-01"),
+    totalCurrentYearSubscriptionsToDate = BigDecimal(2500.00),
+    marketValueOfAccount = BigDecimal(10000.00),
+    accountNumberOfTransferringAccount = "OLD000001",
+    amountTransferred = BigDecimal(5000.00),
+    flexibleIsa = false
+  )
   def fakeRequestWithStream(ndJsonString: String = ndJsonLine): Request[Source[ByteString, _]] = FakeRequest()
     .withBody(Source.single(ByteString(ndJsonString + "\n")))
     .withHeaders("X-Client-ID" -> "client-999")
@@ -68,13 +86,14 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
   "ReturnsSubmissionController#submit" should {
 
     "return 204 when processing is successful" in {
+
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
-      when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(EitherT.rightT(boxId))
+      when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
+        .thenReturn(Future.successful(Done))
       when(mockReportingRepository.insertBatch(any(), any(), any()))
         .thenReturn(Future.successful())
 
@@ -91,8 +110,6 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
-      when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(EitherT.rightT(boxId))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
         .thenReturn(Future.failed(FirstLevelValidationException(NinoOrAccountNumMissingErr)))
 
@@ -112,8 +129,6 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
-      when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(EitherT.rightT(boxId))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
         .thenReturn(
           Future.failed(
@@ -158,8 +173,6 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
-      when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(EitherT.rightT(boxId))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
         .thenReturn(
           Future.failed(
@@ -206,8 +219,6 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(EitherT.rightT((reportingWindow, obligation)))
-      when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(EitherT.rightT(boxId))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
         .thenReturn(
           Future.failed(
@@ -219,6 +230,12 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
                     accountNumber = "STD000001",
                     code = "INVALID_DATE_OF_BIRTH",
                     message = "Date of birth is not formatted correctly"
+                  ),
+                  SecondLevelValidationError(
+                    nino = "AB000002C",
+                    accountNumber = "STD000002",
+                    code = "INVALID_FIRST_NAME",
+                    message = "First name must not be empty"
                   )
                 )
               )
@@ -263,15 +280,22 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
     }
 
     "return 500 for unexpected errors" in {
-      when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
-        .thenReturn(Future.failed(new RuntimeException("boom")))
+      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+        .thenReturn(Future.successful(true))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+      when(
+        mockStreamingParserService.processValidatedStream(
+          any[String],
+          any[String],
+          any[Source[Either[ValidationError, IsaAccount], _]]
+        )
+      ).thenReturn(Future.failed(new RuntimeException("boom")))
 
       val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream())
-      val json   = contentAsJson(result)
-
-      status(result)                shouldBe INTERNAL_SERVER_ERROR
-      (json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
-      (json \ "message").as[String] shouldBe "There has been an issue processing your request"
+      status(result)        shouldBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) shouldBe Json.toJson(InternalServerErr: ErrorResponse)
     }
   }
 }

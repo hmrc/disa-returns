@@ -38,34 +38,56 @@ trait IsaAccount {
 object IsaAccount {
 
   implicit val isaAccountReads: Reads[IsaAccount] = Reads { json =>
-    (__ \ "reportingATransfer").read[Boolean].reads(json).flatMap {
+    val reportingATransferPath = (__ \ "reportingATransfer").read[Boolean].reads(json)
+
+    val reasonForClosurePath        = (__ \ "reasonForClosure").read[JsValue].reads(json).asOpt
+    val lisaBonusClaimPath          = (__ \ "lisaBonusClaim").read[JsValue].reads(json).asOpt
+    val flexibleIsaPath             = (__ \ "flexibleIsa").read[JsValue].reads(json).asOpt
+    val closureDatePath             = (__ \ "closureDate").read[JsValue].reads(json).asOpt
+    val dateOfFirstSubscriptionPath = (__ \ "dateOfFirstSubscription").read[JsValue].reads(json).asOpt
+    val lisaQualifyingAdditionPath  = (__ \ "lisaQualifyingAddition").read[JsValue].reads(json).asOpt
+
+    reportingATransferPath.flatMap {
       case true =>
-        ((json \ "reasonForClosure").isDefined, (json \ "lisaBonusClaim").isDefined, (json \ "flexibleIsa").isDefined) match {
-          case (true, true, false)  => json.validate[LifetimeIsaTransferAndClosure]
-          case (false, true, false) => json.validate[LifetimeIsaTransfer]
-          case (false, false, true) => json.validate[StandardIsaTransfer]
-          case _                    => JsError("Cannot determine IsaAccount subtype when reportingATransfer is true")
+        (reasonForClosurePath, lisaBonusClaimPath, flexibleIsaPath) match {
+          case (Some(reasonForClosure), Some(lisaBonusClaim), None) =>
+            println(Console.YELLOW + "LifetimeIsaTransferAndClosure" + Console.RESET)
+            json.validate[LifetimeIsaTransferAndClosure]
+          case _ =>
+            (reasonForClosurePath, lisaBonusClaimPath, flexibleIsaPath, closureDatePath, lisaQualifyingAdditionPath) match {
+              case (_, Some(lisaBonusClaim), None, Some(closureDatePath), _) =>
+                println(Console.YELLOW + "LifetimeIsaTransferAndClosure" + Console.RESET)
+                json.validate[LifetimeIsaTransferAndClosure]
+              case (None, Some(lisaBonusClaimPath), None, None, _) =>
+                println(Console.YELLOW + "LifetimeIsaTransfer" + Console.RESET)
+                json.validate[LifetimeIsaTransfer]
+              case (None, _, None, None, Some(lisaQualifyingAddition)) =>
+                println(Console.YELLOW + "LifetimeIsaTransfer" + Console.RESET)
+                json.validate[LifetimeIsaTransfer]
+              case _ =>
+                println(Console.YELLOW + "StandardIsaTransfer" + Console.RESET)
+                json.validate[StandardIsaTransfer]
+            }
         }
       case false =>
-        ((json \ "reasonForClosure").isDefined, (json \ "flexibleIsa").isDefined, (json \ "lisaBonusClaim").isDefined) match {
-          case (true, false, true)  => json.validate[LifetimeIsaClosure]
-          case (false, true, false) => json.validate[StandardIsaNewSubscription]
-          case (false, false, true) => json.validate[LifetimeIsaNewSubscription]
-          case _                    => JsError("Cannot determine IsaAccount subtype when reportingATransfer is false")
+        (reasonForClosurePath, lisaBonusClaimPath, flexibleIsaPath) match {
+          case (Some(reasonForClosure), Some(lisaBonusClaim), None) =>
+            println(Console.YELLOW + "LifetimeIsaClosure" + Console.RESET)
+            json.validate[LifetimeIsaClosure]
+          case _ =>
+            (reasonForClosurePath, lisaBonusClaimPath, flexibleIsaPath, closureDatePath, dateOfFirstSubscriptionPath) match {
+              case (_, Some(lisaBonusClaim), None, Some(closureDatePath), Some(dateOfFirstSubscriptionPath)) =>
+                println(Console.YELLOW + "LifetimeIsaClosure" + Console.RESET)
+                json.validate[LifetimeIsaClosure]
+              case (None, None, _, None, None) =>
+                println(Console.YELLOW + "StandardIsaNewSubscription" + Console.RESET)
+                json.validate[StandardIsaNewSubscription]
+              case _ =>
+                json.validate[LifetimeIsaNewSubscription]
+            }
         }
     }
   }
-
-
-//    implicit val combinedRead: Reads[IsaAccount] = Reads { json =>
-//      LifetimeIsaTransferAndClosure.reads
-//        .reads(json)
-//        .orElse(LifetimeIsaClosure.reads.reads(json))
-//        .orElse(LifetimeIsaTransfer.reads.reads(json))
-//        .orElse(LifetimeIsaNewSubscription.reads.reads(json))
-//        .orElse(StandardIsaTransfer.reads.reads(json))
-//        .orElse(StandardIsaNewSubscription.reads.reads(json))
-//    }
 
   implicit val writes: Writes[IsaAccount] = new Writes[IsaAccount] {
     def writes(report: IsaAccount): JsValue = report match {

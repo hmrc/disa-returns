@@ -17,7 +17,6 @@
 package uk.gov.hmrc.disareturns.models.common
 
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.common
 
 trait ErrorResponse {
   def code:    String
@@ -70,7 +69,7 @@ case object NinoOrAccountNumInvalidErr extends ErrorResponse {
 
 case object MalformedJsonFailureErr extends ErrorResponse {
   val code    = "MALFORMED JSON"
-  val message = "malformed JSON"
+  val message = "One of the NDJson lines contains malformed JSON"
 }
 
 case object ReturnIdNotMatchedErr extends ErrorResponse {
