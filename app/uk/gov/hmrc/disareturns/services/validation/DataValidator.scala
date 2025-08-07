@@ -24,7 +24,7 @@ import scala.collection.Seq
 
 object DataValidator {
   private val ninoRegex          = "^[A-CEGHJ-PR-TW-Z]{2}\\d{6}[A-D]$".r
-  private val accountNumberRegex = "^[a-zA-Z0-9 :/-]{1,20}$".r //TODO: need to update with actual regex - stolen from lisa
+  private val accountNumberRegex = "^[a-zA-Z0-9 :/-]{1,20}$".r //Note: needs updating once confirmed
 
   def FirstLevelValidatorExtractNinoAndAccount(json: JsValue): Either[ErrorResponse, (String, String)] = {
     val ninoPath    = json \ "nino"
@@ -224,7 +224,7 @@ object DataValidator {
       )
 
     case _: StandardIsaNewSubscription =>
-      Right(()) // No additional validations
+      Right(())
 
     case a: StandardIsaTransfer =>
       val ids = AccountIdentifiers(a.nino, a.accountNumber)

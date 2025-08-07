@@ -41,7 +41,5 @@ case class LifetimeIsaTransfer(
 ) extends IsaAccount
 
 object LifetimeIsaTransfer {
-
   implicit val format: OFormat[LifetimeIsaTransfer] = Json.format[LifetimeIsaTransfer]
-
 }

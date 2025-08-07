@@ -44,7 +44,5 @@ case class LifetimeIsaTransferAndClosure(
 ) extends IsaAccount
 
 object LifetimeIsaTransferAndClosure {
-
   implicit val format: OFormat[LifetimeIsaTransferAndClosure] = Json.format[LifetimeIsaTransferAndClosure]
-
 }

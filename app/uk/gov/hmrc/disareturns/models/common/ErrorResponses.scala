@@ -56,7 +56,6 @@ case object BadRequestMissingHeaderErr extends ErrorResponse {
   val message = "Missing required header: X-Client-ID"
 }
 
-//Submission validation errors
 case object NinoOrAccountNumMissingErr extends ErrorResponse {
   val code    = "NINO_OR_ACC_NUM_MISSING"
   val message = "All models send must include an account number and nino in order to process correctly"
@@ -90,7 +89,6 @@ object ErrorResponse {
     MalformedJsonFailureErr.code    -> MalformedJsonFailureErr
   )
 
-  //TODO: feels like we could clean this up
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {
     override def reads(json: JsValue): JsResult[ErrorResponse] =
       (json \ "code").validate[String].flatMap {

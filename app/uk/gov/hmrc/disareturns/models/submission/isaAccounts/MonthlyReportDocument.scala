@@ -22,12 +22,12 @@ import java.time.Instant
 import java.util.UUID
 
 case class MonthlyReportDocument(
-  id:                        String = UUID.randomUUID().toString, // unique document ID for MongoDB
+  id:                        String = UUID.randomUUID().toString,
   returnId:                  String,
   isaManagerReferenceNumber: String,
   isaReport:                 Seq[IsaAccount],
   createdAt:                 Instant = Instant.now()
-) //TODO: does lastUpdated make more sense??
+)
 
 object MonthlyReportDocument {
   implicit val format: OFormat[MonthlyReportDocument] = Json.format[MonthlyReportDocument]

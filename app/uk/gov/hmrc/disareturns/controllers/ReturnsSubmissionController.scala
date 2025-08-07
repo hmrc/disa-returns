@@ -46,8 +46,6 @@ class ReturnsSubmissionController @Inject() (
     with WithEtmpValidation
     with Logging {
 
-  // Is there a play in built ndJson parser??
-  //parse.tolerantStream (if available) gives you a BodyParser[Source[ByteString, _]]?
   def streamingParser: BodyParser[Source[ByteString, _]] = BodyParser("Streaming NDJSON") { request =>
     Accumulator.source[ByteString].map(Right.apply)
   }

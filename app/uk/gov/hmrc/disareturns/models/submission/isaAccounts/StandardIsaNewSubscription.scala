@@ -37,7 +37,5 @@ case class StandardIsaNewSubscription(
 ) extends IsaAccount
 
 object StandardIsaNewSubscription {
-
   implicit val format: OFormat[StandardIsaNewSubscription] = Json.format[StandardIsaNewSubscription]
-
 }

@@ -39,7 +39,5 @@ case class LifetimeIsaNewSubscription(
 ) extends IsaAccount
 
 object LifetimeIsaNewSubscription {
-
   implicit val format: OFormat[LifetimeIsaNewSubscription] = Json.format[LifetimeIsaNewSubscription]
-
 }

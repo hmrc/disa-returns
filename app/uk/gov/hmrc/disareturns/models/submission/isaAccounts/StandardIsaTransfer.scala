@@ -29,7 +29,7 @@ case class StandardIsaTransfer(
   lastName:                            String,
   dateOfBirth:                         LocalDate,
   isaType:                             IsaType,
-  reportingATransfer:                  Boolean, // Should always be true in this case
+  reportingATransfer:                  Boolean,
   dateOfLastSubscription:              LocalDate,
   totalCurrentYearSubscriptionsToDate: BigDecimal,
   marketValueOfAccount:                BigDecimal,
@@ -39,7 +39,5 @@ case class StandardIsaTransfer(
 ) extends IsaAccount
 
 object StandardIsaTransfer {
-
   implicit val format: OFormat[StandardIsaTransfer] = Json.format[StandardIsaTransfer]
-
 }

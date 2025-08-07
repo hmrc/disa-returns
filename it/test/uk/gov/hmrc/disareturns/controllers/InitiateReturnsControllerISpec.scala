@@ -259,8 +259,6 @@ class InitiateReturnsControllerISpec extends BaseIntegrationSpec {
 
   }
 
-  //Total records validation
-
   "return 400 Bad Request when request fails validation with a negative value for totalRecords" in {
     val invalidRequestJson: JsObject = Json.obj(
       "totalRecords"     -> -1,
