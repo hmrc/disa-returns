@@ -66,7 +66,7 @@ class MonthlyReportingMetadataRepositorySpec extends BaseUnitSpec {
         middleName = Some("Jane"),
         lastName = "Smith",
         dateOfBirth = LocalDate.of(1994, 7, 7),
-        isaType = IsaType.CASH,
+        isaType = IsaType.LIFETIME_CASH,
         reportingATransfer = true,
         dateOfLastSubscription = LocalDate.of(2023, 7, 7),
         totalCurrentYearSubscriptionsToDate = BigDecimal(4000),

@@ -30,7 +30,6 @@ import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.services.{ETMPService, ReturnMetadataService, StreamingParserService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.lang.System.Logger
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton

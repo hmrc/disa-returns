@@ -51,10 +51,11 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
   "POST /monthly/:isaManagerRef/:returnId" should {
-    val validLifetimeIsaNewSubscription =
-      """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
 
     "return 204 for successful submission - LifetimeIsaNewSubscription" in {
+      val validLifetimeIsaNewSubscription =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
+
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val result = initiateRequest(validLifetimeIsaNewSubscription)
@@ -69,7 +70,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             middleName = None,
             lastName = "Last1",
             dateOfBirth = LocalDate.of(1980, 1, 2),
-            isaType = IsaType.STOCKS_AND_SHARES,
+            isaType = IsaType.LIFETIME_CASH,
             reportingATransfer = false,
             dateOfFirstSubscription = LocalDate.of(2025, 6, 1),
             dateOfLastSubscription = LocalDate.of(2025, 6, 1),
@@ -84,7 +85,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
     "return 204 for successful submission - LifetimeIsaClosure" in {
       val validLifetimeIsaClosure =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","closureDate":"2025-06-01","reasonForClosure":"CANCELLED","lisaQualifyingAddition":10000.00,"lisaBonusClaim":10000.00}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","closureDate":"2025-06-01","reasonForClosure":"CANCELLED","lisaQualifyingAddition":10000.00,"lisaBonusClaim":10000.00}"""
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
@@ -100,7 +101,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             middleName = None,
             lastName = "Last1",
             dateOfBirth = LocalDate.parse("1980-01-02"),
-            isaType = IsaType.STOCKS_AND_SHARES,
+            isaType = IsaType.LIFETIME_CASH,
             reportingATransfer = false,
             dateOfLastSubscription = LocalDate.parse("2025-06-01"),
             totalCurrentYearSubscriptionsToDate = BigDecimal(2500.00),
@@ -117,7 +118,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
     "return 204 for successful submission - LifetimeIsaTransfer" in {
       val validLifetimeIsaTransfer =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"2025-06-01","amountTransferred":"10001.00", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"2025-06-01","amountTransferred":"10001.00", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
@@ -133,7 +134,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             middleName = None,
             lastName = "Last1",
             dateOfBirth = LocalDate.parse("1980-01-02"),
-            isaType = IsaType.STOCKS_AND_SHARES,
+            isaType = IsaType.LIFETIME_CASH,
             reportingATransfer = true,
             dateOfFirstSubscription = LocalDate.parse("2025-06-01"),
             dateOfLastSubscription = LocalDate.parse("2025-06-01"),
@@ -150,7 +151,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
 
     "return 204 for successful submission - LifetimeIsaTransferAndClosure" in {
       val validLifetimeIsaTransferAndClosure =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"2025-06-01","amountTransferred":"10001.00", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00", "closureDate":"2025-06-01", "reasonForClosure":"CANCELLED"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"2025-06-01","amountTransferred":"10001.00", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00", "closureDate":"2025-06-01", "reasonForClosure":"CANCELLED"}"""
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val result = initiateRequest(validLifetimeIsaTransferAndClosure)
@@ -165,7 +166,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
             middleName = None,
             lastName = "Last1",
             dateOfBirth = LocalDate.parse("1980-01-02"),
-            isaType = IsaType.STOCKS_AND_SHARES,
+            isaType = IsaType.LIFETIME_CASH,
             reportingATransfer = true,
             dateOfFirstSubscription = LocalDate.parse("2025-06-01"),
             dateOfLastSubscription = LocalDate.parse("2025-06-01"),
@@ -563,7 +564,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"12-06-01","amountTransferred":"10001.00", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00", "closureDate":"2025-06-01", "reasonForClosure":"CANCELLED"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"12-06-01","amountTransferred":"10001.00", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00", "closureDate":"2025-06-01", "reasonForClosure":"CANCELLED"}"""
 
       val result = initiateRequest(invalidJson)
 
@@ -584,7 +585,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","amountTransferred":"10001.00", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00", "closureDate":"2025-06-01", "reasonForClosure":"CANCELLED"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","amountTransferred":"10001.00", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00", "closureDate":"2025-06-01", "reasonForClosure":"CANCELLED"}"""
 
       val result = initiateRequest(invalidJson)
 
@@ -836,7 +837,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","lisaQualifyingAddition":"money", "lisaBonusClaim":5000.00}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","lisaQualifyingAddition":"money", "lisaBonusClaim":5000.00}"""
 
       val result = initiateRequest(invalidJson)
 
@@ -857,7 +858,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","lisaBonusClaim":5000.00}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","lisaBonusClaim":5000.00}"""
 
       val result = initiateRequest(invalidJson)
 
@@ -878,7 +879,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","lisaQualifyingAddition":"5000.00", "lisaBonusClaim":"money"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","lisaQualifyingAddition":"5000.00", "lisaBonusClaim":"money"}"""
 
       val result = initiateRequest(invalidJson)
 
@@ -899,7 +900,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","lisaQualifyingAddition":5000.00}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","lisaQualifyingAddition":5000.00}"""
 
       val result = initiateRequest(invalidJson)
 
@@ -920,7 +921,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson1 =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","closureDate":"11-06-01","reasonForClosure":"CANCELLED", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","closureDate":"11-06-01","reasonForClosure":"CANCELLED", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
 
       val result = initiateRequest(invalidJson1)
 
@@ -941,7 +942,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","reasonForClosure":"CANCELLED", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","reasonForClosure":"CANCELLED", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
 
       val result = initiateRequest(invalidJson)
 
@@ -962,7 +963,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","closureDate":"2025-06-01","reasonForClosure":123, "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","closureDate":"2025-06-01","reasonForClosure":123, "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
 
       val result = initiateRequest(invalidJson)
 
@@ -983,7 +984,7 @@ class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","closureDate":"2025-06-01", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","closureDate":"2025-06-01", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
 
       val result = initiateRequest(invalidJson)
 

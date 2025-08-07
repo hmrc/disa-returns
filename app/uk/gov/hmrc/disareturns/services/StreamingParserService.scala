@@ -32,9 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class StreamingParserService @Inject() (reportingRepository: MonthlyReportingMetadataRepository, implicit val mat: Materializer)(implicit
-  ec:                                                        ExecutionContext
-) {
+class StreamingParserService @Inject() (reportingRepository: MonthlyReportingMetadataRepository, implicit val mat: Materializer) {
 
   def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
     source

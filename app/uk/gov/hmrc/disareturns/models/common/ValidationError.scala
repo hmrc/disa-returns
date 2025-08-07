@@ -18,7 +18,6 @@ package uk.gov.hmrc.disareturns.models.common
 
 import play.api.libs.json.{Json, OFormat}
 
-
 sealed trait ValidationError
 
 case class FirstLevelValidationFailure(error: ErrorResponse) extends ValidationError
