@@ -84,5 +84,27 @@ class PPNSServiceSpec extends BaseUnitSpec {
 
       result shouldBe Left(InternalServerErr)
     }
+
+    "return Left(InternalServerErr) when the response JSON cannot be parsed into a Box" in {
+      val box = """{
+                  |    "boxId": "boxName",
+                  |    "boxCreator":{
+                  |        "clientId": "clientId"
+                  |    },
+                  |    "subscriber": {
+                  |        "subscribedDateTime": "2020-06-01T10:27:33.613+0000",
+                  |        "callBackUrl": "https://www.example.com/callback",
+                  |        "subscriptionType": "API_PUSH_SUBSCRIBER"
+                  |    }
+                  |}""".stripMargin
+      val httpResponse = HttpResponse(200, box)
+
+      when(mockPPNSConnector.getBox(testClientId))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).value.futureValue
+
+      result shouldBe Left(InternalServerErr)
+    }
   }
 }

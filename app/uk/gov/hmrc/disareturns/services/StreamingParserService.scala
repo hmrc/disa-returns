@@ -28,7 +28,7 @@ import uk.gov.hmrc.disareturns.services.validation.DataValidator
 import uk.gov.hmrc.disareturns.services.validation.DataValidator.jsErrorToDomainError
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 @Singleton

@@ -45,6 +45,8 @@ import uk.gov.hmrc.disareturns.repositories.{MonthlyReportingMetadataRepository,
 import uk.gov.hmrc.disareturns.utils.WiremockHelper.{wiremockHost, wiremockPort}
 import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.ExecutionContext
+
 trait BaseIntegrationSpec
     extends AnyWordSpec
     with Matchers
@@ -91,5 +93,6 @@ trait BaseIntegrationSpec
   implicit val ws:                          WSClient                           = app.injector.instanceOf[WSClient]
   implicit val reportingMetadataRepository: MonthlyReportingMetadataRepository = app.injector.instanceOf[MonthlyReportingMetadataRepository]
   implicit val returnMetadataRepository:    ReturnMetadataRepository           = app.injector.instanceOf[ReturnMetadataRepository]
+  implicit val executionContext:            ExecutionContext                   = app.injector.instanceOf[ExecutionContext]
 
 }

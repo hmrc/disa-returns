@@ -1,9 +1,29 @@
-openapi: "3.0.3"
+openapi: 3.0.3
 
 info:
   version: 1.0.0
   title: DISA Returns API
-  description: This specification outlines the endpoints required for submitting ISA Returns to HMRC.
+  description: |
+    # Overview
+    Use this API to submit monthly returns of current-year ISA subscription data. 
+    Before you can use the API, you must be approved by HMRC as an ISA provider and enrolled for digital ISA returns. 
+    If you are not yet approved, you can apply for both approval and enrolment through the DISA registration service.
+
+    # Supported use cases
+    - Submit monthly returns of current-year subscription data, including related transfers, withdrawals and corrections.
+    - Check the status of submitted returns to confirm processing or availability of results.
+    - Retrieve validation results to identify accepted records and correct any errors.
+
+    # Integration requirements
+    - REST API using JSON over HTTPS.
+    - Each return must cover activity from the 6th of one month to the 5th of the next.
+    - You must submit your monthly return between the 6th and midnight on the 19th.
+    - Authentication uses the OAuth 2.0 client credentials grant.
+    - All API calls require a unique identifier (Z-Reference) assigned by HMRC to each approved provider.
+
+    # Support
+    If you need help, complete the [support form](https://developer.service.hmrc.gov.uk/developer/support). 
+    The HMRC Software Developers Support Team will reply within 2 working days.
 
 servers:
   - url: https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return
@@ -11,12 +31,25 @@ servers:
   - url: https://api.service.hmrc.gov.uk/obligations/declaration/isa/return
     description: Production
 
+tags:
+  - name: Monthly Returns Submission
+    description: |
+      Submit a complete monthly return for ISA subscription data. Initialise a reporting period, upload account records, 
+      and mark the return as complete to trigger validation and processing by HMRC.
+  - name: Monthly Return Results
+    description: |      
+      Check the status of a submitted return and retrieve the validation results when available. 
+      Validation results include accepted records and details of any validation errors. 
+      Results are paginated to support large datasets.
+
 paths:
   /monthly/{isaManagerReferenceNumber}/init:
     post:
-      summary: Initialise a bulk monthly returns submission.
+      summary: Initialise a monthly return submission
       description: |
-        An endpoint that checks if submission is allowed and returns return ID.
+        Use this endpoint to check whether a submission is permitted for the specified reporting period. 
+        If permitted, the API returns a unique identifier used to upload data and complete the return.
+      operationId: initialiseMonthlyReturn
       tags:
         - Monthly Returns Submission
       security:
@@ -25,19 +58,18 @@ paths:
       parameters:
         - name: isaManagerReferenceNumber
           in: path
-          description: The reference given to the ISA provider when they applied for
-            approval from HMRC, commonly referred as Z-Ref.
+          description: |
+            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA provider. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
           schema:
-            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            pattern: ^Z([0-9]{4}|[0-9]{6})$
             type: string
             example: Z1234
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       requestBody:
-        description: To initialise a submission we require information on the number of records intended to be submitted, alongside confirmation of the tax month and tax year of this return
         required: true
         content:
           application/json:
@@ -52,7 +84,7 @@ paths:
                   type: integer
                   minimum: 0
                   example: 10000
-                  description: 'Total number of records to be submitted'
+                  description: Total number of records to be submitted.
                 submissionPeriod:
                   type: string
                   example: APR
@@ -72,10 +104,10 @@ paths:
                 taxYear:
                   type: integer
                   example: 2026
-                  description: 'The tax year of the monthly reporting information'
+                  description: The tax year of the monthly reporting information.
       responses:
         '200':
-          description: Submission is permitted and return id is generated
+          description: The API returns a unique identifier if submission is permitted.
           content:
             application/json:
               schema:
@@ -84,15 +116,17 @@ paths:
                   returnId:
                     type: string
                     format: uuid
-                    description: 'Unique identifier for this submission batch'
+                    description: Unique identifier for the monthly return to be submitted.
                     example: b4aba7b8-0d34-4936-923c-d9ef2747c099
                   boxId:
                     type: string
                     format: uuid
-                    description: 'Unique identifier for the HMRC Push Pull Notification Service box'
+                    description: |
+                      Unique identifier for the HMRC Push-Pull Notifications Service (PPNS) box, 
+                      a virtual container used to receive asynchronous notifications sent by HMRC systems.
                     example: 1c5b9365-18a6-55a5-99c9-83a091ac7f26
         '400':
-          description: Initialisation request failed validation
+          description: Bad Request
           content:
             application/json:
               schema:
@@ -101,7 +135,7 @@ paths:
                   code:
                     title: Error Code Type
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - MISSING_FIELD
                       - INVALID_YEAR
@@ -112,7 +146,7 @@ paths:
                     type: string
                     example: Tax year required
         '401':
-          description: Unauthorised request.
+          description: Unauthorised
           content:
             application/json:
               schema:
@@ -121,14 +155,14 @@ paths:
                   code:
                     title: Error Code Type
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - UNAUTHORISED
                   message:
                     type: string
                     example: Unauthorised
         '403':
-          description: Forbidden request.
+          description: Forbidden
           content:
             application/json:
               schema:
@@ -137,14 +171,14 @@ paths:
                   code:
                     title: Error Code Type
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - FORBIDDEN
                       - REPORTING_WINDOW_CLOSED
                       - OBLIGATION_CLOSED
                   message:
                     type: string
-                    example: "Forbidden"
+                    example: Forbidden
         '500':
           description: Internal Server Error
           content:
@@ -155,7 +189,7 @@ paths:
                   code:
                     title: Error Code Type
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - INTERNAL_SERVER_ERROR
                   message:
@@ -163,11 +197,12 @@ paths:
 
   /monthly/{isaManagerReferenceNumber}/{returnId}:
     post:
-      summary: Submit a paginated bulk monthly return.
+      summary: Submit a page of monthly return data  
       description: |
-        An endpoint to submit a paginated bulk monthly return.
-
-        Maximum of 10mb may be sent at a time.
+        Use this endpoint to submit a single page of account records for the specified 
+        monthly return. The payload size of each request must not exceed 10 MB. 
+        All pages must be submitted before calling the completion endpoint.
+      operationId: submitMonthlyReturnPage
       tags:
         - Monthly Returns Submission
       security:
@@ -176,18 +211,18 @@ paths:
       parameters:
         - name: isaManagerReferenceNumber
           in: path
-          description: The reference given to the ISA provider when they applied for
-            approval from HMRC, commonly referred as Z-Ref.
+          description: |
+            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA provider. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
           schema:
-            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            pattern: ^Z([0-9]{4}|[0-9]{6})$
             type: string
             example: Z1234
         - name: returnId
           in: path
-          description: The unique identifier for this submission batch.
+          description: The unique identifier for this monthly return.
           required: true
           style: simple
           explode: false
@@ -198,7 +233,6 @@ paths:
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       requestBody:
-        description: A number of NDJSON models as described below. Please note that the rendered JSON is incorrect, there should be no square brackets, and each record should be on one line.
         required: true
         content:
           application/x-ndjson:
@@ -207,27 +241,27 @@ paths:
                 $ref: '#/components/schemas/investorDetails'
       responses:
         '204':
-          description: Submission is accepted.
+          description: Submission accepted. No content returned.
         '400':
-          description: Submission failed validation.
+          description: Bad Request
           content:
             application/json:
               schema:
                 type: object
                 oneOf:
-                  - title: 'Missing Identifiers'
+                  - title: Missing Identifiers
                     $ref: '#/components/schemas/identifiersMissing'
-                  - title: 'Invalid Model'
+                  - title: Invalid Model
                     $ref: '#/components/schemas/modelInvalid'
-                example:
+                examples:
                   identifierExample:
-                    summary: an example of the Missing Identifiers scenario
-                    value: { "code": "NINO_OR_ACC_NUM_MISSING", "message": "All models send must include an account number and nino in order to process correctly"}
+                    summary: Missing Identifiers scenario example
+                    value: { "code": "NINO_OR_ACC_NUM_MISSING", "message": "Account number and National Insurance number are required in all submitted models."}
                   invalidModelExample:
-                    summary: an example of the Invalid Model scenario
-                    value: { "code": "VALIDATION_FAILURE", "message": "One or more models failed validation", "errors": [ { "code": "test", "message":"a"}, { "code": "test", "message":"b"}]}
+                    summary: Invalid Model scenario example
+                    value: { "code": "VALIDATION_FAILURE", "message": "One or more models failed validation.", "errors": [ { "code": "test", "message":"a"}, { "code": "test", "message":"b"}]}
         '401':
-          description: Unauthorised request.
+          description: Unauthorised
           content:
             application/json:
               schema:
@@ -236,14 +270,14 @@ paths:
                   code:
                     title: Error Code Types
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - UNAUTHORISED
                   message:
                     type: string
-                    example: 'Unauthorised'
+                    example: Unauthorised
         '403':
-          description: Forbidden request.
+          description: Forbidden
           content:
             application/json:
               schema:
@@ -252,14 +286,14 @@ paths:
                   code:
                     title: Error Code Type
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - FORBIDDEN
                       - REPORTING_WINDOW_CLOSED
                       - OBLIGATION_CLOSED
                   message:
                     type: string
-                    example: 'Forbidden'
+                    example: Forbidden
         '500':
           description: Internal Server Error
           content:
@@ -270,7 +304,7 @@ paths:
                   code:
                     title: Error Code Type
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - INTERNAL_SERVER_ERROR
                   message:
@@ -279,10 +313,11 @@ paths:
 
   /monthly/{isaManagerReferenceNumber}/{returnId}/complete:
     post:
-      summary: Complete a bulk monthly returns submission.
+      summary: Complete a monthly return submission
       description: |
-        An endpoint to confirm return submission has completed.
-        Returns the confirmation of whether the submission was successful or not.
+        Use this endpoint to mark the monthly return as complete. This triggers validation and processing, 
+        and returns a URL to retrieve the results summary after the reporting window has closed.
+      operationId: completeMonthlyReturn
       tags:
         - Monthly Returns Submission
       security:
@@ -291,18 +326,18 @@ paths:
       parameters:
         - name: isaManagerReferenceNumber
           in: path
-          description: The reference given to the ISA provider when they applied for
-            approval from HMRC, commonly referred as Z-Ref.
+          description: |
+            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA provider. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
           schema:
-            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            pattern: ^Z([0-9]{4}|[0-9]{6})$
             type: string
             example: Z1234
         - name: returnId
           in: path
-          description: The unique identifier for this submission batch.
+          description: The unique identifier for this monthly return.
           required: true
           style: simple
           explode: false
@@ -314,7 +349,7 @@ paths:
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         '200':
-          description: Submission is completed.
+          description: Submission completed. Validation results will be available after processing is complete.
           content:
             application/json:
               schema:
@@ -323,10 +358,10 @@ paths:
                   returnResultsSummaryLocation:
                     type: string
                     format: uri
-                    description: 'Location to query the return results summary following the closure of the returns window'
+                    description: Use this URL to retrieve the return results summary after the reporting window closes.
                     example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/results-summary/b4aba7b8-0d34-4936-923c-d9ef2747c099'
         '400':
-          description: Submission was unable to complete.
+          description: Bad Request
           content:
             application/json:
               schema:
@@ -335,14 +370,14 @@ paths:
                   code:
                     title: Error Code Types
                     type: string
-                    description: 'Types of errors encountered'
+                    description: Types of errors encountered.
                     enum:
                       - MISMATCH_EXPECTED_VS_RECEIVED
                   message:
                     type: string
-                    example: 'There has been a mismatch between number of records declared in header vs records submitted'
+                    example: Number of records declared in the header does not match the number submitted.
         '401':
-          description: Unauthorised request.
+          description: Unauthorised
           content:
             application/json:
               schema:
@@ -351,14 +386,14 @@ paths:
                   code:
                     title: Error Code Types
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - UNAUTHORISED
                   message:
                     type: string
-                    example: 'Unauthorised'
+                    example: Unauthorised
         '403':
-          description: Forbidden request.
+          description: Forbidden
           content:
             application/json:
               schema:
@@ -367,14 +402,14 @@ paths:
                   code:
                     title: Error Code Type
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - FORBIDDEN
                       - REPORTING_WINDOW_CLOSED
                       - OBLIGATION_CLOSED
                   message:
                     type: string
-                    example: 'Forbidden'
+                    example: Forbidden
         '500':
           description: Internal Server Error
           content:
@@ -385,7 +420,7 @@ paths:
                   code:
                     title: Error Code Type
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - INTERNAL_SERVER_ERROR
                   message:
@@ -393,11 +428,11 @@ paths:
 
   /monthly/{isaManagerReferenceNumber}/{returnId}/results/summary:
     get:
-      summary: Query if the return results summary is available.
+      summary: Check return results summary status
       description: |
-        An endpoint to confirm if return results are available.
-
-        Returns the location to retrieve the return results if available, or not found.
+        Use this endpoint to check whether the results summary for the specified return is available. 
+        If it is, the API returns a URL to retrieve the monthly return results.
+      operationId: checkReturnSummaryStatus
       tags:
         - Monthly Return Results
       security:
@@ -406,18 +441,18 @@ paths:
       parameters:
         - name: isaManagerReferenceNumber
           in: path
-          description: The reference given to the ISA provider when they applied for
-            approval from HMRC, commonly referred as Z-Ref.
+          description: |
+            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA provider. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
           schema:
-            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            pattern: ^Z([0-9]{4}|[0-9]{6})$
             type: string
             example: Z1234
         - name: returnId
           in: path
-          description: The unique identifier for this submission batch.
+          description: The unique identifier for the monthly return.
           required: true
           style: simple
           explode: false
@@ -429,7 +464,7 @@ paths:
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         '200':
-          description: Return results are available to collect.
+          description: Results are now available for the specified monthly return.
           content:
             application/json:
               schema:
@@ -438,18 +473,18 @@ paths:
                   returnResultsLocation:
                     type: string
                     format: uri
-                    description: 'Location to retrieve the return results of the submitted in month return'
+                    description: Use this URL to retrieve the results of the specified return.
                     example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/results/b4aba7b8-0d34-4936-923c-d9ef2747c099?page=1'
                   totalRecords:
                     type: integer
-                    description: 'Total number of records in the return results'
+                    description: Total number of records in the return results.
                     example: 10000
                   numberOfPages:
                     type: integer
-                    description: 'Total number of pages to return all results'
+                    description: Total number of pages in the result set.
                     example: 2
         '401':
-          description: Unauthorised request.
+          description: Bad Request
           content:
             application/json:
               schema:
@@ -458,14 +493,14 @@ paths:
                   code:
                     title: Error Code Types
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - UNAUTHORISED
                   message:
                     type: string
-                    example: 'Unauthorised'
+                    example: Unauthorised
         '404':
-          description: Return results not available.
+          description: Not Found
           content:
             application/json:
               schema:
@@ -474,15 +509,15 @@ paths:
                   code:
                     title: Error Code Types
                     type: string
-                    description: 'Types of errors encountered'
+                    description: Types of errors encountered.
                     enum:
                       - RETURN_NOT_FOUND
                       - RETURN_RESULTS_NOT_READY
                   message:
                     type: string
                     enum:
-                      - 'Return not found for {returnId}'
-                      - 'Return results not ready for {returnId}'
+                      - Return not found for {returnId}
+                      - Return results not ready for {returnId}
         '500':
           description: Internal Server Error
           content:
@@ -493,7 +528,7 @@ paths:
                   code:
                     title: Error Code Type
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - INTERNAL_SERVER_ERROR
                   message:
@@ -501,11 +536,11 @@ paths:
 
   /monthly/{isaManagerReferenceNumber}/{returnId}/results:
     get:
-      summary: Retrieve return results through paginated API.
+      summary: Retrieve return validation results 
       description: |
-        An endpoint to retrieve the return results. 
-
-        Returns the results in paginated batches.
+        Use this endpoint to retrieve validation results for the specified monthly return. 
+        The API returns results in paginated batches.
+      operationId: getReturnValidationResults
       tags:
         - Monthly Return Results
       security:
@@ -514,18 +549,18 @@ paths:
       parameters:
         - name: isaManagerReferenceNumber
           in: path
-          description: The reference given to the ISA provider when they applied for
-            approval from HMRC, commonly referred as Z-Ref.
+          description: |
+            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA provider. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
           schema:
-            pattern: "^Z([0-9]{4}|[0-9]{6})$"
+            pattern: ^Z([0-9]{4}|[0-9]{6})$
             type: string
             example: Z1234
         - name: returnId
           in: path
-          description: The unique identifier for this submission batch.
+          description: The unique identifier for the monthly return.
           required: true
           style: simple
           explode: false
@@ -545,7 +580,7 @@ paths:
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         '200':
-          description: Return results for specified page.
+          description: Validation results for the specified page of the monthly return.
           content:
             application/json:
               schema:
@@ -553,27 +588,27 @@ paths:
                 properties:
                   currentPage:
                     type: integer
-                    description: 'The page number of the results'
+                    description: The page number of the results.
                     example: 1
                   recordsInPage:
                     type: integer
-                    description: 'The number of records in the current page'
+                    description: The number of records in the current page.
                     example: 8000
                   totalRecords:
                     type: integer
-                    description: 'Total number of records in the return results'
+                    description: Total number of records in the return results.
                     example: 10000
                   totalNumberOfPages:
                     type: integer
-                    description: 'Total number of pages to return all results'
+                    description: Total number of pages to return all results.
                     example: 2
                   returnResults:
                     type: array
                     items:
                       $ref: '#/components/schemas/returnResult'
-                    description: 'The return results for the specified page'
+                    description: The return results for the specified page.
         '401':
-          description: Unauthorised request.
+          description: Bad Request
           content:
             application/json:
               schema:
@@ -582,14 +617,14 @@ paths:
                   code:
                     title: Error Code Types
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - UNAUTHORISED
                   message:
                     type: string
-                    example: 'Unauthorised'
+                    example: Unauthorised
         '404':
-          description: Return results not available.
+          description: Not Found
           content:
             application/json:
               schema:
@@ -598,7 +633,7 @@ paths:
                   code:
                     title: Error Code Types
                     type: string
-                    description: 'Types of errors encountered'
+                    description: Types of errors encountered
                     enum:
                       - RETURN_NOT_FOUND
                       - RETURN_RESULTS_NOT_READY
@@ -606,9 +641,9 @@ paths:
                   message:
                     type: string
                     enum:
-                      - 'Return not found for {returnId}'
-                      - 'Return results not ready for {returnId}'
-                      - 'No page {page} found'
+                      - Return not found for {returnId}
+                      - Return results not ready for {returnId}
+                      - No page {page} found
         '500':
           description: Internal Server Error
           content:
@@ -619,19 +654,19 @@ paths:
                   code:
                     title: Error Code Type
                     type: string
-                    description: 'Error Code'
+                    description: Error Code
                     enum:
                       - INTERNAL_SERVER_ERROR
                   message:
                     type: string
-                    example: 'Internal Server Error'
+                    example: Internal Server Error
 
 components:
   securitySchemes:
     userRestricted:
       type: oauth2
       description: |
-        HMRC supports OAuth 2.0 for authenticating user restricted API requests using an OAuth 2.0 Bearer Token in the AUTHORIZATION header.
+        HMRC uses OAuth 2.0 Bearer tokens for authentication. Include the token in the AUTHORIZATION header of user-restricted API requests.
         See https://developer.service.hmrc.gov.uk/api-documentation/docs/authorisation/user-restricted-endpoints for details.
       flows:
         authorizationCode:
@@ -657,14 +692,13 @@ components:
       required: true
       schema:
         type: string
-      description: Bearer token for authentication
+      description: Bearer token for authentication.
   schemas:
     investorDetails:
-      title: "Investor Details"
+      title: Investor Details 
       type: object
       anyOf:
-        - title: "Lifetime ISA - New Subscription"
-          description: Model for a record of a New Lifetime ISA Subscription
+        - title: Lifetime ISA - New Subscription
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -676,26 +710,25 @@ components:
                 dateOfFirstSubscription:
                   type: string
                   format: date
-                  description: 'The date of the first subscription to the ISA account'
+                  description: Date of first subscription to the ISA account (YYYY-MM-DD).
                   example: 2025-04-06
-                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  pattern: ^\d{4}-\d{2}-\d{2}$
                 lisaQualifyingAddition:
                   type: number
                   format: double
-                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  description: The amount of the current subscription that qualifies for a LISA bonus.
                   example: 1000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
                 lisaBonusClaim:
                   type: number
                   format: double
-                  description: The amount being claimed as a LISA bonus
+                  description: The amount being claimed as a LISA bonus.
                   example: 1000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
               required: [ dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim ]
               not:
                 required: [ closureDate, accountNumberOfTransferringAccount ]
-        - title: "Lifetime ISA - Transfer"
-          description: Model for a record of a Lifetime ISA being Transferred
+        - title: Lifetime ISA - Transfer
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -706,37 +739,36 @@ components:
                   enum: [ true ]
                 accountNumberOfTransferringAccount:
                   type: string
-                  description: 'The account number of the transferring ISA account'
+                  description: The account number of the transferring ISA account.
                   example: 87654321
                 amountTransferred:
                   type: number
                   format: double
-                  description: 'The amount transferred to the ISA account'
+                  description: The amount transferred to the ISA account.
                   example: 5000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
                 dateOfFirstSubscription:
                   type: string
                   format: date
-                  description: 'The date of the first subscription to the ISA account'
+                  description: Date of first subscription to the ISA account (YYYY-MM-DD).
                   example: 2025-04-06
-                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  pattern: ^\d{4}-\d{2}-\d{2}$
                 lisaQualifyingAddition:
                   type: number
                   format: double
-                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  description: The amount of the current subscription that qualifies for a LISA bonus.
                   example: 1000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
                 lisaBonusClaim:
                   type: number
                   format: double
-                  description: The amount being claimed as a LISA bonus
+                  description: The amount being claimed as a LISA bonus.
                   example: 1000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
               required: [ dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred, lisaQualifyingAddition, lisaBonusClaim ]
               not:
                 required: [ closureDate ]
-        - title: "Lifetime ISA - Closure"
-          description: Model for a record of a Lifetime ISA being Closed
+        - title: Lifetime ISA - Closure
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -748,18 +780,18 @@ components:
                 dateOfFirstSubscription:
                   type: string
                   format: date
-                  description: 'The date of the first subscription to the ISA account'
+                  description: Date of first subscription to the ISA account (YYYY-MM-DD).
                   example: 2025-04-06
-                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  pattern: ^\d{4}-\d{2}-\d{2}$
                 closureDate:
                   type: string
                   format: date
-                  description: 'The date the ISA account was closed'
+                  description: ISA account closure date (YYYY-MM-DD).
                   example: 2025-05-15
-                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  pattern: ^\d{4}-\d{2}-\d{2}$
                 reasonForClosure:
                   type: string
-                  description: 'The reason for the closure of the ISA account'
+                  description: The reason for the closure of the ISA account.
                   example: ALL_FUNDS_WITHDRAWN
                   enum:
                     - CANCELLED
@@ -770,18 +802,17 @@ components:
                 lisaQualifyingAddition:
                   type: number
                   format: double
-                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  description: The amount of the current subscription that qualifies for a LISA bonus.
                   example: 1000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
                 lisaBonusClaim:
                   type: number
                   format: double
-                  description: The amount being claimed as a LISA bonus
+                  description: The amount being claimed as a LISA bonus.
                   example: 1000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
               required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim ]
-        - title: "Lifetime ISA - Transfer & Closure"
-          description: Model for a record of a Lifetime ISA account being Transferred and Closed
+        - title: Lifetime ISA - Transfer & Closure
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -792,29 +823,29 @@ components:
                   enum: [ true ]
                 accountNumberOfTransferringAccount:
                   type: string
-                  description: 'The account number of the transferring ISA account'
+                  description: The account number of the transferring ISA account.
                   example: 87654321
                 amountTransferred:
                   type: number
                   format: double
-                  description: 'The amount transferred to the ISA account'
+                  description: The amount transferred to the ISA account.
                   example: 5000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
                 dateOfFirstSubscription:
                   type: string
                   format: date
-                  description: 'The date of the first subscription to the ISA account'
+                  description: Date of first subscription to the ISA account (YYYY-MM-DD).
                   example: 2025-04-06
-                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  pattern: ^\d{4}-\d{2}-\d{2}$
                 closureDate:
                   type: string
                   format: date
-                  description: 'The date the ISA account was closed'
+                  description: ISA account closure date (YYYY-MM-DD).
                   example: 2025-05-15
-                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  pattern: ^\d{4}-\d{2}-\d{2}$
                 reasonForClosure:
                   type: string
-                  description: 'The reason for the closure of the ISA account'
+                  description: The reason for the closure of the ISA account.
                   example: ALL_FUNDS_WITHDRAWN
                   enum:
                     - CANCELLED
@@ -825,18 +856,17 @@ components:
                 lisaQualifyingAddition:
                   type: number
                   format: double
-                  description: The amount of the current subscription that qualifies for a LISA bonus
+                  description: The amount of the current subscription that qualifies for a LISA bonus.
                   example: 1000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
                 lisaBonusClaim:
                   type: number
                   format: double
-                  description: The amount being claimed as a LISA bonus
+                  description: The amount being claimed as a LISA bonus.
                   example: 1000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
               required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim, accountNumberOfTransferringAccount, amountTransferred ]
-        - title: "Standard ISA - New Subscription"
-          description: Model for a record of a New Standard ISA Subscription
+        - title: Standard ISA - New Subscription
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -847,13 +877,12 @@ components:
                   enum: [ false ]
                 flexibleIsa:
                   type: boolean
-                  description: 'Indicates if the ISA account is flexible'
+                  description: Indicates if the ISA account is flexible.
                   example: false
               required: [ flexibleIsa ]
               not:
                 required: [ closureDate, accountNumberOfTransferringAccount, dateOfFirstSubscription ]
-        - title: "Standard ISA - Transfer"
-          description: Model for a record of a Standard ISA being Transferred
+        - title: Standard ISA - Transfer
           allOf:
             - $ref: '#/components/schemas/investorDetailsBase'
             - type: object
@@ -864,23 +893,23 @@ components:
                   enum: [ true ]
                 accountNumberOfTransferringAccount:
                   type: string
-                  description: 'The account number of the transferring ISA account'
+                  description: The account number of the transferring ISA account.
                   example: 87654321
                 amountTransferred:
                   type: number
                   format: double
-                  description: 'The amount transferred to the ISA account'
+                  description: The amount transferred to the ISA account.
                   example: 5000.00
-                  pattern: '^-?\d+\.\d{2}$'
+                  pattern: ^\d+\.\d{2}$
                 flexibleIsa:
                   type: boolean
-                  description: 'Indicates if the ISA account is flexible'
+                  description: Indicates if the ISA account is flexible.
                   example: false
               required: [ accountNumberOfTransferringAccount, amountTransferred, flexibleIsa ]
               not:
                 required: [ closureDate ]
     investorDetailsBase:
-      title: "Common fields for Investor Details"
+      title: Investor Details (Base)
       type: object
       required:
         - accountNumber
@@ -896,34 +925,33 @@ components:
       properties:
         accountNumber:
           type: string
-          description: 'The account number of the ISA account'
+          description: The account number of the ISA account.
           example: 12345678
         nino:
           type: string
-          description: 'The National Insurance Number of the account holder'
+          description: The National Insurance Number of the account holder.
           example: AB123456C
-          pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
+          pattern: ^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$
         firstName:
           type: string
-          description: 'The first name of the account holder'
+          description: The first name of the account holder.
           example: John
         middleName:
           type: string
-          description: 'The middle name of the account holder'
-          example: Michael
+          description: The middle name of the account holder.
         lastName:
           type: string
-          description: 'The last name of the account holder'
+          description: The last name of the account holder.
           example: Smith
         dateOfBirth:
           type: string
           format: date
-          description: 'The date of birth of the account holder'
+          description: The date of birth of the account holder (YYYY-MM-DD).
           example: 1980-01-01
-          pattern: '^\d{4}-\d{2}-\d{2}$'
+          pattern: ^\d{4}-\d{2}-\d{2}$
         isaType:
           type: string
-          description: 'The type of ISA account'
+          description: The type of ISA account.
           example: LIFETIME_CASH
           enum:
             - CASH
@@ -933,28 +961,28 @@ components:
             - LIFETIME_STOCKS_AND_SHARES
         reportingATransfer:
           type: boolean
-          description: 'Indicates if the ISA account is a reporting transfer'
+          description: Indicates if the ISA account is a reporting transfer.
           example: true
         dateOfLastSubscription:
           type: string
           format: date
-          description: 'The date of the last subscription to the ISA account'
+          description: Date of last subscription to the ISA account (YYYY-MM-DD).
           example: 2025-05-01
-          pattern: '^\d{4}-\d{2}-\d{2}$'
+          pattern: ^\d{4}-\d{2}-\d{2}$
         totalCurrentYearSubscriptionsToDate:
           type: number
           format: double
-          description: 'The total subscriptions to the ISA account for the current year'
+          description: Total value of current-year subscriptions to the ISA account.
           example: 5000.00
-          pattern: '^\d+\.\d{2}$'
+          pattern: ^\d+\.\d{2}$
         marketValueOfAccount:
           type: number
           format: double
-          description: 'The market value of the ISA account'
+          description: The market value of the ISA account.
           example: 10000.00
-          pattern: '^\d+\.\d{2}$'
+          pattern: ^\d+\.\d{2}$
     identifiersMissing:
-      title: "Missing NINO or Account Number"
+      title: Missing National Insurance number or Account Number
       type: object
       properties:
         code:
@@ -964,9 +992,9 @@ components:
             - NINO_OR_ACC_NUM_MISSING
         message:
           type: string
-          example: 'All models send must include an account number and nino in order to process correctly'
+          example: Account number and National Insurance number are required in all submitted models.
     modelInvalid:
-      title: "Invalid Model(s)"
+      title: Invalid Model(s)
       type: object
       properties:
         code:
@@ -976,7 +1004,7 @@ components:
             - VALIDATION_FAILED
         message:
           type: string
-          example: 'One or more models failed validation'
+          example: One or more models failed validation.
         errors:
           type: array
           items:
@@ -984,12 +1012,12 @@ components:
             properties:
               nino:
                 type: string
-                description: 'The National Insurance Number of the account holder'
+                description: The National Insurance Number of the account holder
                 example: AB123456C
-                pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
+                pattern: ^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$
               accountNumber:
                 type: string
-                description: 'The account number of the ISA account'
+                description: The account number of the ISA account.
                 example: 12345678
               code:
                 type: string
@@ -1000,53 +1028,50 @@ components:
                 example: INVALID_NINO
               message:
                 type: string
-                description: 'A detailed message about the validation failure'
-                example: "The NINO provided is invalid"
+                description: A detailed message about the validation failure.
+                example: The National Insurance number provided is invalid.
 
     returnResult:
-      title: "Model report record with an identified issue"
       type: object
       properties:
         accountNumber:
           type: string
-          description: 'The account number of the ISA account'
+          description: The account number of the ISA account.
           example: 12345678
         nino:
           type: string
-          description: 'The National Insurance Number of the account holder'
+          description: The National Insurance Number of the account holder.
           example: AB123456C
-          pattern: '^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$'
+          pattern: ^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$
         issueIdentified:
           oneOf:
             - $ref: '#/components/schemas/returnResultOverSubscribed'
             - $ref: '#/components/schemas/returnResultUnableToIdentifyInvestor'
     returnResultOverSubscribed:
-      title: "Model for a report record outlining an over-subscription"
       type: object
       properties:
         code:
           type: string
-          description: 'The result of the return submission'
+          description: The result of the return submission.
           enum:
             - OVER_SUBSCRIBED
           example: OVER_SUBSCRIBED
         overSubscribedAmount:
           type: number
           format: double
-          description: 'The amount that was over subscribed'
+          description: The amount that was over-subscribed.
           example: 1000.00
-          pattern: '^\d+\.\d{2}$'
+          pattern: ^\d+\.\d{2}$
     returnResultUnableToIdentifyInvestor:
-      title: "Model for a report record outlining an inability to identify the investor"
       type: object
       properties:
         code:
           type: string
-          description: 'The result of the return submission'
+          description: The result of the return submission.
           enum:
             - UNABLE_TO_IDENTIFY_INVESTOR
           example: UNABLE_TO_IDENTIFY_INVESTOR
         message:
           type: string
-          description: 'The reason for the inability to identify the investor'
-          example: "The NINO provided does not match any records"
+          description: The reason for the inability to identify the investor.
+          example: The National Insurance number provided does not match any records.
