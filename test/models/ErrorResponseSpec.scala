@@ -17,7 +17,7 @@
 package models
 
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, FieldValidationError, MultipleErrorResponse, ObligationClosed, Unauthorised}
+import uk.gov.hmrc.disareturns.models.common._
 import utils.BaseUnitSpec
 
 class ErrorResponseSpec extends BaseUnitSpec {
@@ -61,23 +61,6 @@ class ErrorResponseSpec extends BaseUnitSpec {
       multipleError                                                 shouldBe a[MultipleErrorResponse]
       multipleError.code                                            shouldBe "FORBIDDEN"
       multipleError.asInstanceOf[MultipleErrorResponse].errors.head shouldBe ObligationClosed
-    }
-
-    "deserialize a FieldValidationError when path field is present" in {
-      val json = Json.obj(
-        "code"    -> "SOME_CODE",
-        "message" -> "Some error message",
-        "path"    -> "/some/field"
-      )
-
-      val result = Json.fromJson[ErrorResponse](json)
-
-      result.isSuccess shouldBe true
-      val fieldError = result.get
-      fieldError                                         shouldBe a[FieldValidationError]
-      fieldError.code                                    shouldBe "SOME_CODE"
-      fieldError.message                                 shouldBe "Some error message"
-      fieldError.asInstanceOf[FieldValidationError].path shouldBe "/some/field"
     }
 
     "fail to deserialize unknown error codes" in {

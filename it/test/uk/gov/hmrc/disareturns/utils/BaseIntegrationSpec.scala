@@ -41,7 +41,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
 import play.api.test.DefaultAwaitTimeout
-import uk.gov.hmrc.disareturns.repositories.{MonthlyReportingMetadataRepository, ReturnMetadataRepository}
+import uk.gov.hmrc.disareturns.repositories.{MonthlyReportDocumentRepository, ReturnMetadataRepository}
 import uk.gov.hmrc.disareturns.utils.WiremockHelper.{wiremockHost, wiremockPort}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -89,10 +89,10 @@ trait BaseIntegrationSpec
     super.beforeEach()
   }
 
-  implicit def mat:                         Materializer                       = app.injector.instanceOf[Materializer]
-  implicit val ws:                          WSClient                           = app.injector.instanceOf[WSClient]
-  implicit val reportingMetadataRepository: MonthlyReportingMetadataRepository = app.injector.instanceOf[MonthlyReportingMetadataRepository]
-  implicit val returnMetadataRepository:    ReturnMetadataRepository           = app.injector.instanceOf[ReturnMetadataRepository]
-  implicit val executionContext:            ExecutionContext                   = app.injector.instanceOf[ExecutionContext]
+  implicit val mat:                         Materializer                    = app.injector.instanceOf[Materializer]
+  implicit val ws:                          WSClient                        = app.injector.instanceOf[WSClient]
+  implicit val reportingMetadataRepository: MonthlyReportDocumentRepository = app.injector.instanceOf[MonthlyReportDocumentRepository]
+  implicit val returnMetadataRepository:    ReturnMetadataRepository        = app.injector.instanceOf[ReturnMetadataRepository]
+  implicit val executionContext:            ExecutionContext                = app.injector.instanceOf[ExecutionContext]
 
 }

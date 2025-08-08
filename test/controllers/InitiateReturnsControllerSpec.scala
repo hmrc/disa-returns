@@ -16,7 +16,6 @@
 
 package controllers
 
-import cats.data.EitherT
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import play.api.libs.json._
@@ -25,7 +24,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.controllers.InitiateReturnsController
-import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed, Unauthorised}
+import uk.gov.hmrc.disareturns.models.common._
 import utils.BaseUnitSpec
 
 import java.time.LocalDate
@@ -47,20 +46,15 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
     "taxYear"          -> LocalDate.now.getYear
   )
 
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    reset(mockETMPService, mockPPNSService, mockReturnMetadataService)
-  }
-
   "InitiateReturnsController.initiate" should {
 
     "return 200 OK for valid submission" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(EitherT.rightT(boxId))
-      when(mockReturnMetadataService.saveReturnMetadata(any(), any(), any()))
+        .thenReturn(Future.successful(Right(boxId)))
+      when(mockMonthlyReportDocumentService.saveReturnMetadata(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
@@ -83,10 +77,10 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       )
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(EitherT.rightT(boxId))
-      when(mockReturnMetadataService.saveReturnMetadata(any(), any(), any()))
+        .thenReturn(Future.successful(Right(boxId)))
+      when(mockMonthlyReportDocumentService.saveReturnMetadata(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
@@ -155,7 +149,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
     "return 403 Forbidden when ETMP obligation has already been met" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.leftT(ObligationClosed))
+        .thenReturn(Future.successful(Left(ObligationClosed)))
 
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
@@ -171,7 +165,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
     "return 403 Forbidden when ETMP reporting window is closed" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.leftT(ReportingWindowClosed))
+        .thenReturn(Future.successful(Left(ReportingWindowClosed)))
 
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
@@ -187,7 +181,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
     "return 403 Forbidden when reporting ETMP window is closed and obligation has already been met" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.leftT(MultipleErrorResponse(errors = Seq(ObligationClosed, ReportingWindowClosed))))
+        .thenReturn(Future.successful(Left(MultipleErrorResponse(errors = Seq(ObligationClosed, ReportingWindowClosed)))))
 
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
@@ -209,9 +203,9 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
     "return 500 Internal Server Error when PPNS responds with an upstream error" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(EitherT.leftT(InternalServerErr))
+        .thenReturn(Future.successful(Left(InternalServerErr)))
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
@@ -226,9 +220,10 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
     "return 500 Internal Server Error when ETMP responds with an upstream error" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.leftT(InternalServerErr))
+        .thenReturn(Future.successful(Left(InternalServerErr)))
       when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(EitherT.rightT(boxId))
+        .thenReturn(Future.successful(Right(boxId)))
+
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
@@ -242,7 +237,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
     "return 401 Unauthorised  when ETMP responds with an unauthorised error" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.leftT(Unauthorised))
+        .thenReturn(Future.successful(Left(Unauthorised)))
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)

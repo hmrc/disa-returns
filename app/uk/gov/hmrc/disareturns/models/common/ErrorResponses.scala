@@ -94,18 +94,10 @@ object ErrorResponse {
       (json \ "code").validate[String].flatMap {
         case "FORBIDDEN" =>
           Json.fromJson[MultipleErrorResponse](json)
-        case code if (json \ "path").isDefined =>
-          Json.fromJson[FieldValidationError](json)
-        case "VALIDATION_FAILURE" =>
-          if ((json \ "errors").validate[Seq[FieldValidationError]].isSuccess)
-            Json.fromJson[ValidationFailureResponse](json)
-          else if ((json \ "errors").validate[Seq[SecondLevelValidationError]].isSuccess)
-            Json.fromJson[SecondLevelValidationResponse](json)
-          else
-            JsError("Unknown structure for VALIDATION_FAILURE")
+        case "VALIDATION_FAILURE" if (json \ "errors").validate[Seq[SecondLevelValidationError]].isSuccess =>
+          json.validate[SecondLevelValidationResponse]
         case code if singletons.contains(code) =>
           JsSuccess(singletons(code))
-
         case other =>
           JsError(s"Unknown error code: $other")
       }
@@ -157,7 +149,7 @@ object ValidationFailureResponse {
     if (pathString.isEmpty) "/" else pathString
   }
 
-  def convertErrorToValidationFailureResponse(jsError: JsError): ValidationFailureResponse = {
+  def createFromJsError(jsError: JsError): ValidationFailureResponse = {
 
     val fieldErrors: Seq[FieldValidationError] = jsError.errors.toSeq.flatMap { case (path, errors) =>
       errors.map { validationError =>

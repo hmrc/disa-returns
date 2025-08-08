@@ -26,7 +26,7 @@ object DataValidator {
   private val ninoRegex          = "^[A-CEGHJ-PR-TW-Z]{2}\\d{6}[A-D]$".r
   private val accountNumberRegex = "^[a-zA-Z0-9 :/-]{1,20}$".r //Note: needs updating once confirmed
 
-  def FirstLevelValidatorExtractNinoAndAccount(json: JsValue): Either[ErrorResponse, (String, String)] = {
+  def firstLevelValidatorExtractNinoAndAccount(json: JsValue): Either[ErrorResponse, (String, String)] = {
     val ninoPath    = json \ "nino"
     val accountPath = json \ "accountNumber"
 
@@ -114,10 +114,10 @@ object DataValidator {
     errorCode:   String,
     errorMsg:    String,
     identifiers: AccountIdentifiers
-  ): Either[SecondLevelValidationError, Unit] =
-    if (isValid(value)) Right(())
+  ): Option[SecondLevelValidationError] =
+    if (isValid(value)) None
     else
-      Left(
+      Some(
         SecondLevelValidationError(
           nino = identifiers.nino,
           accountNumber = identifiers.accountNumber,
@@ -130,7 +130,7 @@ object DataValidator {
     value:       String,
     fieldName:   String,
     identifiers: AccountIdentifiers
-  ): Either[SecondLevelValidationError, Unit] =
+  ): Option[SecondLevelValidationError] =
     validateField[String](
       value,
       (v: String) => v.trim.nonEmpty,
@@ -143,7 +143,7 @@ object DataValidator {
     value:       BigDecimal,
     fieldName:   String,
     identifiers: AccountIdentifiers
-  ): Either[SecondLevelValidationError, Unit] =
+  ): Option[SecondLevelValidationError] =
     validateField[BigDecimal](
       value,
       (v: BigDecimal) => v.scale == 2,
@@ -158,17 +158,17 @@ object DataValidator {
     errorCode:   String,
     errorMsg:    String,
     identifiers: AccountIdentifiers
-  ): Either[SecondLevelValidationError, Unit] =
+  ): Option[SecondLevelValidationError] =
     validateField(value, regex.matches, errorCode, errorMsg, identifiers)
 
   def runValidations(
-    validations: Seq[Either[SecondLevelValidationError, Unit]]
-  ): Either[SecondLevelValidationError, Unit] =
-    validations.collectFirst { case Left(err) => Left(err) }.getOrElse(Right(()))
+    validations: Seq[Option[SecondLevelValidationError]]
+  ): Option[SecondLevelValidationError] =
+    validations.collectFirst { case Some(err) => err }
 
   // --- Main Validators ---
 
-  def validateAccount(account: IsaAccount): Either[SecondLevelValidationError, Unit] = {
+  def validateAccount(account: IsaAccount): Option[SecondLevelValidationError] = {
     val identifiers = AccountIdentifiers(account.nino, account.accountNumber)
 
     runValidations(
@@ -183,7 +183,7 @@ object DataValidator {
     )
   }
 
-  def validateIsaAccountUniqueFields(account: IsaAccount): Either[SecondLevelValidationError, Unit] = account match {
+  def validateIsaAccountUniqueFields(account: IsaAccount): Option[SecondLevelValidationError] = account match {
 
     case a: LifetimeIsaClosure =>
       val ids = AccountIdentifiers(a.nino, a.accountNumber)
@@ -224,16 +224,13 @@ object DataValidator {
       )
 
     case _: StandardIsaNewSubscription =>
-      Right(())
+      None
 
     case a: StandardIsaTransfer =>
       val ids = AccountIdentifiers(a.nino, a.accountNumber)
       validateTwoDecimal(a.amountTransferred, "amount_transferred", ids)
   }
 
-  def validate(account: IsaAccount): Either[SecondLevelValidationError, Unit] =
-    for {
-      _ <- validateAccount(account)
-      _ <- validateIsaAccountUniqueFields(account)
-    } yield ()
+  def validate(account: IsaAccount): Option[SecondLevelValidationError] =
+    validateAccount(account) orElse validateIsaAccountUniqueFields(account)
 }

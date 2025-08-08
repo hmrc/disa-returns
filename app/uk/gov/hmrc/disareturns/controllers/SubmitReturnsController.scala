@@ -24,26 +24,25 @@ import org.apache.pekko.util.ByteString
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{Action, BodyParser, ControllerComponents}
+import play.api.mvc.{Action, BodyParser, ControllerComponents, Result}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.services.{ETMPService, ReturnMetadataService, StreamingParserService}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ReturnsSubmissionController @Inject() (
+class SubmitReturnsController @Inject() (
   cc:                       ControllerComponents,
-  implicit val mat:         Materializer,
   streamingParserService:   StreamingParserService,
   clientIdAction:           ClientIdAction,
   authAction:               AuthAction,
   returnMetadataService:    ReturnMetadataService,
   implicit val etmpService: ETMPService
-)(implicit ec:              ExecutionContext)
+)(implicit ec:              ExecutionContext, implicit val mat: Materializer)
     extends BackendController(cc)
-    with WithEtmpValidation
     with Logging {
 
   def streamingParser: BodyParser[Source[ByteString, _]] = BodyParser("Streaming NDJSON") { request =>
@@ -54,7 +53,7 @@ class ReturnsSubmissionController @Inject() (
     (Action andThen authAction andThen clientIdAction).async(streamingParser) { implicit request =>
       returnMetadataService.existsByIsaManagerReferenceAndReturnId(isaManagerReferenceNumber, returnId).flatMap {
         case true =>
-          validateEtmpAndThen(isaManagerReferenceNumber) { () =>
+          validateEtmpAndThen(isaManagerReferenceNumber) {
             val source: Source[ByteString, _] = request.body
             val validatedStream = streamingParserService.validatedStream(source)
             streamingParserService
@@ -74,4 +73,22 @@ class ReturnsSubmissionController @Inject() (
           Future.successful(NotFound(Json.toJson(ReturnIdNotMatchedErr: ErrorResponse)))
       }
     }
+
+  private def validateEtmpAndThen(isaManagerReference: String)(block: => Future[Result])(implicit hc: HeaderCarrier): Future[Result] =
+    etmpService
+      .validateEtmpSubmissionEligibility(isaManagerReference) // Now returns Future[Either[ErrorResponse, (Unit, Unit)]]
+      .flatMap {
+        case Right(_) =>
+          block
+        case Left(error: ErrorResponse) =>
+          error match {
+            case ReportingWindowClosed | ObligationClosed =>
+              Future.successful(Forbidden(Json.toJson(error)))
+            case MultipleErrorResponse(_, _, errors) if errors.exists(e => e == ReportingWindowClosed || e == ObligationClosed) =>
+              Future.successful(Forbidden(Json.toJson(error)))
+            case _ =>
+              Future.successful(InternalServerError(Json.toJson(error)))
+          }
+      }
+
 }

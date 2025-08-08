@@ -16,9 +16,7 @@
 
 package controllers
 
-import cats.data.EitherT
 import org.apache.pekko.Done
-import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers._
@@ -29,7 +27,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.controllers.ReturnsSubmissionController
+import uk.gov.hmrc.disareturns.controllers.SubmitReturnsController
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaAccount, IsaType, StandardIsaTransfer}
 import utils.BaseUnitSpec
@@ -37,16 +35,15 @@ import utils.BaseUnitSpec
 import java.time.LocalDate
 import scala.concurrent.Future
 
-class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
+class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
-  val controller: ReturnsSubmissionController = app.injector.instanceOf[ReturnsSubmissionController]
+  val controller: SubmitReturnsController = app.injector.instanceOf[SubmitReturnsController]
 
   val isaManagerRef = "Z123456"
   val boxId         = "box-123"
   val returnId      = "return-789"
-  val obligation:            EtmpObligations     = EtmpObligations(false)
-  val reportingWindow:       EtmpReportingWindow = EtmpReportingWindow(true)
-  implicit val materializer: Materializer        = app.materializer
+  val obligation:      EtmpObligations     = EtmpObligations(false)
+  val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
 
   val ndJsonLine =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
@@ -78,24 +75,19 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
     "taxYear"          -> LocalDate.now.getYear
   )
 
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    reset(mockETMPService, mockPPNSService, mockReturnMetadataService)
-  }
-
   "ReturnsSubmissionController#submit" should {
 
     "return 204 when processing is successful" in {
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+      when(mockMonthlyReportDocumentService.existsByIsaManagerReferenceAndReturnId(any(), any()))
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
         .thenReturn(Future.successful(Done))
-      when(mockReportingRepository.insertBatch(any(), any(), any()))
-        .thenReturn(Future.successful())
+      when(mockMonthlyReportDocumentRepository.insertBatch(any(), any(), any()))
+        .thenReturn(Future.successful((): Unit))
 
       val result = controller.submit(isaManagerReferenceNumber = isaManagerRef, returnId = returnId)(fakeRequestWithStream())
 
@@ -106,10 +98,10 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
       val ndJsonLineError =
         """{"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+      when(mockMonthlyReportDocumentService.existsByIsaManagerReferenceAndReturnId(any(), any()))
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
         .thenReturn(Future.failed(FirstLevelValidationException(NinoOrAccountNumMissingErr)))
 
@@ -125,10 +117,10 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+      when(mockMonthlyReportDocumentService.existsByIsaManagerReferenceAndReturnId(any(), any()))
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
         .thenReturn(
           Future.failed(
@@ -169,10 +161,10 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+      when(mockMonthlyReportDocumentService.existsByIsaManagerReferenceAndReturnId(any(), any()))
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
         .thenReturn(
           Future.failed(
@@ -215,10 +207,10 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
           |""".stripMargin
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+      when(mockMonthlyReportDocumentService.existsByIsaManagerReferenceAndReturnId(any(), any()))
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
         .thenReturn(
           Future.failed(
@@ -267,10 +259,10 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
 
     "return 403 when ETMP returns ErrorResponse" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+      when(mockMonthlyReportDocumentService.existsByIsaManagerReferenceAndReturnId(any(), any()))
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.leftT(ObligationClosed))
+        .thenReturn(Future.successful(Left(ObligationClosed)))
 
       val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream())
 
@@ -281,10 +273,10 @@ class ReturnsSubmissionControllerSpec extends BaseUnitSpec {
 
     "return 500 for unexpected errors" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      when(mockReturnMetadataService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+      when(mockMonthlyReportDocumentService.existsByIsaManagerReferenceAndReturnId(any(), any()))
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(EitherT.rightT((reportingWindow, obligation)))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(
         mockStreamingParserService.processValidatedStream(
           any[String],

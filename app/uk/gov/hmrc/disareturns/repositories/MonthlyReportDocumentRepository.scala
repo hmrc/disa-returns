@@ -27,7 +27,7 @@ import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class MonthlyReportingMetadataRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
+class MonthlyReportDocumentRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
     extends PlayMongoRepository[MonthlyReportDocument](
       mongoComponent = mc,
       collectionName = "reportingRepository",

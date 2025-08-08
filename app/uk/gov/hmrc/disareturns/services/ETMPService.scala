@@ -59,24 +59,25 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
 
   def validateEtmpSubmissionEligibility(
     isaManagerReferenceNumber: String
-  )(implicit hc:               HeaderCarrier, ec: ExecutionContext): EitherT[Future, ErrorResponse, (EtmpReportingWindow, EtmpObligations)] =
+  )(implicit hc:               HeaderCarrier, ec: ExecutionContext): Future[Either[ErrorResponse, (EtmpReportingWindow, EtmpObligations)]] =
     for {
-      reportingWindow <- getReportingWindowStatus()
-      obligations     <- getObligationStatus(isaManagerReferenceNumber)
-      validated <- EitherT.fromEither[Future] {
-                     val errors: Seq[ErrorResponse] = Seq(
-                       if (!reportingWindow.reportingWindowOpen) Some(ReportingWindowClosed) else None,
-                       if (obligations.obligationAlreadyMet) Some(ObligationClosed) else None
-                     ).flatten
+      reportingWindowEither <- getReportingWindowStatus().value
+      obligationsEither     <- getObligationStatus(isaManagerReferenceNumber).value
+    } yield for {
+      reportingWindow <- reportingWindowEither
+      obligations     <- obligationsEither
+      _ <- {
+        val errors: Seq[ErrorResponse] = Seq(
+          if (!reportingWindow.reportingWindowOpen) Some(ReportingWindowClosed) else None,
+          if (obligations.obligationAlreadyMet) Some(ObligationClosed) else None
+        ).flatten
 
-                     errors match {
-                       case Nil                => Right((reportingWindow, obligations))
-                       case singleError :: Nil => Left(singleError: ErrorResponse)
-                       case multipleErrors =>
-                         Left(
-                           MultipleErrorResponse(errors = multipleErrors): ErrorResponse
-                         )
-                     }
-                   }
-    } yield validated
+        errors match {
+          case Nil                => Right(())
+          case singleError :: Nil => Left(singleError)
+          case multipleErrors     => Left(MultipleErrorResponse(errors = multipleErrors))
+        }
+      }
+    } yield (reportingWindow, obligations)
+
 }

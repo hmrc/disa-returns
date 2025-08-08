@@ -18,7 +18,7 @@ package repositories
 
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaType, LifetimeIsaTransferAndClosure, MonthlyReportDocument, ReasonForClosure}
-import uk.gov.hmrc.disareturns.repositories.MonthlyReportingMetadataRepository
+import uk.gov.hmrc.disareturns.repositories.MonthlyReportDocumentRepository
 import uk.gov.hmrc.mongo.MongoComponent
 import utils.BaseUnitSpec
 
@@ -30,8 +30,8 @@ class MonthlyReportingMetadataRepositorySpec extends BaseUnitSpec {
   protected val mongoUri:         String         = s"mongodb://127.0.0.1:27017/$databaseName"
   lazy val mongoComponentForTest: MongoComponent = MongoComponent(mongoUri)
 
-  protected val repository: MonthlyReportingMetadataRepository =
-    new MonthlyReportingMetadataRepository(mongoComponentForTest)
+  protected val repository: MonthlyReportDocumentRepository =
+    new MonthlyReportDocumentRepository(mongoComponentForTest)
 
   "insertBatch" should {
     "insert a batch of IsaAccounts wrapped in MonthlyReportDocument" in new TestSetup {

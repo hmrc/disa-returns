@@ -48,7 +48,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
       when(mockPPNSConnector.getBox(testClientId))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).value.futureValue
+      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
 
       result shouldBe Right(expectedResponse.boxId)
     }
@@ -64,7 +64,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
       when(mockPPNSConnector.getBox(testClientId))
         .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).value.futureValue
+      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
 
       result shouldBe Left(Unauthorised)
     }
@@ -80,7 +80,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
       when(mockPPNSConnector.getBox(testClientId))
         .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).value.futureValue
+      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
 
       result shouldBe Left(InternalServerErr)
     }
@@ -102,7 +102,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
       when(mockPPNSConnector.getBox(testClientId))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).value.futureValue
+      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
 
       result shouldBe Left(InternalServerErr)
     }

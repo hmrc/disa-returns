@@ -23,7 +23,7 @@ import org.apache.pekko.util.ByteString
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
-import uk.gov.hmrc.disareturns.repositories.MonthlyReportingMetadataRepository
+import uk.gov.hmrc.disareturns.repositories.MonthlyReportDocumentRepository
 import uk.gov.hmrc.disareturns.services.validation.DataValidator
 import uk.gov.hmrc.disareturns.services.validation.DataValidator.jsErrorToDomainError
 
@@ -32,7 +32,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class StreamingParserService @Inject() (reportingRepository: MonthlyReportingMetadataRepository, implicit val mat: Materializer) {
+class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocumentRepository, implicit val mat: Materializer) {
 
   def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
     source
@@ -42,13 +42,13 @@ class StreamingParserService @Inject() (reportingRepository: MonthlyReportingMet
       .map { line =>
         Try(Json.parse(line)) match {
           case Success(jsValue) =>
-            DataValidator.FirstLevelValidatorExtractNinoAndAccount(jsValue) match {
+            DataValidator.firstLevelValidatorExtractNinoAndAccount(jsValue) match {
               case Right((nino, accountNumber)) =>
                 jsValue.validate[IsaAccount] match {
                   case JsSuccess(account, _) =>
                     DataValidator.validate(account) match {
-                      case Right(_)  => Right(account)
-                      case Left(err) => Left(SecondLevelValidationFailure(err))
+                      case None      => Right(account)
+                      case Some(err) => Left(SecondLevelValidationFailure(err))
                     }
                   case JsError(errors) =>
                     val domainErrors = jsErrorToDomainError(errors, nino, accountNumber)

@@ -29,9 +29,8 @@ import uk.gov.hmrc.disareturns.models.submission.isaAccounts._
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 import java.time.LocalDate
-import scala.concurrent.Future
 
-class ReturnsSubmissionControllerISpec extends BaseIntegrationSpec {
+class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
   val testIsaManagerReference = "Z123456"
   val testReturnId            = "return-789"

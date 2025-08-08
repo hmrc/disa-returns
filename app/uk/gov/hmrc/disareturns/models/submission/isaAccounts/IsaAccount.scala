@@ -49,47 +49,40 @@ object IsaAccount {
       case JsError(errors) => JsError(errors)
       case _               => JsError("Unknown error")
     }
+    def isLifetimeIsaType(opt: Option[IsaType]): Boolean = opt match {
+      case Some(IsaType.LIFETIME_CASH | IsaType.LIFETIME_STOCKS_AND_SHARES) => true
+      case _                                                                => false
+    }
 
-    reportingATransferPath.flatMap {
-      case true =>
-        isaTypeOpt match {
-          case Some(isaType @ (IsaType.LIFETIME_CASH | IsaType.LIFETIME_STOCKS_AND_SHARES)) =>
-            (closureDatePath, amountTransferredPath) match {
-              case (Some(closureDate), Some(amountTransferredPath)) =>
-                json.validate[LifetimeIsaTransferAndClosure]
-              case _ =>
-                reasonForClosurePath match {
-                  case Some(reasonForClosure) =>
-                    json.validate[LifetimeIsaTransferAndClosure]
-                  case _ =>
-                    json.validate[LifetimeIsaTransfer]
-                }
-            }
-          case Some(isaType) =>
-            json.validate[StandardIsaTransfer]
-          case None =>
-            handleIsaTypeError
-        }
+    reportingATransferPath.flatMap { reportingATransfer =>
+      (reportingATransfer, isaTypeOpt, closureDatePath, amountTransferredPath, reasonForClosurePath) match {
+        case (true, isaTypeOpt, Some(_), Some(_), _) if isLifetimeIsaType(isaTypeOpt) =>
+          json.validate[LifetimeIsaTransferAndClosure]
 
-      case false =>
-        isaTypeOpt match {
-          case Some(isaType @ (IsaType.LIFETIME_CASH | IsaType.LIFETIME_STOCKS_AND_SHARES)) =>
-            closureDatePath match {
-              case Some(closureDate) =>
-                json.validate[LifetimeIsaClosure]
-              case _ =>
-                reasonForClosurePath match {
-                  case Some(reasonForClosure) =>
-                    json.validate[LifetimeIsaClosure]
-                  case _ =>
-                    json.validate[LifetimeIsaNewSubscription]
-                }
-            }
-          case Some(isaType) =>
-            json.validate[StandardIsaNewSubscription]
-          case None =>
-            handleIsaTypeError
-        }
+        case (true, isaTypeOpt, _, _, Some(_)) if isLifetimeIsaType(isaTypeOpt) =>
+          json.validate[LifetimeIsaTransferAndClosure]
+
+        case (true, isaTypeOpt, _, _, _) if isLifetimeIsaType(isaTypeOpt) =>
+          json.validate[LifetimeIsaTransfer]
+
+        case (true, Some(_), _, _, _) =>
+          json.validate[StandardIsaTransfer]
+
+        case (false, isaTypeOpt, Some(_), _, _) if isLifetimeIsaType(isaTypeOpt) =>
+          json.validate[LifetimeIsaClosure]
+
+        case (false, isaTypeOpt, _, _, Some(_)) if isLifetimeIsaType(isaTypeOpt) =>
+          json.validate[LifetimeIsaClosure]
+
+        case (false, isaTypeOpt, _, _, _) if isLifetimeIsaType(isaTypeOpt) =>
+          json.validate[LifetimeIsaNewSubscription]
+
+        case (false, Some(_), _, _, _) =>
+          json.validate[StandardIsaNewSubscription]
+
+        case (_, None, _, _, _) =>
+          handleIsaTypeError
+      }
     }
   }
 

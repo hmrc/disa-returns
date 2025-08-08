@@ -25,7 +25,7 @@ import org.mockito.Mockito._
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaAccount, IsaType, LifetimeIsaTransferAndClosure, ReasonForClosure}
-import uk.gov.hmrc.disareturns.repositories.MonthlyReportingMetadataRepository
+import uk.gov.hmrc.disareturns.repositories.MonthlyReportDocumentRepository
 import uk.gov.hmrc.disareturns.services.StreamingParserService
 import utils.BaseUnitSpec
 
@@ -35,9 +35,9 @@ import scala.concurrent.{ExecutionContext, Future}
 class StreamingParserServiceSpec extends BaseUnitSpec {
 
   trait Setup {
-    implicit val ec:             ExecutionContext                   = scala.concurrent.ExecutionContext.Implicits.global
-    val mockReportingRepository: MonthlyReportingMetadataRepository = mock[MonthlyReportingMetadataRepository]
-    implicit val materializer:   Materializer                       = app.materializer
+    implicit val ec:             ExecutionContext                = scala.concurrent.ExecutionContext.Implicits.global
+    val mockReportingRepository: MonthlyReportDocumentRepository = mock[MonthlyReportDocumentRepository]
+    implicit val materializer:   Materializer                    = app.materializer
     val service = new StreamingParserService(mockReportingRepository, materializer)
 
     val testIsaAccount: LifetimeIsaTransferAndClosure = LifetimeIsaTransferAndClosure(

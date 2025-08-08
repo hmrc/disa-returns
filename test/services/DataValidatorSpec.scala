@@ -50,47 +50,49 @@ class DataValidatorSpec extends BaseUnitSpec {
   "FirstLevelValidatorExtractNinoAndAccount" should {
     "return Right when both fields exist and are strings" in {
       val json = Json.obj("nino" -> validNino, "accountNumber" -> validAccountNumber)
-      DataValidator.FirstLevelValidatorExtractNinoAndAccount(json) shouldBe Right(validNino -> validAccountNumber)
+      DataValidator.firstLevelValidatorExtractNinoAndAccount(json) shouldBe Right(validNino -> validAccountNumber)
     }
 
     "return Missing error when both fields are missing" in {
       val json = Json.obj()
-      DataValidator.FirstLevelValidatorExtractNinoAndAccount(json) shouldBe Left(NinoOrAccountNumMissingErr)
+      DataValidator.firstLevelValidatorExtractNinoAndAccount(json) shouldBe Left(NinoOrAccountNumMissingErr)
     }
 
     "return Missing error when only nino is missing" in {
       val json = Json.obj("accountNumber" -> validAccountNumber)
-      DataValidator.FirstLevelValidatorExtractNinoAndAccount(json) shouldBe Left(NinoOrAccountNumMissingErr)
+      DataValidator.firstLevelValidatorExtractNinoAndAccount(json) shouldBe Left(NinoOrAccountNumMissingErr)
     }
 
     "return Invalid error when both fields are present but wrong types" in {
       val json = Json.obj("nino" -> 123, "accountNumber" -> true)
-      DataValidator.FirstLevelValidatorExtractNinoAndAccount(json) shouldBe Left(NinoOrAccountNumInvalidErr)
+      DataValidator.firstLevelValidatorExtractNinoAndAccount(json) shouldBe Left(NinoOrAccountNumInvalidErr)
     }
   }
 
   "validateAccount" should {
     "pass for valid LifetimeIsaNewSubscription" in {
-      DataValidator.validateAccount(baseAccount) shouldBe Right(())
+      DataValidator.validateAccount(baseAccount) shouldBe None
     }
 
     "fail for invalid nino" in {
       val invalid = baseAccount.copy(nino = "INVALID")
       val result  = DataValidator.validateAccount(invalid)
-      result               shouldBe a[Left[_, _]]
-      result.left.get.code shouldBe "INVALID_NINO"
+      result.get.code    shouldBe "INVALID_NINO"
+      result.get.message shouldBe "The NINO provided is invalid"
     }
 
     "fail for empty first name" in {
       val invalid = baseAccount.copy(firstName = "")
       val result  = DataValidator.validateAccount(invalid)
-      result.left.get.code shouldBe "INVALID_FIRST_NAME"
+      result.get.code    shouldBe "INVALID_FIRST_NAME"
+      result.get.message shouldBe "First name must not be empty"
     }
 
     "fail for 1-decimal totalCurrentYearSubscriptionsToDate" in {
       val invalid = baseAccount.copy(totalCurrentYearSubscriptionsToDate = BigDecimal("12.5"))
       val result  = DataValidator.validateAccount(invalid)
-      result.left.get.code shouldBe "INVALID_TOTAL_CURRENT_YEAR_SUBSCRIPTIONS_TO_DATE"
+      result.get.code    shouldBe "INVALID_TOTAL_CURRENT_YEAR_SUBSCRIPTIONS_TO_DATE"
+      result.get.message shouldBe "Total current year subscriptions to date must have 2 decimal places (e.g. 123.45)"
     }
   }
 
@@ -114,12 +116,12 @@ class DataValidatorSpec extends BaseUnitSpec {
         lisaQualifyingAddition = validBigDecimal,
         lisaBonusClaim = validBigDecimal
       )
-      DataValidator.validateIsaAccountUniqueFields(account) shouldBe Right(())
+      DataValidator.validateIsaAccountUniqueFields(account) shouldBe None
     }
 
     "fail if lisaBonusClaim has too many decimals in LifetimeIsaClosure" in {
       val account = baseAccount.copy(lisaBonusClaim = BigDecimal("100.123"))
-      DataValidator.validateIsaAccountUniqueFields(account) shouldBe Left(
+      DataValidator.validateIsaAccountUniqueFields(account) shouldBe Some(
         SecondLevelValidationError(
           validNino,
           validAccountNumber,
@@ -146,19 +148,19 @@ class DataValidatorSpec extends BaseUnitSpec {
         amountTransferred = BigDecimal("200.00"),
         flexibleIsa = false
       )
-      DataValidator.validateIsaAccountUniqueFields(account) shouldBe Right(())
+      DataValidator.validateIsaAccountUniqueFields(account) shouldBe None
     }
   }
 
   "validate" should {
     "validate complete IsaAccount end-to-end" in {
-      DataValidator.validate(baseAccount) shouldBe Right(())
+      DataValidator.validate(baseAccount) shouldBe None
     }
 
     "fail if any top-level validation fails" in {
       val invalid = baseAccount.copy(accountNumber = "!")
       val result  = DataValidator.validate(invalid)
-      result shouldBe Left(SecondLevelValidationError(validNino, "!", "INVALID_ACCOUNT_NUMBER", "The ACCOUNT_NUMBER provided is invalid"))
+      result shouldBe Some(SecondLevelValidationError(validNino, "!", "INVALID_ACCOUNT_NUMBER", "The ACCOUNT_NUMBER provided is invalid"))
     }
   }
 
@@ -166,22 +168,26 @@ class DataValidatorSpec extends BaseUnitSpec {
     "map JsError with missing field to domain error" in {
       val jsErrors = Seq(JsPath \ "firstName" -> Seq(JsonValidationError("error.path.missing")))
       val result   = DataValidator.jsErrorToDomainError(jsErrors, validNino, validAccountNumber)
-      result should contain only SecondLevelValidationError(
-        validNino,
-        validAccountNumber,
-        "MISSING_FIRST_NAME",
-        "First name field is missing"
+      result shouldBe Seq(
+        SecondLevelValidationError(
+          validNino,
+          validAccountNumber,
+          "MISSING_FIRST_NAME",
+          "First name field is missing"
+        )
       )
     }
 
     "map JsError with invalid type to domain error" in {
       val jsErrors = Seq(JsPath \ "marketValueOfAccount" -> Seq(JsonValidationError("error.expected.jsnumber")))
       val result   = DataValidator.jsErrorToDomainError(jsErrors, validNino, validAccountNumber)
-      result should contain only SecondLevelValidationError(
-        validNino,
-        validAccountNumber,
-        "INVALID_MARKET_VALUE_OF_ACCOUNT",
-        "Market value of account is not formatted correctly"
+      result shouldBe Seq(
+        SecondLevelValidationError(
+          validNino,
+          validAccountNumber,
+          "INVALID_MARKET_VALUE_OF_ACCOUNT",
+          "Market value of account is not formatted correctly"
+        )
       )
     }
 

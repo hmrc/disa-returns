@@ -29,7 +29,7 @@ import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, PPNSConnector}
-import uk.gov.hmrc.disareturns.repositories.MonthlyReportingMetadataRepository
+import uk.gov.hmrc.disareturns.repositories.MonthlyReportDocumentRepository
 import uk.gov.hmrc.disareturns.services.{ETMPService, PPNSService, ReturnMetadataService, StreamingParserService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
@@ -45,31 +45,32 @@ abstract class BaseUnitSpec
     with ScalaFutures
     with MockitoSugar
     with DefaultAwaitTimeout
-    with GuiceOneAppPerSuite {
+    with GuiceOneAppPerSuite
+    with TestMocks {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   implicit val hc: HeaderCarrier    = HeaderCarrier()
 
   //MOCKS
-  val mockHttpClient:             HttpClientV2                       = mock[HttpClientV2]
-  val mockAppConfig:              AppConfig                          = mock[AppConfig]
-  val mockRequestBuilder:         RequestBuilder                     = mock[RequestBuilder]
-  val mockPPNSService:            PPNSService                        = mock[PPNSService]
-  val mockPPNSConnector:          PPNSConnector                      = mock[PPNSConnector]
-  val mockETMPConnector:          ETMPConnector                      = mock[ETMPConnector]
-  val mockETMPService:            ETMPService                        = mock[ETMPService]
-  val mockBaseConnector:          BaseConnector                      = mock[BaseConnector]
-  val mockReturnMetadataService:  ReturnMetadataService              = mock[ReturnMetadataService]
-  val mockReportingRepository:    MonthlyReportingMetadataRepository = mock[MonthlyReportingMetadataRepository]
-  val mockAuthConnector:          AuthConnector                      = mock[AuthConnector]
-  val mockStreamingParserService: StreamingParserService             = mock[StreamingParserService]
+  val mockHttpClient:                      HttpClientV2                    = mock[HttpClientV2]
+  val mockAppConfig:                       AppConfig                       = mock[AppConfig]
+  val mockRequestBuilder:                  RequestBuilder                  = mock[RequestBuilder]
+  val mockPPNSService:                     PPNSService                     = mock[PPNSService]
+  val mockPPNSConnector:                   PPNSConnector                   = mock[PPNSConnector]
+  val mockETMPConnector:                   ETMPConnector                   = mock[ETMPConnector]
+  val mockETMPService:                     ETMPService                     = mock[ETMPService]
+  val mockBaseConnector:                   BaseConnector                   = mock[BaseConnector]
+  val mockMonthlyReportDocumentService:    ReturnMetadataService           = mock[ReturnMetadataService]
+  val mockMonthlyReportDocumentRepository: MonthlyReportDocumentRepository = mock[MonthlyReportDocumentRepository]
+  val mockAuthConnector:                   AuthConnector                   = mock[AuthConnector]
+  val mockStreamingParserService:          StreamingParserService          = mock[StreamingParserService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .overrides(
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[ETMPService].toInstance(mockETMPService),
       bind[PPNSService].toInstance(mockPPNSService),
-      bind[ReturnMetadataService].toInstance(mockReturnMetadataService),
+      bind[ReturnMetadataService].toInstance(mockMonthlyReportDocumentService),
       bind[StreamingParserService].toInstance(mockStreamingParserService)
     )
     .build()
