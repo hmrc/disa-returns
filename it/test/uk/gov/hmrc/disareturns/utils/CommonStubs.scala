@@ -17,7 +17,8 @@
 package uk.gov.hmrc.disareturns.utils
 
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, post, stubFor, urlEqualTo}
-import play.api.http.Status.OK
+import play.api.http.Status
+import play.api.http.Status.{OK, UNAUTHORIZED}
 import play.api.libs.json.JsObject
 
 trait CommonStubs {
@@ -27,6 +28,16 @@ trait CommonStubs {
       post("/auth/authorise")
         .willReturn {
           aResponse.withStatus(OK).withBody("{}")
+        }
+    }
+
+  def stubAuthFail(): Unit =
+    stubFor {
+      post("/auth/authorise")
+        .willReturn {
+          aResponse()
+            .withStatus(Status.UNAUTHORIZED)
+            .withBody("{}")
         }
     }
 

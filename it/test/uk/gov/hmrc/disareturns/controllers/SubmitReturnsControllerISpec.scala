@@ -105,7 +105,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
     "return 204 for successful submission - LifetimeIsaTransfer" in {
       val validLifetimeIsaTransfer =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"2025-06-01","amountTransferred":"10001.00", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"2025-06-01","amountTransferred":10001.00, "lisaQualifyingAddition":10000.00, "lisaBonusClaim":10000.00}"""
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
@@ -138,7 +138,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
     "return 204 for successful submission - LifetimeIsaTransferAndClosure" in {
       val validLifetimeIsaTransferAndClosure =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"2025-06-01","amountTransferred":"10001.00", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00", "closureDate":"2025-06-01", "reasonForClosure":"CANCELLED"}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"2025-06-01","amountTransferred":10001.00, "lisaQualifyingAddition":10000.00, "lisaBonusClaim":10000.00, "closureDate":"2025-06-01", "reasonForClosure":"CANCELLED"}"""
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val result = initiateRequest(validLifetimeIsaTransferAndClosure)
@@ -379,11 +379,32 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
     }
 
-    "return 400 with correct error response body request body with invalid DOB" in {
+    "return 400 with correct error response body request body with invalid DOB - wrong format" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidJson =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+
+      val result = initiateRequest(invalidJson)
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_DATE_OF_BIRTH",
+            message = "Date of birth is not formatted correctly"
+          )
+        )
+      )
+    }
+
+    "return 400 with correct error response body request body with invalid DOB - JsNumber" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidJson =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","lastName":"Last1","dateOfBirth":123,"isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
       val result = initiateRequest(invalidJson)
 
@@ -1000,6 +1021,16 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
     }
 
+    "return 400 with correct error response body when ND JSON payload is empty" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+
+      val result = initiateRequest(requestBody = "")
+
+      result.status                 shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe BadRequestErr("ND Json payload is empty.")
+    }
+
     "return 400 with correct error response body request body when missing errors displayed across multiple records submitted" in {
       val invalidNdJsonLine1 =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
@@ -1016,7 +1047,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "INVALID_FIRST_NAME",
-            message = "First name must not be empty"
+            message = "First name is not formatted correctly"
           ),
           SecondLevelValidationError(
             nino = "AB000002C",
@@ -1038,7 +1069,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val result = initiateRequest(requestBody = validNdJson, isaManagerReference = "incorrect-isa-ref")
       result.status                 shouldBe NOT_FOUND
       result.json.as[ErrorResponse] shouldBe ReturnIdNotMatchedErr
-
     }
 
     "return NOT_FOUND with correct error message if isaManagerRef matches in mongo but returnId does not" in {
@@ -1051,6 +1081,12 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val result = initiateRequest(requestBody = validNdJson, isaManagerReference = "incorrect-isa-ref", returnId = "incorrect-return-id")
       result.status                 shouldBe NOT_FOUND
       result.json.as[ErrorResponse] shouldBe ReturnIdNotMatchedErr
+    }
+
+    "return UNAUTHORISED if auth checks fail" in {
+      val result = initiateRequest(validNdJson, withAuth = false)
+      result.status                 shouldBe UNAUTHORIZED
+      result.json.as[ErrorResponse] shouldBe BadRequestErr("MissingResponseHeader")
     }
 
     "return FORBIDDEN if ETMP obligationAlreadyMet check returns true" in {
@@ -1083,7 +1119,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val result = initiateRequest(validNdJson)
       result.status                 shouldBe FORBIDDEN
       result.json.as[ErrorResponse] shouldBe MultipleErrorResponse(errors = Seq(ReportingWindowClosed, ObligationClosed))
-
     }
 
     "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from ETMP" in {
@@ -1111,9 +1146,10 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     headers:             Seq[(String, String)] = testHeaders,
     isaManagerReference: String = testIsaManagerReference,
     returnId:            String = testReturnId,
-    withReturnMetaData:  Boolean = true
+    withReturnMetaData:  Boolean = true,
+    withAuth:            Boolean = true
   ): WSResponse = {
-    stubAuth()
+    if (withAuth) stubAuth() else stubAuthFail()
     await(returnMetadataRepository.dropCollection())
     await(reportingMetadataRepository.dropCollection())
     if (withReturnMetaData) setupReturnMetadataRepository()

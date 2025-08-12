@@ -28,7 +28,6 @@ import play.api.mvc.{Action, BodyParser, ControllerComponents, Result}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.services.{ETMPService, ReturnMetadataService, StreamingParserService}
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -53,42 +52,35 @@ class SubmitReturnsController @Inject() (
     (Action andThen authAction andThen clientIdAction).async(streamingParser) { implicit request =>
       returnMetadataService.existsByIsaManagerReferenceAndReturnId(isaManagerReferenceNumber, returnId).flatMap {
         case true =>
-          validateEtmpAndThen(isaManagerReferenceNumber) {
-            val source: Source[ByteString, _] = request.body
-            val validatedStream = streamingParserService.validatedStream(source)
-            streamingParserService
-              .processValidatedStream(isaManagerReferenceNumber, returnId, validatedStream)
-              .map(_ => NoContent)
-              .recover {
-                case FirstLevelValidationException(err) =>
-                  BadRequest(Json.toJson(err))
-                case SecondLevelValidationException(errResponse) =>
-                  BadRequest(Json.toJson(errResponse))
-                case ex =>
-                  logger.error(s"streamingParserService.processValidatedStream has failed with the exception: $ex")
-                  InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
-              }
-          }
+          etmpService
+            .validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
+            .flatMap {
+              case Right(_) =>
+                val source: Source[ByteString, _] = request.body
+                val validatedStream = streamingParserService.process(source)
+                streamingParserService
+                  .processValidatedStream(isaManagerReferenceNumber, returnId, validatedStream)
+                  .map(_ => NoContent)
+                  .recover {
+                    case FirstLevelValidationException(err) =>
+                      BadRequest(Json.toJson(err))
+                    case SecondLevelValidationException(errResponse) =>
+                      BadRequest(Json.toJson(errResponse))
+                    case ex =>
+                      logger.error(s"streamingParserService.processValidatedStream has failed with the exception: $ex")
+                      InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
+                  }
+              case Left(error: ErrorResponse) =>
+                Future.successful(toHttpError(error))
+            }
         case false =>
           Future.successful(NotFound(Json.toJson(ReturnIdNotMatchedErr: ErrorResponse)))
       }
     }
 
-  private def validateEtmpAndThen(isaManagerReference: String)(block: => Future[Result])(implicit hc: HeaderCarrier): Future[Result] =
-    etmpService
-      .validateEtmpSubmissionEligibility(isaManagerReference) // Now returns Future[Either[ErrorResponse, (Unit, Unit)]]
-      .flatMap {
-        case Right(_) =>
-          block
-        case Left(error: ErrorResponse) =>
-          error match {
-            case ReportingWindowClosed | ObligationClosed =>
-              Future.successful(Forbidden(Json.toJson(error)))
-            case MultipleErrorResponse(_, _, errors) if errors.exists(e => e == ReportingWindowClosed || e == ObligationClosed) =>
-              Future.successful(Forbidden(Json.toJson(error)))
-            case _ =>
-              Future.successful(InternalServerError(Json.toJson(error)))
-          }
-      }
-
+  private def toHttpError(error: ErrorResponse): Result = error match {
+    case InternalServerErr => InternalServerError(Json.toJson(error))
+    case Unauthorised      => Unauthorized(Json.toJson(error))
+    case _                 => Forbidden(Json.toJson(error))
+  }
 }

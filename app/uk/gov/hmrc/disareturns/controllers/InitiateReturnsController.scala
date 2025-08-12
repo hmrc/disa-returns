@@ -61,7 +61,7 @@ class InitiateReturnsController @Inject() (
               }
           }
         }
-      } else Future.successful(BadRequest(Json.toJson(BadRequestInvalidIsaRefErr: ErrorResponse)))
+      } else Future.successful(BadRequest(Json.toJson(BadRequestErr(message = "ISA Manager Reference Number format is invalid"): ErrorResponse)))
     }
 
   private def buildSuccessResponse(returnId: String, submissionRequest: SubmissionRequest, boxId: String): SuccessResponse =

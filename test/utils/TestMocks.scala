@@ -17,7 +17,7 @@
 package utils
 
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.ReasonForClosure
+import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaType, ReasonForClosure}
 
 trait TestMocks {
 
@@ -83,7 +83,7 @@ trait TestMocks {
     "middleName"                          -> "A",
     "lastName"                            -> "Johnson",
     "dateOfBirth"                         -> "1985-04-04",
-    "isaType"                             -> "LIFETIME_CASH",
+    "isaType"                             -> IsaType.LIFETIME_CASH,
     "reportingATransfer"                  -> true,
     "dateOfFirstSubscription"             -> "2019-01-01",
     "dateOfLastSubscription"              -> "2025-01-01",
@@ -128,6 +128,5 @@ trait TestMocks {
     "amountTransferred"                   -> 5000.00,
     "flexibleIsa"                         -> false
   )
-
 
 }

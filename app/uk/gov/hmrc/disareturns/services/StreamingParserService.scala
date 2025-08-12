@@ -34,6 +34,16 @@ import scala.util.{Failure, Success, Try}
 @Singleton
 class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocumentRepository, implicit val mat: Materializer) {
 
+  def process(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] = {
+    val validated = validatedStream(source)
+    validated.prefixAndTail(1).flatMapConcat {
+      case (Seq(), _) =>
+        Source.single(Left(FirstLevelValidationFailure(BadRequestErr("ND Json payload is empty."): ErrorResponse)))
+      case (Seq(first), tail) =>
+        tail.prepend(Source.single(first))
+    }
+  }
+
   def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
     source
       .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = false))

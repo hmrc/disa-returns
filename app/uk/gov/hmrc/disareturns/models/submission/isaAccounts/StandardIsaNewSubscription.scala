@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.disareturns.models.submission.isaAccounts
 
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
+import uk.gov.hmrc.disareturns.utils.JsonImplicits._
 
 import java.time.LocalDate
 
@@ -37,5 +39,21 @@ case class StandardIsaNewSubscription(
 ) extends IsaAccount
 
 object StandardIsaNewSubscription {
+
+  implicit val standardIsaNewSubscriptionReads: Reads[StandardIsaNewSubscription] = (
+    (__ \ "accountNumber").read[String] and
+      (__ \ "nino").read[String] and
+      (__ \ "firstName").read[String] and
+      (__ \ "middleName").readNullable[String] and
+      (__ \ "lastName").read[String] and
+      (__ \ "dateOfBirth").read[LocalDate] and
+      (__ \ "isaType").read[IsaType] and
+      (__ \ "reportingATransfer").read[Boolean] and
+      (__ \ "dateOfLastSubscription").read[LocalDate] and
+      (__ \ "totalCurrentYearSubscriptionsToDate").read[BigDecimal] and
+      (__ \ "marketValueOfAccount").read[BigDecimal] and
+      (__ \ "flexibleIsa").read[Boolean]
+  )(StandardIsaNewSubscription.apply _)
+
   implicit val format: OFormat[StandardIsaNewSubscription] = Json.format[StandardIsaNewSubscription]
 }

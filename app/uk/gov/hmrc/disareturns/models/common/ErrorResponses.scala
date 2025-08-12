@@ -46,24 +46,15 @@ case object InternalServerErr extends ErrorResponse {
   val code    = "INTERNAL_SERVER_ERROR"
   val message = "There has been an issue processing your request"
 }
-case object BadRequestInvalidIsaRefErr extends ErrorResponse {
-  val code    = "BAD_REQUEST"
-  val message = "ISA Manager Reference Number format is invalid"
-}
-
-case object BadRequestMissingHeaderErr extends ErrorResponse {
-  val code    = "BAD_REQUEST"
-  val message = "Missing required header: X-Client-ID"
-}
 
 case object NinoOrAccountNumMissingErr extends ErrorResponse {
   val code    = "NINO_OR_ACC_NUM_MISSING"
-  val message = "All models send must include an account number and nino in order to process correctly"
+  val message = "All models sent must include an account number and nino in order to process correctly"
 }
 
 case object NinoOrAccountNumInvalidErr extends ErrorResponse {
   val code    = "NINO_OR_ACC_NUM_INVALID"
-  val message = "All models send must include a valid account number and nino in order to process correctly"
+  val message = "All models sent must include a valid account number and nino in order to process correctly"
 }
 
 case object MalformedJsonFailureErr extends ErrorResponse {
@@ -77,6 +68,9 @@ case object ReturnIdNotMatchedErr extends ErrorResponse {
 }
 
 object ErrorResponse {
+
+  implicit val badRequestErrReads: Reads[BadRequestErr] =
+    (JsPath \ "message").read[String].map(BadRequestErr.apply)
 
   private val singletons: Map[String, ErrorResponse] = Map(
     ObligationClosed.code           -> ObligationClosed,
@@ -96,6 +90,8 @@ object ErrorResponse {
           Json.fromJson[MultipleErrorResponse](json)
         case "VALIDATION_FAILURE" if (json \ "errors").validate[Seq[SecondLevelValidationError]].isSuccess =>
           json.validate[SecondLevelValidationResponse]
+        case "BAD_REQUEST" =>
+          badRequestErrReads.reads(json)
         case code if singletons.contains(code) =>
           JsSuccess(singletons(code))
         case other =>

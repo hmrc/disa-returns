@@ -109,7 +109,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
       status(result)                                 shouldBe BAD_REQUEST
       (contentAsJson(result) \ "code").as[String]    shouldBe "NINO_OR_ACC_NUM_MISSING"
-      (contentAsJson(result) \ "message").as[String] shouldBe "All models send must include an account number and nino in order to process correctly"
+      (contentAsJson(result) \ "message").as[String] shouldBe "All models sent must include an account number and nino in order to process correctly"
     }
 
     "return 400 for SecondLevelValidationException - invalid DOB" in {
@@ -255,6 +255,21 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       (error2 \ "accountNumber").as[String] shouldBe "STD000002"
       (error2 \ "code").as[String]          shouldBe "INVALID_FIRST_NAME"
       (error2 \ "message").as[String]       shouldBe "First name must not be empty"
+    }
+
+    "return 401 Unauthorised  when ETMP responds with an unauthorised error" in {
+      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Left(Unauthorised)))
+      val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
+        .withHeaders("X-Client-ID" -> "client-abc")
+        .withBody(validSubmissionJson)
+
+      val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream())
+
+      status(result)                                 shouldBe UNAUTHORIZED
+      (contentAsJson(result) \ "message").as[String] shouldBe "Not authorised to access this service"
+      (contentAsJson(result) \ "code").as[String]    shouldBe "UNAUTHORISED"
     }
 
     "return 403 when ETMP returns ErrorResponse" in {

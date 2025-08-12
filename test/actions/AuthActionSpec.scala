@@ -58,7 +58,7 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val result = action.invokeBlock(request, testBlock)
 
-      status(result) shouldBe BAD_REQUEST
+      status(result) shouldBe UNAUTHORIZED
       contentAsJson(result) shouldBe Json.obj(
         "code"    -> "BAD_REQUEST",
         "message" -> "Missing enrolment"

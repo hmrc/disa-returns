@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.disareturns.services.validation
 
-import play.api.libs.json.{JsError, JsPath, JsSuccess, JsUndefined, JsValue, JsonValidationError}
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, NinoOrAccountNumInvalidErr, NinoOrAccountNumMissingErr, SecondLevelValidationError}
+import play.api.libs.json._
+import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts._
+import uk.gov.hmrc.disareturns.utils.JsonImplicits._
 
 import scala.collection.Seq
 
@@ -30,8 +31,8 @@ object DataValidator {
     val ninoPath    = json \ "nino"
     val accountPath = json \ "accountNumber"
 
-    val ninoResult          = ninoPath.validate[String]
-    val accountNumberResult = accountPath.validate[String]
+    val ninoResult          = ninoPath.validate[String](nonEmptyStringReads)
+    val accountNumberResult = accountPath.validate[String](nonEmptyStringReads)
 
     (ninoResult, accountNumberResult) match {
       case (JsSuccess(nino, _), JsSuccess(accountNumber, _)) =>
@@ -84,11 +85,11 @@ object DataValidator {
       val fieldName     = path.toString.stripPrefix("/").split("/").last
       val errorMessages = errors.flatMap(_.messages)
       val (code, message) = errorMessages.toList match {
-        case msgs if msgs.exists(_.contains("error.path.missing")) =>
+        case msgs if msgs.exists(_.startsWith("error.path.missing")) =>
           fieldName match {
             case field => buildMissingFieldError(field)
           }
-        case msgs if msgs.exists(_.contains("error.expected")) =>
+        case msgs if msgs.exists(_.startsWith("error.expected")) =>
           fieldName match {
             case field => buildInvalidFieldError(field)
           }
@@ -126,19 +127,6 @@ object DataValidator {
         )
       )
 
-  def validateNonEmptyString(
-    value:       String,
-    fieldName:   String,
-    identifiers: AccountIdentifiers
-  ): Option[SecondLevelValidationError] =
-    validateField[String](
-      value,
-      (v: String) => v.trim.nonEmpty,
-      s"INVALID_${fieldName.toUpperCase}",
-      s"${humanizeFieldName(fieldName)} must not be empty",
-      identifiers
-    )
-
   def validateTwoDecimal(
     value:       BigDecimal,
     fieldName:   String,
@@ -173,62 +161,61 @@ object DataValidator {
 
     runValidations(
       Seq(
-        validateRegex(account.nino, ninoRegex, "INVALID_NINO", "The NINO provided is invalid", identifiers),
-        validateRegex(account.accountNumber, accountNumberRegex, "INVALID_ACCOUNT_NUMBER", "The ACCOUNT_NUMBER provided is invalid", identifiers),
-        validateNonEmptyString(account.firstName, "first_name", identifiers),
-        validateNonEmptyString(account.lastName, "last_name", identifiers),
+        validateRegex(account.nino, ninoRegex, "INVALID_NINO", "The Nino provided is not formatted correctly", identifiers),
+        validateRegex(
+          account.accountNumber,
+          accountNumberRegex,
+          "INVALID_ACCOUNT_NUMBER",
+          "The Account number provided is not formatted correctly",
+          identifiers
+        ),
         validateTwoDecimal(account.totalCurrentYearSubscriptionsToDate, "total_current_year_subscriptions_to_date", identifiers),
         validateTwoDecimal(account.marketValueOfAccount, "market_value_of_account", identifiers)
       )
     )
   }
 
-  def validateIsaAccountUniqueFields(account: IsaAccount): Option[SecondLevelValidationError] = account match {
-
-    case a: LifetimeIsaClosure =>
-      val ids = AccountIdentifiers(a.nino, a.accountNumber)
-      runValidations(
+  def validateIsaAccountUniqueFields(account: IsaAccount): Option[SecondLevelValidationError] = {
+    val validations: Seq[Option[SecondLevelValidationError]] = account match {
+      case a: LifetimeIsaClosure =>
+        val ids = AccountIdentifiers(a.nino, a.accountNumber)
         Seq(
           validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
           validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
         )
-      )
 
-    case a: LifetimeIsaNewSubscription =>
-      val ids = AccountIdentifiers(a.nino, a.accountNumber)
-      runValidations(
+      case a: LifetimeIsaNewSubscription =>
+        val ids = AccountIdentifiers(a.nino, a.accountNumber)
         Seq(
           validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
           validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
         )
-      )
 
-    case a: LifetimeIsaTransfer =>
-      val ids = AccountIdentifiers(a.nino, a.accountNumber)
-      runValidations(
+      case a: LifetimeIsaTransfer =>
+        val ids = AccountIdentifiers(a.nino, a.accountNumber)
         Seq(
           validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
           validateTwoDecimal(a.amountTransferred, "amount_transferred", ids),
           validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
         )
-      )
 
-    case a: LifetimeIsaTransferAndClosure =>
-      val ids = AccountIdentifiers(a.nino, a.accountNumber)
-      runValidations(
+      case a: LifetimeIsaTransferAndClosure =>
+        val ids = AccountIdentifiers(a.nino, a.accountNumber)
         Seq(
           validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
           validateTwoDecimal(a.amountTransferred, "amount_transferred", ids),
           validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
         )
-      )
 
-    case _: StandardIsaNewSubscription =>
-      None
+      case _: StandardIsaNewSubscription =>
+        Seq.empty
 
-    case a: StandardIsaTransfer =>
-      val ids = AccountIdentifiers(a.nino, a.accountNumber)
-      validateTwoDecimal(a.amountTransferred, "amount_transferred", ids)
+      case a: StandardIsaTransfer =>
+        val ids = AccountIdentifiers(a.nino, a.accountNumber)
+        Seq(validateTwoDecimal(a.amountTransferred, "amount_transferred", ids))
+    }
+
+    runValidations(validations)
   }
 
   def validate(account: IsaAccount): Option[SecondLevelValidationError] =

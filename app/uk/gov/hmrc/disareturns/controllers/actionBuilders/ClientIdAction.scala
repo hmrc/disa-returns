@@ -21,7 +21,7 @@ import jakarta.inject.Singleton
 import play.api.libs.json.Json
 import play.api.mvc.Results.BadRequest
 import play.api.mvc.{ActionRefiner, Request, Result}
-import uk.gov.hmrc.disareturns.models.common.{BadRequestMissingHeaderErr, ClientIdRequest, ErrorResponse}
+import uk.gov.hmrc.disareturns.models.common.{BadRequestErr, ClientIdRequest, ErrorResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,7 +37,7 @@ class ClientIdAction @Inject() (implicit ec: ExecutionContext) extends ActionRef
       case Some(clientId) =>
         Future.successful(Right(ClientIdRequest(clientId, request)))
       case None =>
-        Future.successful(Left(BadRequest(Json.toJson(BadRequestMissingHeaderErr: ErrorResponse))))
+        Future.successful(Left(BadRequest(Json.toJson(BadRequestErr(message = "Missing required header: X-Client-ID"): ErrorResponse))))
     }
   }
 }

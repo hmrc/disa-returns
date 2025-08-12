@@ -27,8 +27,8 @@ import java.time.LocalDate
 class DataValidatorSpec extends BaseUnitSpec {
   val validNino          = "AA123456A"
   val validAccountNumber = "ABC1234567"
-  val validDate          = LocalDate.parse("2000-01-01")
-  val validBigDecimal    = BigDecimal("100.00")
+  val validDate:       LocalDate  = LocalDate.parse("2000-01-01")
+  val validBigDecimal: BigDecimal = BigDecimal("100.00")
 
   def baseAccount: LifetimeIsaNewSubscription = LifetimeIsaNewSubscription(
     accountNumber = validAccountNumber,
@@ -78,14 +78,7 @@ class DataValidatorSpec extends BaseUnitSpec {
       val invalid = baseAccount.copy(nino = "INVALID")
       val result  = DataValidator.validateAccount(invalid)
       result.get.code    shouldBe "INVALID_NINO"
-      result.get.message shouldBe "The NINO provided is invalid"
-    }
-
-    "fail for empty first name" in {
-      val invalid = baseAccount.copy(firstName = "")
-      val result  = DataValidator.validateAccount(invalid)
-      result.get.code    shouldBe "INVALID_FIRST_NAME"
-      result.get.message shouldBe "First name must not be empty"
+      result.get.message shouldBe "The Nino provided is not formatted correctly"
     }
 
     "fail for 1-decimal totalCurrentYearSubscriptionsToDate" in {
@@ -160,7 +153,9 @@ class DataValidatorSpec extends BaseUnitSpec {
     "fail if any top-level validation fails" in {
       val invalid = baseAccount.copy(accountNumber = "!")
       val result  = DataValidator.validate(invalid)
-      result shouldBe Some(SecondLevelValidationError(validNino, "!", "INVALID_ACCOUNT_NUMBER", "The ACCOUNT_NUMBER provided is invalid"))
+      result shouldBe Some(
+        SecondLevelValidationError(validNino, "!", "INVALID_ACCOUNT_NUMBER", "The Account number provided is not formatted correctly")
+      )
     }
   }
 
