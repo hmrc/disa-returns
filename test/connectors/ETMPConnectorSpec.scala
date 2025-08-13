@@ -76,7 +76,6 @@ class ETMPConnectorSpec extends BaseUnitSpec {
         .thenAnswer { invocation =>
           val future = invocation
             .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
-          // Wrap with recover so that failures in Future are converted to Left
           EitherT(
             future.recover { case e =>
               Left(UpstreamErrorResponse(s"Unexpected error: ${e.getMessage}", 500, 500))

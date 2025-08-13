@@ -1059,6 +1059,27 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
     }
 
+    "return 400 with correct error response body request body with duplicate nino fields in the ndJson payload" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidJson =
+        """{"accountNumber":"STD000001","nino":"AB000001C","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":false,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","closureDate":"2025-06-01", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
+
+      val result = initiateRequest(invalidJson)
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "DUPLICATE_NINO",
+            message = "Duplicate Nino field detected in this record"
+          )
+        )
+      )
+    }
+
     "return NOT_FOUND with correct error message if not ReturnMetaData exists" in {
       val result = initiateRequest(requestBody = validNdJson, withReturnMetaData = false)
       result.status                 shouldBe NOT_FOUND

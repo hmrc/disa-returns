@@ -20,7 +20,7 @@ import org.apache.pekko.Done
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
-import play.api.libs.json.{JsError, JsSuccess, Json}
+import play.api.libs.json.{JsError, JsPath, JsResult, JsSuccess, JsValue, Json, JsonValidationError}
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.repositories.MonthlyReportDocumentRepository
@@ -44,6 +44,45 @@ class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocume
     }
   }
 
+  def findDuplicateFields(line: String): JsResult[Unit] = {
+    val keys = "\"([^\"]+)\"\\s*:".r.findAllMatchIn(line).map(_.group(1)).toList
+    keys.diff(keys.distinct).headOption match {
+      case Some(dupKey) =>
+        JsError(JsPath \ dupKey, JsonValidationError("error.duplicateField", s"Duplicate field detected: $dupKey"))
+      case None =>
+        JsSuccess(())
+    }
+  }
+
+  def validateSecondLevel(line: String, jsValue: JsValue, nino: String, accountNumber: String): Either[ValidationError, IsaAccount] = {
+    val combinedValidation: JsResult[IsaAccount] = findDuplicateFields(line).flatMap { _ =>
+      jsValue.validate[IsaAccount]
+    }
+    combinedValidation match {
+      case JsSuccess(account, _) =>
+        DataValidator.validate(account) match {
+          case None      => Right(account)
+          case Some(err) => Left(SecondLevelValidationFailure(err))
+        }
+
+      case JsError(errors) =>
+        jsErrorToDomainError(errors, nino, accountNumber).headOption match {
+          case Some(error) => Left(SecondLevelValidationFailure(error))
+          case None =>
+            Left(
+              SecondLevelValidationFailure(
+                SecondLevelValidationError(
+                  nino,
+                  accountNumber,
+                  "UNKNOWN_VALIDATION",
+                  "Unknown validation error"
+                )
+              )
+            )
+        }
+    }
+  }
+
   def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
     source
       .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = false))
@@ -54,29 +93,7 @@ class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocume
           case Success(jsValue) =>
             DataValidator.firstLevelValidatorExtractNinoAndAccount(jsValue) match {
               case Right((nino, accountNumber)) =>
-                jsValue.validate[IsaAccount] match {
-                  case JsSuccess(account, _) =>
-                    DataValidator.validate(account) match {
-                      case None      => Right(account)
-                      case Some(err) => Left(SecondLevelValidationFailure(err))
-                    }
-                  case JsError(errors) =>
-                    val domainErrors = jsErrorToDomainError(errors, nino, accountNumber)
-                    domainErrors.headOption match {
-                      case Some(error) => Left(SecondLevelValidationFailure(error))
-                      case None =>
-                        Left(
-                          SecondLevelValidationFailure(
-                            SecondLevelValidationError(
-                              nino,
-                              accountNumber,
-                              "UNKNOWN_VALIDATION",
-                              "Unknown validation error"
-                            )
-                          )
-                        )
-                    }
-                }
+                validateSecondLevel(line, jsValue, nino, accountNumber)
               case Left(firstLevelErr) =>
                 Left(FirstLevelValidationFailure(firstLevelErr))
             }
@@ -91,7 +108,7 @@ class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocume
     validatedStream:           Source[Either[ValidationError, IsaAccount], _]
   ): Future[Done] =
     validatedStream
-      .grouped(25000)
+      .grouped(27000)
       .mapAsync(1) { batch =>
         val (errors, validAccounts) = batch.partitionMap(identity)
 

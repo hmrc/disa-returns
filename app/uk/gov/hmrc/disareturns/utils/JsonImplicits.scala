@@ -31,7 +31,7 @@ object JsonImplicits {
 
   implicit val nonEmptyStringReads: Reads[String] = Reads[String] {
     case JsString(s) if s.trim.nonEmpty => JsSuccess(s)
-    case JsString(_) => JsError("error.expected.jsstring")
-    case _ => JsError("error.expected.jsstring")
+    case JsString(_)                    => JsError("error.expected.jsstring")
+    case _                              => JsError("error.expected.jsstring")
   }
 }

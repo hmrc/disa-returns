@@ -76,6 +76,12 @@ object DataValidator {
     (code, message)
   }
 
+  def buildDuplicateFieldError(fieldName: String): (String, String) = {
+    val code    = s"DUPLICATE_${toErrorCodePrefix(fieldName)}"
+    val message = s"Duplicate ${humanizeFieldName(fieldName)} field detected in this record"
+    (code, message)
+  }
+
   def jsErrorToDomainError(
     jsErrors:      Seq[(JsPath, Seq[JsonValidationError])],
     nino:          String,
@@ -92,6 +98,10 @@ object DataValidator {
         case msgs if msgs.exists(_.startsWith("error.expected")) =>
           fieldName match {
             case field => buildInvalidFieldError(field)
+          }
+        case msgs if msgs.exists(_.startsWith("error.duplicateField")) =>
+          fieldName match {
+            case field => buildDuplicateFieldError(field)
           }
         case _ =>
           ("UNKNOWN_ERROR", s"Validation failed for field: $fieldName")
