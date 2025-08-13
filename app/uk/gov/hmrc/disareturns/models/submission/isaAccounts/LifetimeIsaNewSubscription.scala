@@ -48,11 +48,11 @@ object LifetimeIsaNewSubscription {
       (__ \ "firstName").read[String] and
       (__ \ "middleName").readNullable[String] and
       (__ \ "lastName").read[String] and
-      (__ \ "dateOfBirth").read[LocalDate](strictLocalDateReads) and
+      (__ \ "dateOfBirth").read[LocalDate] and
       (__ \ "isaType").read[IsaType] and
       (__ \ "reportingATransfer").read[Boolean] and
-      (__ \ "dateOfFirstSubscription").read[LocalDate](strictLocalDateReads) and
-      (__ \ "dateOfLastSubscription").read[LocalDate](strictLocalDateReads) and
+      (__ \ "dateOfFirstSubscription").read[LocalDate] and
+      (__ \ "dateOfLastSubscription").read[LocalDate] and
       (__ \ "totalCurrentYearSubscriptionsToDate").read[BigDecimal] and
       (__ \ "marketValueOfAccount").read[BigDecimal] and
       (__ \ "lisaQualifyingAddition").read[BigDecimal] and
