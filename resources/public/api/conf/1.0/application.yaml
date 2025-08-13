@@ -253,13 +253,6 @@ paths:
                     $ref: '#/components/schemas/identifiersMissing'
                   - title: Invalid Model
                     $ref: '#/components/schemas/modelInvalid'
-                examples:
-                  identifierExample:
-                    summary: Missing Identifiers scenario example
-                    value: { "code": "NINO_OR_ACC_NUM_MISSING", "message": "Account number and National Insurance number are required in all submitted models."}
-                  invalidModelExample:
-                    summary: Invalid Model scenario example
-                    value: { "code": "VALIDATION_FAILURE", "message": "One or more models failed validation.", "errors": [ { "code": "test", "message":"a"}, { "code": "test", "message":"b"}]}
         '401':
           description: Unauthorised
           content:
@@ -1025,11 +1018,14 @@ components:
                   - INVALID_NINO
                   - INVALID_ACCOUNT_NUMBER
                   - INVALID_AMOUNT_SUBSCRIBED
+                  - MISSING_FIRST_NAME
                 example: INVALID_NINO
               message:
                 type: string
                 description: A detailed message about the validation failure.
                 example: The National Insurance number provided is invalid.
+
+
 
     returnResult:
       type: object
