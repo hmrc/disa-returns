@@ -2,7 +2,6 @@ import sbt.*
 
 object AppDependencies {
 
-
   private val bootstrapVersion = "9.19.0"
   private val hmrcMongoVersion = "2.7.0"
 
@@ -21,8 +20,8 @@ object AppDependencies {
   )
 
   val it: Seq[ModuleID] = Seq(
-    "org.typelevel"          %% "cats-core"          % "2.13.0",
-    "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test,
-    "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-30" % hmrcMongoVersion
+    "org.typelevel"          %% "cats-core"               % "2.13.0",
+    "org.scalatestplus.play" %% "scalatestplus-play"      % "7.0.2" % Test,
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-30" % hmrcMongoVersion
   )
 }
