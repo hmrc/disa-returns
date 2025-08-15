@@ -68,7 +68,7 @@ paths:
             pattern: ^Z([0-9]{4}|[0-9]{6})$
             type: string
             example: Z1234
-        - name: year
+        - name: year #It has been pointed out that we could use the taxYear explicitly as a string (like 2025-26). Sukdeb, what do you think?
           in: path
           description: |
             Year of the return
@@ -102,6 +102,13 @@ paths:
               - OCT
               - NOV
               - DEC
+      requestBody:
+        required: true
+        content:
+          application/x-ndjson:
+            schema:
+              items:
+                $ref: '#/components/schemas/investorDetails'
       responses:
         204:
           description: Submission accepted. No content returned.
@@ -238,7 +245,7 @@ paths:
                     type: string
                     format: uri
                     description: Use this URL to retrieve the return results summary after the reporting window closes.
-                    example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/results-summary/b4aba7b8-0d34-4936-923c-d9ef2747c099'
+                    example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/2025/APR/results-summary'
         400:
           description: Bad Request
           content:
@@ -250,11 +257,8 @@ paths:
                     title: Error Code Types
                     type: string
                     description: Types of errors encountered.
-                    enum:
-                      - MISMATCH_EXPECTED_VS_RECEIVED
                   message:
                     type: string
-                    example: Number of records declared in the header does not match the number submitted.
         401:
           description: Unauthorised
           content:
@@ -418,8 +422,8 @@ paths:
                   message:
                     type: string
                     enum:
-                      - Return not found for {returnId}
-                      - Return results not ready for {returnId}
+                      - Return not found
+                      - Return results not ready for month
         500:
           description: Internal Server Error
           content:
@@ -559,8 +563,8 @@ paths:
                   message:
                     type: string
                     enum:
-                      - Return not found for {returnId}
-                      - Return results not ready for {returnId}
+                      - Return not found
+                      - Return results not ready for month
                       - No page {page} found
         500:
           description: Internal Server Error
