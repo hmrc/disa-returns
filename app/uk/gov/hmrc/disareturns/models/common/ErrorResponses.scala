@@ -27,14 +27,8 @@ case class BadRequestErr(message: String) extends ErrorResponse {
   val code = "BAD_REQUEST"
 }
 
-case object ObligationClosed extends ErrorResponse {
-  val code    = "OBLIGATION_CLOSED"
-  val message = "Obligation closed"
-}
-
-case object ReportingWindowClosed extends ErrorResponse {
-  val code    = "REPORTING_WINDOW_CLOSED"
-  val message = "Reporting window has been closed"
+case class UnauthorisedErr(message: String) extends ErrorResponse {
+  val code = "UNAUTHORISED"
 }
 
 case object Unauthorised extends ErrorResponse {
@@ -45,6 +39,16 @@ case object Unauthorised extends ErrorResponse {
 case object InternalServerErr extends ErrorResponse {
   val code    = "INTERNAL_SERVER_ERROR"
   val message = "There has been an issue processing your request"
+}
+
+case object ObligationClosed extends ErrorResponse {
+  val code    = "OBLIGATION_CLOSED"
+  val message = "Obligation closed"
+}
+
+case object ReportingWindowClosed extends ErrorResponse {
+  val code    = "REPORTING_WINDOW_CLOSED"
+  val message = "Reporting window has been closed"
 }
 
 case object NinoOrAccountNumMissingErr extends ErrorResponse {
@@ -92,6 +96,11 @@ object ErrorResponse {
           json.validate[SecondLevelValidationResponse]
         case "BAD_REQUEST" =>
           badRequestErrReads.reads(json)
+        case "UNAUTHORISED" =>
+          (json \ "message").validate[String].map {
+            case "Not authorised to access this service" => Unauthorised
+            case customMsg                               => UnauthorisedErr(customMsg)
+          }
         case code if singletons.contains(code) =>
           JsSuccess(singletons(code))
         case other =>

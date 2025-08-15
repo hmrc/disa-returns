@@ -1107,7 +1107,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return UNAUTHORISED if auth checks fail" in {
       val result = initiateRequest(validNdJson, withAuth = false)
       result.status                 shouldBe UNAUTHORIZED
-      result.json.as[ErrorResponse] shouldBe BadRequestErr("MissingResponseHeader")
+      result.json.as[ErrorResponse] shouldBe UnauthorisedErr("MissingResponseHeader")
     }
 
     "return FORBIDDEN if ETMP obligationAlreadyMet check returns true" in {
