@@ -625,7 +625,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "INVALID_TOTAL_CURRENT_YEAR_SUBSCRIPTIONS_TO_DATE",
-            message = "Total current year subscriptions to date must have 2 decimal places (e.g. 123.45)"
+            message = "Total current year subscriptions to date is not formatted correctly (e.g. 123.45)"
           )
         )
       )
@@ -667,7 +667,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "INVALID_MARKET_VALUE_OF_ACCOUNT",
-            message = "Market value of account must have 2 decimal places (e.g. 123.45)"
+            message = "Market value of account is not formatted correctly (e.g. 123.45)"
           )
         )
       )
@@ -751,7 +751,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
             nino = "AB000001C",
             accountNumber = "STD000001",
             code = "INVALID_AMOUNT_TRANSFERRED",
-            message = "Amount transferred must have 2 decimal places (e.g. 123.45)"
+            message = "Amount transferred is not formatted correctly (e.g. 123.45)"
           )
         )
       )
@@ -773,6 +773,27 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
             accountNumber = "STD000001",
             code = "INVALID_AMOUNT_TRANSFERRED",
             message = "Amount transferred is not formatted correctly"
+          )
+        )
+      )
+    }
+
+    "return 400 with correct error response body request body with negative amountTransferred" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidJson =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":-100.00,"flexibleIsa":false}"""
+
+      val result = initiateRequest(invalidJson)
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_AMOUNT_TRANSFERRED",
+            message = "Amount transferred is not formatted correctly (e.g. 123.45)"
           )
         )
       )

@@ -85,7 +85,7 @@ class DataValidatorSpec extends BaseUnitSpec {
       val invalid = baseAccount.copy(totalCurrentYearSubscriptionsToDate = BigDecimal("12.5"))
       val result  = DataValidator.validateAccount(invalid)
       result.get.code    shouldBe "INVALID_TOTAL_CURRENT_YEAR_SUBSCRIPTIONS_TO_DATE"
-      result.get.message shouldBe "Total current year subscriptions to date must have 2 decimal places (e.g. 123.45)"
+      result.get.message shouldBe "Total current year subscriptions to date is not formatted correctly (e.g. 123.45)"
     }
   }
 
@@ -119,7 +119,7 @@ class DataValidatorSpec extends BaseUnitSpec {
           validNino,
           validAccountNumber,
           "INVALID_LISA_BONUS_CLAIM",
-          "Lisa bonus claim must have 2 decimal places (e.g. 123.45)"
+          "Lisa bonus claim is not formatted correctly (e.g. 123.45)"
         )
       )
     }
@@ -142,6 +142,34 @@ class DataValidatorSpec extends BaseUnitSpec {
         flexibleIsa = false
       )
       DataValidator.validateIsaAccountUniqueFields(account) shouldBe None
+    }
+
+    "validate StandardIsaTransfer with negative amountTransferred" in {
+      val account = StandardIsaTransfer(
+        accountNumber = validAccountNumber,
+        nino = validNino,
+        firstName = "John",
+        middleName = None,
+        lastName = "Smith",
+        dateOfBirth = validDate,
+        isaType = IsaType.LIFETIME_CASH,
+        reportingATransfer = true,
+        dateOfLastSubscription = validDate,
+        totalCurrentYearSubscriptionsToDate = validBigDecimal,
+        marketValueOfAccount = validBigDecimal,
+        accountNumberOfTransferringAccount = "ZXY987654",
+        amountTransferred = BigDecimal("-1.00"),
+        flexibleIsa = false
+      )
+      DataValidator.validateIsaAccountUniqueFields(account) shouldBe
+        Some(
+          SecondLevelValidationError(
+            validNino,
+            validAccountNumber,
+            "INVALID_AMOUNT_TRANSFERRED",
+            "Amount transferred is not formatted correctly (e.g. 123.45)"
+          )
+        )
     }
   }
 

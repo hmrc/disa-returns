@@ -144,9 +144,9 @@ object DataValidator {
   ): Option[SecondLevelValidationError] =
     validateField[BigDecimal](
       value,
-      (v: BigDecimal) => v.scale == 2,
+      (v: BigDecimal) => v.scale == 2 && v >= 0,
       s"INVALID_${fieldName.toUpperCase}",
-      s"${humanizeFieldName(fieldName)} must have 2 decimal places (e.g. 123.45)",
+      s"${humanizeFieldName(fieldName)} is not formatted correctly (e.g. 123.45)",
       identifiers
     )
 
