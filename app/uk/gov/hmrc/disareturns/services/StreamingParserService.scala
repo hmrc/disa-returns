@@ -38,7 +38,7 @@ class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocume
     val validated = validatedStream(source)
     validated.prefixAndTail(1).flatMapConcat {
       case (Seq(), _) =>
-        Source.single(Left(FirstLevelValidationFailure(BadRequestErr("ND Json payload is empty."): ErrorResponse)))
+        Source.single(Left(FirstLevelValidationFailure(BadRequestErr("NDJSON payload is empty."): ErrorResponse)))
       case (Seq(first), tail) =>
         tail.prepend(Source.single(first))
     }

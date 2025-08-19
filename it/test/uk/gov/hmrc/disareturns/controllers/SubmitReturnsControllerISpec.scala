@@ -1042,14 +1042,14 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
     }
 
-    "return 400 with correct error response body when ND JSON payload is empty" in {
+    "return 400 with correct error response body when NDJSON payload is empty" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
 
       val result = initiateRequest(requestBody = "")
 
       result.status                 shouldBe BAD_REQUEST
-      result.json.as[ErrorResponse] shouldBe BadRequestErr("ND Json payload is empty.")
+      result.json.as[ErrorResponse] shouldBe BadRequestErr("NDJSON payload is empty.")
     }
 
     "return 400 with correct error response body request body when missing errors displayed across multiple records submitted" in {
