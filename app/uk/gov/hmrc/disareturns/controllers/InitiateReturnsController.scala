@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
-import cats.data.EitherT
 import com.google.inject.Inject
 import jakarta.inject.Singleton
 import play.api.libs.json._
@@ -31,7 +30,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class InitiateSubmissionController @Inject() (
+class InitiateReturnsController @Inject() (
   cc:                    ControllerComponents,
   etmpService:           ETMPService,
   ppnsService:           PPNSService,
@@ -46,29 +45,35 @@ class InitiateSubmissionController @Inject() (
     (Action andThen authAction andThen clientIdAction).async(parse.json) { implicit request =>
       if (IsaRefValidator.isValid(isaManagerReferenceNumber)) {
         withJsonBody[SubmissionRequest] { submissionRequest =>
-          (for {
-            _     <- etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
-            boxId <- ppnsService.getBoxId(request.clientId)
-            returnId <- EitherT.right[ErrorResponse] {
-                          returnMetadataService.saveReturnMetadata(
-                            boxId = boxId,
-                            submissionRequest = submissionRequest,
-                            isaManagerReference = isaManagerReferenceNumber
-                          )
-                        }
-          } yield SuccessResponse(
-            returnId = returnId,
-            action = SubmissionRequest.setAction(submissionRequest.totalRecords),
-            boxId = boxId
-          )).value.map {
-            case Right(response)         => Ok(Json.toJson(response))
-            case Left(InternalServerErr) => InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
-            case Left(Unauthorised)      => Unauthorized(Json.toJson(Unauthorised: ErrorResponse))
-            case Left(error)             => Forbidden(Json.toJson(error))
+          etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber).flatMap {
+            case Left(error) => Future.successful(toHttpError(error))
+            case Right(_) =>
+              ppnsService.getBoxId(request.clientId).flatMap {
+                case Left(error) => Future.successful(toHttpError(error))
+                case Right(boxId) =>
+                  returnMetadataService
+                    .saveReturnMetadata(
+                      boxId = boxId,
+                      submissionRequest = submissionRequest,
+                      isaManagerReference = isaManagerReferenceNumber
+                    )
+                    .map(returnId => Ok(Json.toJson(buildSuccessResponse(returnId, submissionRequest, boxId))))
+              }
           }
         }
-      } else {
-        Future.successful(BadRequest(Json.toJson(BadRequestInvalidIsaRefErr: ErrorResponse)))
-      }
+      } else Future.successful(BadRequest(Json.toJson(BadRequestErr(message = "ISA Manager Reference Number format is invalid"): ErrorResponse)))
     }
+
+  private def buildSuccessResponse(returnId: String, submissionRequest: SubmissionRequest, boxId: String): SuccessResponse =
+    SuccessResponse(
+      returnId = returnId,
+      action = SubmissionRequest.setAction(submissionRequest.totalRecords),
+      boxId = boxId
+    )
+
+  private def toHttpError(error: ErrorResponse) = error match {
+    case InternalServerErr => InternalServerError(Json.toJson(error))
+    case Unauthorised      => Unauthorized(Json.toJson(error))
+    case _                 => Forbidden(Json.toJson(error))
+  }
 }

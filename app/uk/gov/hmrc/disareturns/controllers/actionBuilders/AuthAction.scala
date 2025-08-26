@@ -18,10 +18,10 @@ package uk.gov.hmrc.disareturns.controllers.actionBuilders
 
 import play.api.Logging
 import play.api.libs.json.Json
-import play.api.mvc.Results.{BadRequest, InternalServerError}
+import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.disareturns.models.common.{BadRequestErr, ErrorResponse, InternalServerErr}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, UnauthorisedErr}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
@@ -47,7 +47,7 @@ class AuthAction @Inject() (ac: AuthConnector)(implicit val executionContext: Ex
     } recover {
       case ex: AuthorisationException =>
         logger.warn(s"Authorization failed. Bearer token sent: ${hc.authorization}")
-        BadRequest(Json.toJson(BadRequestErr(message = ex.reason): ErrorResponse))
+        Unauthorized(Json.toJson(UnauthorisedErr(message = ex.reason): ErrorResponse))
 
       case ex =>
         logger.warn(s"Auth request failed with unexpected exception: $ex")

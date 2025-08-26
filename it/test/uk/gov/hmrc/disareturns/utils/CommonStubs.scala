@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.disareturns.utils
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, stubFor}
-import play.api.http.Status.OK
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, post, stubFor, urlEqualTo}
+import play.api.http.Status
+import play.api.http.Status.{OK, UNAUTHORIZED}
+import play.api.libs.json.JsObject
 
 trait CommonStubs {
 
@@ -28,6 +30,28 @@ trait CommonStubs {
           aResponse.withStatus(OK).withBody("{}")
         }
     }
+
+  def stubAuthFail(): Unit =
+    stubFor {
+      post("/auth/authorise")
+        .willReturn {
+          aResponse()
+            .withStatus(Status.UNAUTHORIZED)
+            .withBody("{}")
+        }
+    }
+
+  def stubEtmpReportingWindow(status: Int, body: JsObject): Unit =
+    stubFor(
+      get(urlEqualTo("/etmp/check-reporting-window"))
+        .willReturn(aResponse().withStatus(status).withBody(body.toString))
+    )
+
+  def stubEtmpObligation(status: Int, body: JsObject, isaManagerRef: String): Unit =
+    stubFor(
+      get(urlEqualTo(s"/etmp/check-obligation-status/$isaManagerRef"))
+        .willReturn(aResponse().withStatus(status).withBody(body.toString))
+    )
 
   val testClientId = "test-client-id"
   val testHeaders: Seq[(String, String)] = Seq(

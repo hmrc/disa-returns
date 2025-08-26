@@ -28,7 +28,7 @@ import java.time.temporal.ChronoField.YEAR
 
 import java.time.LocalDateTime
 
-class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
+class InitiateReturnsControllerISpec extends BaseIntegrationSpec {
 
   implicit val mongo: ReturnMetadataRepository = app.injector.instanceOf[ReturnMetadataRepository]
   val isaManagerRef = "Z123456"
@@ -45,19 +45,6 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
     "submissionPeriod" -> "InvalidMonth",
     "taxYear"          -> LocalDateTime.now().getYear
   )
-
-  def stubEtmpReportingWindow(status: Int, body: JsObject): Unit =
-    stubFor(
-      get(urlEqualTo("/etmp/check-reporting-window"))
-        .willReturn(aResponse().withStatus(status).withBody(body.toString))
-    )
-
-  def stubEtmpObligation(status: Int, body: JsObject): Unit =
-    stubFor(
-      get(urlEqualTo(s"/etmp/check-obligation-status/$isaManagerRef"))
-        .willReturn(aResponse().withStatus(status).withBody(body.toString))
-    )
-
   val boxResponseJson: String =
     s"""
        |{
@@ -80,7 +67,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
     "return 200 OK when a valid request body is provided and ETMP checks are successful" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
       stubPPNSBoxId()
 
       val result = initiateRequest(validRequestJson)
@@ -97,7 +84,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
     "return 200 OK when a valid nil return request body is provided and ETMP checks are successful" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
       stubPPNSBoxId()
 
       val result = initiateRequest(
@@ -132,7 +119,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
     "return 403 Forbidden when ETMP returns obligation already met" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), isaManagerRef = isaManagerRef)
       stubPPNSBoxId()
 
       val result = initiateRequest(validRequestJson)
@@ -144,7 +131,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
     "return 403 Forbidden when ETMP returns reporting window closed" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
       stubPPNSBoxId()
 
       val result = initiateRequest(validRequestJson)
@@ -156,7 +143,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
     "return 403 Forbidden with correct errors when ETMP reporting window is closed and obligation already met" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), isaManagerRef = isaManagerRef)
       stubPPNSBoxId()
 
       val result = initiateRequest(validRequestJson)
@@ -272,8 +259,6 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
   }
 
-  //Total records validation
-
   "return 400 Bad Request when request fails validation with a negative value for totalRecords" in {
     val invalidRequestJson: JsObject = Json.obj(
       "totalRecords"     -> -1,
@@ -376,7 +361,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
   "return 500 Internal Server Error when upstream 500 Server Error returned from PPNS" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
     stubFor(
       get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations/declaration/isa/return%23%231.0%23%23callbackUrl"))
         .willReturn(serverError)
@@ -390,7 +375,7 @@ class InitiateSubmissionControllerISpec extends BaseIntegrationSpec {
 
   "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from PPNS" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
     stubFor(
       get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations/declaration/isa/return%23%231.0%23%23callbackUrl"))
         .willReturn(serverError)

@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import cats.data.EitherT
-import play.api.libs.json.{JsError, JsSuccess}
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
@@ -30,17 +28,15 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionContext) {
 
-  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, String] =
-    EitherT {
-      connector.getBox(clientId).value.map {
-        case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
-        case Right(response) =>
-          response.json
-            .validate[Box]
-            .fold(
-              _ => Left(InternalServerErr),
-              box => Right(box.boxId)
-            )
-      }
+  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[ErrorResponse, String]] =
+    connector.getBox(clientId).value.map {
+      case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
+      case Right(response) =>
+        response.json
+          .validate[Box]
+          .fold(
+            _ => Left(InternalServerErr),
+            box => Right(box.boxId)
+          )
     }
 }

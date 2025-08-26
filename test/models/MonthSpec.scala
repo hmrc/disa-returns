@@ -40,16 +40,18 @@ class MonthSpec extends BaseUnitSpec {
       val invalidJson = JsString("INVALID_MONTH")
       val result      = invalidJson.validate[Month.Value]
 
-      result.isError                                          shouldBe true
-      result.asEither.left.get.head._2.head.message.toLowerCase should include("error.expected.validenumvalue")
+      result.isError shouldBe true
+      val errors = result.asEither.swap.getOrElse(fail("Expected a Left"))
+      errors.head._2.head.message.toLowerCase shouldBe "error.expected.validenumvalue"
     }
 
     "fail to deserialize non-string JSON values" in {
       val nonStringJson = JsNumber(123)
       val result        = nonStringJson.validate[Month.Value]
 
-      result.isError                                          shouldBe true
-      result.asEither.left.get.head._2.head.message.toLowerCase should include("error.expected.enumstring")
+      result.isError shouldBe true
+      val errors = result.asEither.swap.getOrElse(fail("Expected a Left"))
+      errors.head._2.head.message.toLowerCase shouldBe "error.expected.enumstring"
     }
   }
 }

@@ -28,7 +28,7 @@ import utils.BaseUnitSpec
 
 import scala.concurrent.Future
 
-class InitiateSubmissionDataServiceSpec extends BaseUnitSpec {
+class ReturnMetadataServiceSpec extends BaseUnitSpec {
 
   "create and insert ReturnMetadata, returning the returnId" in {
     val mockRepository = mock[ReturnMetadataRepository]
@@ -50,4 +50,42 @@ class InitiateSubmissionDataServiceSpec extends BaseUnitSpec {
     result shouldBe "test-return-id"
     verify(mockRepository).insert(any[ReturnMetadata])
   }
+
+  "existsByIsaManagerReferenceAndReturnId" should {
+
+    "return true when a matching document exists" in {
+      val mockRepository = mock[ReturnMetadataRepository]
+      val service        = new ReturnMetadataService(mockRepository)
+
+      val isaManagerRef = "Z123456"
+      val returnId      = "return-123"
+
+      when(mockRepository.findByIsaManagerReferenceAndReturnId(isaManagerRef, returnId))
+        .thenReturn(
+          Future.successful(Some(ReturnMetadata(returnId = returnId, boxId = "", isaManagerReference = isaManagerRef, submissionRequest = null)))
+        )
+
+      val result = await(service.existsByIsaManagerReferenceAndReturnId(isaManagerRef, returnId))
+
+      result shouldBe true
+      verify(mockRepository).findByIsaManagerReferenceAndReturnId(isaManagerRef, returnId)
+    }
+
+    "return false when no matching document exists" in {
+      val mockRepository = mock[ReturnMetadataRepository]
+      val service        = new ReturnMetadataService(mockRepository)
+
+      val isaManagerRef = "Z123456"
+      val returnId      = "return-123"
+
+      when(mockRepository.findByIsaManagerReferenceAndReturnId(isaManagerRef, returnId))
+        .thenReturn(Future.successful(None))
+
+      val result = await(service.existsByIsaManagerReferenceAndReturnId(isaManagerRef, returnId))
+
+      result shouldBe false
+      verify(mockRepository).findByIsaManagerReferenceAndReturnId(isaManagerRef, returnId)
+    }
+  }
+
 }
