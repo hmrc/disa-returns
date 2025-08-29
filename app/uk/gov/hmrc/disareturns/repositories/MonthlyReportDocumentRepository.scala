@@ -17,7 +17,7 @@
 package uk.gov.hmrc.disareturns.repositories
 
 import com.google.inject.Inject
-import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaAccount, MonthlyReportDocument}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -49,4 +49,16 @@ class MonthlyReportDocumentRepository @Inject() (mc: MongoComponent)(implicit ec
     val wrapperJson = MonthlyReportDocument(returnId = returnId, isaManagerReferenceNumber = isaManagerId, isaReport = reports)
     collection.insertOne(wrapperJson).toFuture().map(_ => ())
   }
+
+  def countByIsaManagerReferenceAndReturnId(
+    isaManagerReference: String,
+    returnId:            String
+  ): Future[Long] = {
+    val filter = Filters.and(
+      Filters.equal("isaManagerReferenceNumber", isaManagerReference),
+      Filters.equal("returnId", returnId)
+    )
+    collection.find(filter).toFuture().map(_.map(_.isaReport.size).sum)
+  }
+
 }

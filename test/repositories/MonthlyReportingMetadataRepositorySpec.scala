@@ -55,6 +55,15 @@ class MonthlyReportingMetadataRepositorySpec extends BaseUnitSpec {
       stored shouldBe empty
     }
   }
+  "countByIsaManagerReferenceAndReturnId" should {
+    "return a count of all the monthlySubmissions for an IsaManager and ReturnId" in new TestSetup {
+      val isaManagerReference = "Z1111"
+      val returnId            = "Return-011"
+      await(repository.insertBatch(isaManagerReference, returnId, testIsaAccounts))
+      val submissions: Long = await(repository.countByIsaManagerReferenceAndReturnId(isaManagerReference, returnId))
+      submissions shouldBe 1
+    }
+  }
 
   class TestSetup {
 

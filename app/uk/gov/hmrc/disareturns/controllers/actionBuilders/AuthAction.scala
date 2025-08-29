@@ -20,6 +20,7 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import play.api.mvc._
+import uk.gov.hmrc.auth.core.AffinityGroup.Organisation
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, UnauthorisedErr}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -42,7 +43,7 @@ class AuthAction @Inject() (ac: AuthConnector)(implicit val executionContext: Ex
   override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
-    auth.authorised() {
+    auth.authorised(Organisation) {
       block(request)
     } recover {
       case ex: AuthorisationException =>

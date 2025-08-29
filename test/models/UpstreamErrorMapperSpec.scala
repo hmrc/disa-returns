@@ -57,7 +57,7 @@ class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
     }
 
     "map unknown status codes to InternalServerErr" in {
-      val err    = UpstreamErrorResponse("Some weird status", 207, 207) // e.g., Multi-Status (unusual)
+      val err    = UpstreamErrorResponse("Some weird status", 207, 207)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
       result shouldBe InternalServerErr
     }

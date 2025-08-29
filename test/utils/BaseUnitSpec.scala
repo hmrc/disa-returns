@@ -29,8 +29,8 @@ import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, PPNSConnector}
-import uk.gov.hmrc.disareturns.repositories.MonthlyReportDocumentRepository
-import uk.gov.hmrc.disareturns.services.{ETMPService, PPNSService, ReturnMetadataService, StreamingParserService}
+import uk.gov.hmrc.disareturns.repositories.{MonthlyReportDocumentRepository, ReturnMetadataRepository}
+import uk.gov.hmrc.disareturns.services.{CompleteReturnService, ETMPService, PPNSService, ReturnMetadataService, StreamingParserService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
@@ -64,6 +64,8 @@ abstract class BaseUnitSpec
   val mockMonthlyReportDocumentRepository: MonthlyReportDocumentRepository = mock[MonthlyReportDocumentRepository]
   val mockAuthConnector:                   AuthConnector                   = mock[AuthConnector]
   val mockStreamingParserService:          StreamingParserService          = mock[StreamingParserService]
+  val mockCompleteReturnService:           CompleteReturnService           = mock[CompleteReturnService]
+  val mockReturnMetadataRepository:        ReturnMetadataRepository        = mock[ReturnMetadataRepository]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .overrides(
@@ -71,7 +73,8 @@ abstract class BaseUnitSpec
       bind[ETMPService].toInstance(mockETMPService),
       bind[PPNSService].toInstance(mockPPNSService),
       bind[ReturnMetadataService].toInstance(mockMonthlyReportDocumentService),
-      bind[StreamingParserService].toInstance(mockStreamingParserService)
+      bind[StreamingParserService].toInstance(mockStreamingParserService),
+      bind[CompleteReturnService].toInstance(mockCompleteReturnService)
     )
     .build()
 }
