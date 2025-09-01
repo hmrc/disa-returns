@@ -30,7 +30,7 @@ import scala.concurrent.Future
 
 class CompleteReturnServiceSpec extends BaseUnitSpec {
 
-  val service             = new CompleteReturnService(mockReturnMetadataRepository, mockMonthlyReportDocumentRepository)
+  val service             = new CompleteReturnService(mockReturnMetadataRepository, mockMonthlyReportDocumentRepository, mockAppConfig)
   val isaManagerReference = "Z1111"
   val returnId            = "Return-1234"
   val returnMetadata: ReturnMetadata =
@@ -64,6 +64,7 @@ class CompleteReturnServiceSpec extends BaseUnitSpec {
     }
     "return Right(CompleteResponse) when the expected submission matches the submitted" in {
       val returnSummaryLocation = s"/monthly/$isaManagerReference/$returnId/results/summary"
+      when(mockAppConfig.getNpsResultsSummaryPath(isaManagerReference, returnId)).thenReturn(returnSummaryLocation)
       when(mockReturnMetadataRepository.findByIsaManagerReferenceAndReturnId(isaManagerReference, returnId))
         .thenReturn(Future.successful(Some(returnMetadata)))
       when(mockMonthlyReportDocumentRepository.countByIsaManagerReferenceAndReturnId(isaManagerReference, returnId))

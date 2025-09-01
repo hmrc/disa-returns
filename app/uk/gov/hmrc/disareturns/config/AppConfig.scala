@@ -26,4 +26,11 @@ class AppConfig @Inject() (config: ServicesConfig) {
   lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
   lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
 
+  private val npsResultsSummaryPath: String =
+    config.getString("microservice.services.nps.results-summary.path")
+
+  def getNpsResultsSummaryPath(isaManagerReference: String, returnId: String): String =
+    npsResultsSummaryPath
+      .replace("{isaManagerReference}", isaManagerReference)
+      .replace("{returnId}", returnId)
 }

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.disareturns.services
 
+import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, MisMatchErr, ReturnIdNotMatchedErr}
 import uk.gov.hmrc.disareturns.models.complete.CompleteResponse
 import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
@@ -25,8 +26,12 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class CompleteReturnService @Inject() (repository: ReturnMetadataRepository, reportingRepository: MonthlyReportDocumentRepository)(implicit
-  ec:                                              ExecutionContext
+class CompleteReturnService @Inject() (
+  repository:          ReturnMetadataRepository,
+  reportingRepository: MonthlyReportDocumentRepository,
+  appConfig:           AppConfig
+)(implicit
+  ec: ExecutionContext
 ) {
   def findReturnMetadata(isaManagerReference: String, returnId: String): Future[Option[ReturnMetadata]] =
     repository.findByIsaManagerReferenceAndReturnId(isaManagerReference, returnId)
@@ -43,7 +48,7 @@ class CompleteReturnService @Inject() (repository: ReturnMetadataRepository, rep
       submittedCount       <- countSubmittedReturns(isaManagerReference, returnId)
     } yield optionReturnMetadata match {
       case Some(returnMetadata) =>
-        val summaryPath = s"/monthly/$isaManagerReference/$returnId/results/summary"
+        val summaryPath = appConfig.getNpsResultsSummaryPath(isaManagerReference, returnId)
         val expected    = returnMetadata.submissionRequest.totalRecords
         if (expected == submittedCount) Right(CompleteResponse(summaryPath)) else Left(MisMatchErr: ErrorResponse)
       case None => Left(ReturnIdNotMatchedErr)

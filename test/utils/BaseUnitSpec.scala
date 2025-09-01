@@ -74,7 +74,8 @@ abstract class BaseUnitSpec
       bind[PPNSService].toInstance(mockPPNSService),
       bind[ReturnMetadataService].toInstance(mockMonthlyReportDocumentService),
       bind[StreamingParserService].toInstance(mockStreamingParserService),
-      bind[CompleteReturnService].toInstance(mockCompleteReturnService)
+      bind[CompleteReturnService].toInstance(mockCompleteReturnService),
+      bind[AppConfig].toInstance(mockAppConfig)
     )
     .build()
 }
