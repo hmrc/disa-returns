@@ -58,7 +58,12 @@ class MonthlyReportDocumentRepository @Inject() (mc: MongoComponent)(implicit ec
       Filters.equal("isaManagerReferenceNumber", isaManagerReference),
       Filters.equal("returnId", returnId)
     )
-    collection.find(filter).toFuture().map(_.map(_.isaReport.size).sum)
+    //maybe look into streaming
+    collection
+      .find(filter)
+      .map(_.isaReport.size.toLong)
+      .toFuture()
+      .map(_.sum)
   }
 
 }

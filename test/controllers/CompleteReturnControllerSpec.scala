@@ -59,7 +59,7 @@ class CompleteReturnControllerSpec extends BaseUnitSpec {
       (json \ "returnResultsSummaryLocation").as[String] shouldBe returnSummaryLocation
     }
 
-    "return 400 BadRequest for invalid ISA reference number" in {
+    "return 400 BadRequest for an invalid ISA reference number" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       val request = FakeRequest(POST, s"/complete/$invalidIsaManagerReference/$returnId")
       val result  = controller.complete(invalidIsaManagerReference, returnId)(request)

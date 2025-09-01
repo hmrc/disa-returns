@@ -92,7 +92,7 @@ class CompleteReturnControllerISpec extends BaseIntegrationSpec {
       (result.json \ "code").as[String]    shouldBe "OBLIGATION_CLOSED"
       (result.json \ "message").as[String] shouldBe "Obligation closed"
     }
-    "return 403 Forbidden when the obligation status and reporting window is closed" in {
+    "return 403 Forbidden when the obligation status and reporting window are closed" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), isaManagerRef = isaManagerReference)
 

@@ -37,7 +37,7 @@ class CompleteReturnServiceSpec extends BaseUnitSpec {
     ReturnMetadata(returnId, "Box-1", SubmissionRequest(100, Month.MAR, TaxYear(2025)), isaManagerReference, Instant.now())
 
   "findReturnMetadata" should {
-    "return Some(ReturnMetadata) is the ReturnMetadata exist" in {
+    "return Some(ReturnMetadata) if the ReturnMetadata exist" in {
       when(mockReturnMetadataRepository.findByIsaManagerReferenceAndReturnId(isaManagerReference, returnId))
         .thenReturn(Future.successful(Some(returnMetadata)))
       await(service.findReturnMetadata(isaManagerReference, returnId)) shouldBe Some(returnMetadata)
@@ -56,7 +56,7 @@ class CompleteReturnServiceSpec extends BaseUnitSpec {
     }
   }
   "validateRecordCount" should {
-    "return Left(MisMatchErr) when there is a match between the expected and submitted returns" in {
+    "return Left(MisMatchErr) when there is a mismatch between the expected and submitted returns" in {
       when(mockReturnMetadataRepository.findByIsaManagerReferenceAndReturnId(isaManagerReference, returnId))
         .thenReturn(Future.successful(Some(returnMetadata)))
       when(mockMonthlyReportDocumentRepository.countByIsaManagerReferenceAndReturnId(isaManagerReference, returnId)).thenReturn(Future.successful(15))
@@ -70,7 +70,7 @@ class CompleteReturnServiceSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(100))
       await(service.validateRecordCount(isaManagerReference, returnId)) shouldBe Right(CompleteResponse(returnSummaryLocation))
     }
-    "return Left(ReturnIdNotMatchedErr) when the return id doesn't not exist" in {
+    "return Left(ReturnIdNotMatchedErr) when the return id does not exist" in {
       val invalidReturnId = "Invalid"
       when(mockReturnMetadataRepository.findByIsaManagerReferenceAndReturnId(isaManagerReference, invalidReturnId))
         .thenReturn(Future.successful(None))
