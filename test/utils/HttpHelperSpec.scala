@@ -39,11 +39,11 @@ class HttpHelperSpec extends AnyWordSpec with Matchers {
     }
 
     "return Unauthorized (401) for Unauthorised" in {
-      val result: Result = HttpHelper.toHttpError(Unauthorised)
+      val result: Result = HttpHelper.toHttpError(UnauthorisedErr)
       result.header.status shouldBe UNAUTHORIZED
       val json = contentAsJson(Future.successful(result))
       (json \ "code").as[String]    shouldBe "UNAUTHORISED"
-      (json \ "message").as[String] shouldBe "Not authorised to access this service"
+      (json \ "message").as[String] shouldBe "Unauthorised"
     }
 
     "return Unauthorized (403) for Forbidden" in {

@@ -19,12 +19,12 @@ package uk.gov.hmrc.disareturns.utils
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.mvc.Results.{Forbidden, InternalServerError, Unauthorized}
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, Unauthorised}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, UnauthorisedErr}
 
 object HttpHelper {
   def toHttpError(error: ErrorResponse): Result = error match {
     case InternalServerErr => InternalServerError(Json.toJson(error))
-    case Unauthorised      => Unauthorized(Json.toJson(error))
+    case UnauthorisedErr   => Unauthorized(Json.toJson(error))
     case _                 => Forbidden(Json.toJson(error))
   }
 

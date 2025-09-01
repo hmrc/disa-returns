@@ -19,7 +19,7 @@ package models
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.mvc.Http.Status
-import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, Unauthorised, UpstreamErrorMapper}
+import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr, UpstreamErrorMapper}
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
@@ -29,7 +29,7 @@ class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
     "map 401 response to Unauthorised" in {
       val err    = UpstreamErrorResponse("Unauthorised", Status.UNAUTHORIZED, Status.UNAUTHORIZED)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
-      result shouldBe Unauthorised
+      result shouldBe UnauthorisedErr
     }
 
     "map 500 response to InternalServerErr" in {

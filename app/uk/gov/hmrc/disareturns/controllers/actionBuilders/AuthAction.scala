@@ -47,8 +47,8 @@ class AuthAction @Inject() (ac: AuthConnector)(implicit val executionContext: Ex
       block(request)
     } recover {
       case ex: AuthorisationException =>
-        logger.warn(s"Authorization failed. Bearer token sent: ${hc.authorization}")
-        Unauthorized(Json.toJson(UnauthorisedErr(message = ex.reason): ErrorResponse))
+        logger.warn(s"Authorization failed. Error: ${ex.reason}")
+        Unauthorized(Json.toJson(UnauthorisedErr: ErrorResponse))
 
       case ex =>
         logger.warn(s"Auth request failed with unexpected exception: $ex")
