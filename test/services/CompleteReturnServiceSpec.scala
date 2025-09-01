@@ -64,7 +64,7 @@ class CompleteReturnServiceSpec extends BaseUnitSpec {
     }
     "return Right(CompleteResponse) when the expected submission matches the submitted" in {
       val returnSummaryLocation = s"/monthly/$isaManagerReference/$returnId/results/summary"
-      when(mockAppConfig.getNpsResultsSummaryPath(isaManagerReference, returnId)).thenReturn(returnSummaryLocation)
+      when(mockAppConfig.getReturnResultsSummaryLocation(isaManagerReference, returnId)).thenReturn(returnSummaryLocation)
       when(mockReturnMetadataRepository.findByIsaManagerReferenceAndReturnId(isaManagerReference, returnId))
         .thenReturn(Future.successful(Some(returnMetadata)))
       when(mockMonthlyReportDocumentRepository.countByIsaManagerReferenceAndReturnId(isaManagerReference, returnId))

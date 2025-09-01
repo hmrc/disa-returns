@@ -48,9 +48,9 @@ class CompleteReturnService @Inject() (
       submittedCount       <- countSubmittedReturns(isaManagerReference, returnId)
     } yield optionReturnMetadata match {
       case Some(returnMetadata) =>
-        val summaryPath = appConfig.getNpsResultsSummaryPath(isaManagerReference, returnId)
-        val expected    = returnMetadata.submissionRequest.totalRecords
-        if (expected == submittedCount) Right(CompleteResponse(summaryPath)) else Left(MisMatchErr: ErrorResponse)
+        val returnResultsSummaryLocation = appConfig.getReturnResultsSummaryLocation(isaManagerReference, returnId)
+        val expected                     = returnMetadata.submissionRequest.totalRecords
+        if (expected == submittedCount) Right(CompleteResponse(returnResultsSummaryLocation)) else Left(MisMatchErr: ErrorResponse)
       case None => Left(ReturnIdNotMatchedErr)
     }
 
