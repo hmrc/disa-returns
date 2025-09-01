@@ -98,7 +98,6 @@ object ErrorResponse {
           json.validate[SecondLevelValidationResponse]
         case "BAD_REQUEST" =>
           badRequestErrReads.reads(json)
-        //case "UNAUTHORISED" => json.validate[UnauthorisedErr]
         case code if singletons.contains(code) =>
           JsSuccess(singletons(code))
         case other =>

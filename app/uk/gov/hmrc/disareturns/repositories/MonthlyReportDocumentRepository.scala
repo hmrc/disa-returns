@@ -58,7 +58,6 @@ class MonthlyReportDocumentRepository @Inject() (mc: MongoComponent)(implicit ec
       Filters.equal("isaManagerReferenceNumber", isaManagerReference),
       Filters.equal("returnId", returnId)
     )
-    //maybe look into streaming
     collection
       .find(filter)
       .map(_.isaReport.size.toLong)
