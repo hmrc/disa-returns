@@ -121,6 +121,39 @@ class ETMPServiceSpec extends BaseUnitSpec {
     }
   }
 
+  "ETMPService.closeObligationStatus" should {
+    "return Right(HttpResponse(200)) when call to ETMP connector is successful" in new TestSetup {
+      val expectedResponse:    EtmpObligations = EtmpObligations(true)
+      val etmpObligationsJson: JsValue         = Json.toJson(expectedResponse)
+      val httpResponse:        HttpResponse    = HttpResponse(200, etmpObligationsJson.toString())
+
+      when(mockETMPConnector.closeReturnsObligationStatus(testIsaManagerReferenceNumber))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val result: Either[ErrorResponse, HttpResponse] = service.closeObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+
+      result shouldBe Right(httpResponse)
+    }
+  }
+  "ETMPService.closeObligationStatus" should {
+    "return Left(UpstreamErrorResponse) when the call to ETMP connector returns an UpstreamErrorResponse" in new TestSetup {
+
+      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
+        message = "Not authorised to access this service",
+        statusCode = 401,
+        reportAs = 401,
+        headers = Map.empty
+      )
+
+      when(mockETMPConnector.closeReturnsObligationStatus(testIsaManagerReferenceNumber))
+        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
+
+      val result: Either[ErrorResponse, HttpResponse] = service.closeObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+
+      result shouldBe Left(UnauthorisedErr)
+    }
+  }
+
   trait TestSetup {
     val testIsaManagerReferenceNumber: String      = "123456"
     val service:                       ETMPService = new ETMPService(mockETMPConnector)

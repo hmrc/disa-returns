@@ -41,6 +41,7 @@ class CompleteReturnControllerISpec extends BaseIntegrationSpec {
     "return 200 OK for a successful request" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerReference)
+      stubCloseEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), isaManagerRef = isaManagerReference)
 
       val result = completeRequest()
 
@@ -126,6 +127,22 @@ class CompleteReturnControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubFor(
         get(urlEqualTo(s"/etmp/check-obligation-status/$isaManagerReference"))
+          .willReturn(serverError)
+      )
+
+      val result = completeRequest()
+
+      result.status shouldBe INTERNAL_SERVER_ERROR
+
+      (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
+      (result.json \ "message").as[String] shouldBe "There has been an issue processing your request"
+    }
+
+    "return 500 Internal server error when Etmp closeReturnsObligationStatus returns a server error" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerReference)
+      stubFor(
+        post(urlEqualTo(s"/etmp/close-obligation-status/$isaManagerReference"))
           .willReturn(serverError)
       )
 

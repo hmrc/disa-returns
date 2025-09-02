@@ -16,6 +16,7 @@
 
 package controllers
 
+import cats.data.EitherT
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import play.api.test.Helpers._
@@ -23,8 +24,9 @@ import play.api.test._
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.controllers.CompleteReturnController
-import uk.gov.hmrc.disareturns.models.common.{MisMatchErr, ObligationClosed, ReportingWindowClosed}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, MisMatchErr, ObligationClosed, ReportingWindowClosed}
 import uk.gov.hmrc.disareturns.models.complete.CompleteResponse
+import uk.gov.hmrc.http.HttpResponse
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -50,7 +52,10 @@ class CompleteReturnControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockETMPService.closeObligationStatus(any())(any()))
+        .thenReturn(EitherT.right[ErrorResponse](Future.successful(HttpResponse(200))))
       when(mockCompleteReturnService.validateRecordCount(isaManagerReference, returnId)).thenReturn(Future.successful(Right(completeResponse)))
+
       val request = FakeRequest(POST, s"/complete/$isaManagerReference/$returnId")
       val result  = controller.complete(isaManagerReference, returnId)(request)
 

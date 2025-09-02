@@ -36,29 +36,34 @@ class CompleteReturnController @Inject() (
   returnsService:        CompleteReturnService,
   authAction:            AuthAction
 )(implicit ec:           ExecutionContext)
-    extends BackendController(cc)
-    with WithJsonBodyWithBadRequest {
-
+    extends BackendController(cc) {
   def complete(isaManagerReferenceNumber: String, returnId: String): Action[AnyContent] =
     (Action andThen authAction).async { implicit request =>
       if (!IsaRefValidator.isValid(isaManagerReferenceNumber)) {
         Future.successful(BadRequest(Json.toJson(BadRequestErr(message = "ISA Manager Reference Number format is invalid"): ErrorResponse)))
       } else {
-        for {
-          returnIdExists <- returnMetadataService.existsByIsaManagerReferenceAndReturnId(isaManagerReferenceNumber, returnId)
-          result <- if (!returnIdExists) { Future.successful(NotFound(Json.toJson(ReturnIdNotMatchedErr: ErrorResponse))) }
-                    else {
-                      etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber).flatMap {
-                        case Left(error) => Future.successful(HttpHelper.toHttpError(error))
-                        case Right(_) =>
-                          returnsService.validateRecordCount(isaManagerReferenceNumber, returnId).map {
-                            case Left(err)       => BadRequest(Json.toJson(err))
-                            case Right(response) => Ok(Json.toJson(response))
-                          }
-                      }
-                    }
-        } yield result
+        returnMetadataService
+          .existsByIsaManagerReferenceAndReturnId(isaManagerReferenceNumber, returnId)
+          .flatMap { returnIdExists =>
+            if (!returnIdExists) {
+              Future.successful(NotFound(Json.toJson(ReturnIdNotMatchedErr: ErrorResponse)))
+            } else {
+              etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber).flatMap {
+                case Left(error) => Future.successful(HttpHelper.toHttpError(error))
+                case Right(_) =>
+                  returnsService.validateRecordCount(isaManagerReferenceNumber, returnId).flatMap {
+                    case Left(err) => Future.successful(BadRequest(Json.toJson(err)))
+                    case Right(response) =>
+                      etmpService
+                        .closeObligationStatus(isaManagerReferenceNumber)
+                        .foldF(
+                          error => Future.successful(HttpHelper.toHttpError(error)),
+                          _ => Future.successful(Ok(Json.toJson(response)))
+                        )
+                  }
+              }
+            }
+          }
       }
     }
-
 }

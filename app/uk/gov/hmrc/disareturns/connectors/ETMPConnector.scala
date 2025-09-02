@@ -38,6 +38,17 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implici
       context = "ETMPConnector: getReturnsObligationStatus"
     )
   }
+  def closeReturnsObligationStatus(
+    isaManagerReferenceNumber: String
+  )(implicit hc:               HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+    val url = s"${appConfig.etmpBaseUrl}/etmp/close-obligation-status/$isaManagerReferenceNumber"
+    read(
+      http
+        .post(url"$url")
+        .execute[Either[UpstreamErrorResponse, HttpResponse]],
+      context = "ETMPConnector: closeReturnsObligationStatus"
+    )
+  }
 
   def getReportingWindowStatus(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.etmpBaseUrl}/etmp/check-reporting-window"
