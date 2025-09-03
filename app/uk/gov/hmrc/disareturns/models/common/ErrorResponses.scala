@@ -67,7 +67,7 @@ case object ReturnIdNotMatchedErr extends ErrorResponse {
   val message = "The provided returnId could not be found"
 }
 
-case object MisMatchErr extends ErrorResponse {
+case object MismatchErr extends ErrorResponse {
   val code    = "MISMATCH_EXPECTED_VS_RECEIVED"
   val message = "Number of records declared in the header does not match the number submitted."
 }
@@ -86,7 +86,7 @@ object ErrorResponse {
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
     ReturnIdNotMatchedErr.code      -> ReturnIdNotMatchedErr,
     MalformedJsonFailureErr.code    -> MalformedJsonFailureErr,
-    MisMatchErr.code                -> MisMatchErr
+    MismatchErr.code                -> MismatchErr
   )
 
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {

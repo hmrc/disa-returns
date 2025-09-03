@@ -18,8 +18,8 @@ package services
 
 import org.mockito.Mockito.when
 import play.api.test.Helpers.await
-import uk.gov.hmrc.disareturns.models.common.{MisMatchErr, Month, ReturnIdNotMatchedErr}
-import uk.gov.hmrc.disareturns.models.complete.CompleteResponse
+import uk.gov.hmrc.disareturns.models.common.{MismatchErr, Month, ReturnIdNotMatchedErr}
+import uk.gov.hmrc.disareturns.models.complete.CompleteReturnResponse
 import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.{SubmissionRequest, TaxYear}
 import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
 import uk.gov.hmrc.disareturns.services.CompleteReturnService
@@ -60,7 +60,7 @@ class CompleteReturnServiceSpec extends BaseUnitSpec {
       when(mockReturnMetadataRepository.findByIsaManagerReferenceAndReturnId(isaManagerReference, returnId))
         .thenReturn(Future.successful(Some(returnMetadata)))
       when(mockMonthlyReportDocumentRepository.countByIsaManagerReferenceAndReturnId(isaManagerReference, returnId)).thenReturn(Future.successful(15))
-      await(service.validateRecordCount(isaManagerReference, returnId)) shouldBe Left(MisMatchErr)
+      await(service.validateRecordCount(isaManagerReference, returnId)) shouldBe Left(MismatchErr)
     }
     "return Right(CompleteResponse) when the expected submission matches the submitted" in {
       val returnSummaryLocation = s"/monthly/$isaManagerReference/$returnId/results/summary"
@@ -69,7 +69,7 @@ class CompleteReturnServiceSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Some(returnMetadata)))
       when(mockMonthlyReportDocumentRepository.countByIsaManagerReferenceAndReturnId(isaManagerReference, returnId))
         .thenReturn(Future.successful(100))
-      await(service.validateRecordCount(isaManagerReference, returnId)) shouldBe Right(CompleteResponse(returnSummaryLocation))
+      await(service.validateRecordCount(isaManagerReference, returnId)) shouldBe Right(CompleteReturnResponse(returnSummaryLocation))
     }
     "return Left(ReturnIdNotMatchedErr) when the return id does not exist" in {
       val invalidReturnId = "Invalid"

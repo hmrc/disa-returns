@@ -17,8 +17,8 @@
 package uk.gov.hmrc.disareturns.services
 
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, MisMatchErr, ReturnIdNotMatchedErr}
-import uk.gov.hmrc.disareturns.models.complete.CompleteResponse
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, MismatchErr, ReturnIdNotMatchedErr}
+import uk.gov.hmrc.disareturns.models.complete.CompleteReturnResponse
 import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
 import uk.gov.hmrc.disareturns.repositories.{MonthlyReportDocumentRepository, ReturnMetadataRepository}
 
@@ -42,7 +42,7 @@ class CompleteReturnService @Inject() (
   def validateRecordCount(
     isaManagerReference: String,
     returnId:            String
-  ): Future[Either[ErrorResponse, CompleteResponse]] =
+  ): Future[Either[ErrorResponse, CompleteReturnResponse]] =
     for {
       optionReturnMetadata <- findReturnMetadata(isaManagerReference, returnId)
       submittedCount       <- countSubmittedReturns(isaManagerReference, returnId)
@@ -50,7 +50,7 @@ class CompleteReturnService @Inject() (
       case Some(returnMetadata) =>
         val returnResultsSummaryLocation = appConfig.getReturnResultsSummaryLocation(isaManagerReference, returnId)
         val expected                     = returnMetadata.submissionRequest.totalRecords
-        if (expected == submittedCount) Right(CompleteResponse(returnResultsSummaryLocation)) else Left(MisMatchErr: ErrorResponse)
+        if (expected == submittedCount) Right(CompleteReturnResponse(returnResultsSummaryLocation)) else Left(MismatchErr: ErrorResponse)
       case None => Left(ReturnIdNotMatchedErr)
     }
 

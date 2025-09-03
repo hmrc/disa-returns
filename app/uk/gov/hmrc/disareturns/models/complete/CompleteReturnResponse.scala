@@ -18,8 +18,8 @@ package uk.gov.hmrc.disareturns.models.complete
 
 import play.api.libs.json.{Json, OFormat}
 
-case class CompleteResponse(returnResultsSummaryLocation: String)
+case class CompleteReturnResponse(returnResultsSummaryLocation: String)
 
-object CompleteResponse {
-  implicit val format: OFormat[CompleteResponse] = Json.format[CompleteResponse]
+object CompleteReturnResponse {
+  implicit val format: OFormat[CompleteReturnResponse] = Json.format[CompleteReturnResponse]
 }
