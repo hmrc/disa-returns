@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package services
+package uk.gov.hmrc.disareturns.services
 
 import org.mockito.Mockito.when
 import play.api.test.Helpers.await
@@ -22,7 +22,6 @@ import uk.gov.hmrc.disareturns.models.common.{MismatchErr, Month, ReturnIdNotMat
 import uk.gov.hmrc.disareturns.models.complete.CompleteReturnResponse
 import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.{SubmissionRequest, TaxYear}
 import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
-import uk.gov.hmrc.disareturns.services.CompleteReturnService
 import utils.BaseUnitSpec
 
 import java.time.Instant

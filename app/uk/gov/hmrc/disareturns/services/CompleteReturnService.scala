@@ -33,10 +33,10 @@ class CompleteReturnService @Inject() (
 )(implicit
   ec: ExecutionContext
 ) {
-  def findReturnMetadata(isaManagerReference: String, returnId: String): Future[Option[ReturnMetadata]] =
+  private[services] def findReturnMetadata(isaManagerReference: String, returnId: String): Future[Option[ReturnMetadata]] =
     repository.findByIsaManagerReferenceAndReturnId(isaManagerReference, returnId)
 
-  def countSubmittedReturns(isaManagerReference: String, returnId: String): Future[Long] =
+  private[services] def countSubmittedReturns(isaManagerReference: String, returnId: String): Future[Long] =
     reportingRepository.countByIsaManagerReferenceAndReturnId(isaManagerReference, returnId)
 
   def validateRecordCount(
