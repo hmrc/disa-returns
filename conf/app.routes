@@ -3,3 +3,5 @@
 POST /monthly/:isaManagerReferenceNumber/init           uk.gov.hmrc.disareturns.controllers.InitiateReturnsController.initiate(isaManagerReferenceNumber:String)
 
 POST /monthly/:isaManagerReferenceNumber/:returnId      uk.gov.hmrc.disareturns.controllers.SubmitReturnsController.submit(isaManagerReferenceNumber:String, returnId: String)
+
+POST /monthly/:isaManagerReferenceNumber/:returnId/complete      uk.gov.hmrc.disareturns.controllers.CompleteReturnController.complete(isaManagerReferenceNumber:String, returnId: String)

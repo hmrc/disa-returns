@@ -26,6 +26,7 @@ import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.SubmissionRequest
 import uk.gov.hmrc.disareturns.models.initiate.response.SuccessResponse
 import uk.gov.hmrc.disareturns.services.{ETMPService, PPNSService, ReturnMetadataService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.disareturns.utils.HttpHelper
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -46,10 +47,10 @@ class InitiateReturnsController @Inject() (
       if (IsaRefValidator.isValid(isaManagerReferenceNumber)) {
         withJsonBody[SubmissionRequest] { submissionRequest =>
           etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber).flatMap {
-            case Left(error) => Future.successful(toHttpError(error))
+            case Left(error) => Future.successful(HttpHelper.toHttpError(error))
             case Right(_) =>
               ppnsService.getBoxId(request.clientId).flatMap {
-                case Left(error) => Future.successful(toHttpError(error))
+                case Left(error) => Future.successful(HttpHelper.toHttpError(error))
                 case Right(boxId) =>
                   returnMetadataService
                     .saveReturnMetadata(
@@ -71,9 +72,4 @@ class InitiateReturnsController @Inject() (
       boxId = boxId
     )
 
-  private def toHttpError(error: ErrorResponse) = error match {
-    case InternalServerErr => InternalServerError(Json.toJson(error))
-    case Unauthorised      => Unauthorized(Json.toJson(error))
-    case _                 => Forbidden(Json.toJson(error))
-  }
 }

@@ -20,7 +20,7 @@ import cats.data.EitherT
 import org.mockito.Mockito._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, Unauthorised}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, UnauthorisedErr}
 import uk.gov.hmrc.disareturns.services.ETMPService
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import utils.BaseUnitSpec
@@ -57,7 +57,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
       val result: Either[ErrorResponse, EtmpObligations] = service.getObligationStatus(testIsaManagerReferenceNumber).value.futureValue
 
-      result shouldBe Left(Unauthorised)
+      result shouldBe Left(UnauthorisedErr)
     }
   }
 
@@ -89,7 +89,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
       val result: Either[ErrorResponse, EtmpReportingWindow] = service.getReportingWindowStatus().value.futureValue
 
-      result shouldBe Left(Unauthorised)
+      result shouldBe Left(UnauthorisedErr)
     }
 
     "return Left(InternalServerErr) when the response JSON cannot be parsed into a obligation status" in new TestSetup {
@@ -118,6 +118,39 @@ class ETMPServiceSpec extends BaseUnitSpec {
       val result: Either[ErrorResponse, EtmpReportingWindow] = service.getReportingWindowStatus().value.futureValue
 
       result shouldBe Left(InternalServerErr)
+    }
+  }
+
+  "ETMPService.closeObligationStatus" should {
+    "return Right(HttpResponse(200)) when call to ETMP connector is successful" in new TestSetup {
+      val expectedResponse:    EtmpObligations = EtmpObligations(true)
+      val etmpObligationsJson: JsValue         = Json.toJson(expectedResponse)
+      val httpResponse:        HttpResponse    = HttpResponse(200, etmpObligationsJson.toString())
+
+      when(mockETMPConnector.closeReturnsObligationStatus(testIsaManagerReferenceNumber))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val result: Either[ErrorResponse, HttpResponse] = service.closeObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+
+      result shouldBe Right(httpResponse)
+    }
+  }
+  "ETMPService.closeObligationStatus" should {
+    "return Left(UpstreamErrorResponse) when the call to ETMP connector returns an UpstreamErrorResponse" in new TestSetup {
+
+      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
+        message = "Not authorised to access this service",
+        statusCode = 401,
+        reportAs = 401,
+        headers = Map.empty
+      )
+
+      when(mockETMPConnector.closeReturnsObligationStatus(testIsaManagerReferenceNumber))
+        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
+
+      val result: Either[ErrorResponse, HttpResponse] = service.closeObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+
+      result shouldBe Left(UnauthorisedErr)
     }
   }
 

@@ -52,7 +52,7 @@ class AuthActionSpec extends BaseUnitSpec {
 
     "return BadRequest when AuthorisationException is thrown" in {
       when(mockAuthConnector.authorise[Unit](any(), any())(any(), any()))
-        .thenReturn(Future.failed(new InsufficientEnrolments("Missing enrolment")))
+        .thenReturn(Future.failed(InsufficientEnrolments("Missing enrolment")))
 
       val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
 
@@ -61,7 +61,7 @@ class AuthActionSpec extends BaseUnitSpec {
       status(result) shouldBe UNAUTHORIZED
       contentAsJson(result) shouldBe Json.obj(
         "code"    -> "UNAUTHORISED",
-        "message" -> "Missing enrolment"
+        "message" -> "Unauthorised"
       )
     }
 

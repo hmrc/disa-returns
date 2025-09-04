@@ -19,7 +19,7 @@ package services
 import cats.data.EitherT
 import org.mockito.Mockito._
 import play.api.libs.json.Json
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, Unauthorised}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, UnauthorisedErr}
 import uk.gov.hmrc.disareturns.models.ppns.response.{Box, BoxCreator}
 import uk.gov.hmrc.disareturns.services.PPNSService
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
@@ -66,7 +66,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
 
       val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
 
-      result shouldBe Left(Unauthorised)
+      result shouldBe Left(UnauthorisedErr)
     }
 
     "return Left(InternalServerErr) when the call to ETMP connector fails with an UpstreamErrorResponse" in {

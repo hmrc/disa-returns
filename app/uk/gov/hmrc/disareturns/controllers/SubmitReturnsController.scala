@@ -24,11 +24,12 @@ import org.apache.pekko.util.ByteString
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{Action, BodyParser, ControllerComponents, Result}
+import play.api.mvc.{Action, BodyParser, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.services.{ETMPService, ReturnMetadataService, StreamingParserService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.disareturns.utils.HttpHelper
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -71,16 +72,11 @@ class SubmitReturnsController @Inject() (
                       InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
                   }
               case Left(error: ErrorResponse) =>
-                Future.successful(toHttpError(error))
+                Future.successful(HttpHelper.toHttpError(error))
             }
         case false =>
           Future.successful(NotFound(Json.toJson(ReturnIdNotMatchedErr: ErrorResponse)))
       }
     }
 
-  private def toHttpError(error: ErrorResponse): Result = error match {
-    case InternalServerErr => InternalServerError(Json.toJson(error))
-    case Unauthorised      => Unauthorized(Json.toJson(error))
-    case _                 => Forbidden(Json.toJson(error))
-  }
 }

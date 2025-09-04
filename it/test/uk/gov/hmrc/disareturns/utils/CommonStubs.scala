@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.disareturns.utils
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, post, stubFor, urlEqualTo}
+import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.http.Status
-import play.api.http.Status.{OK, UNAUTHORIZED}
+import play.api.http.Status.OK
 import play.api.libs.json.JsObject
 
 trait CommonStubs {
@@ -50,6 +50,11 @@ trait CommonStubs {
   def stubEtmpObligation(status: Int, body: JsObject, isaManagerRef: String): Unit =
     stubFor(
       get(urlEqualTo(s"/etmp/check-obligation-status/$isaManagerRef"))
+        .willReturn(aResponse().withStatus(status).withBody(body.toString))
+    )
+  def stubCloseEtmpObligation(status: Int, body: JsObject, isaManagerRef: String): Unit =
+    stubFor(
+      post(urlEqualTo(s"/etmp/close-obligation-status/$isaManagerRef"))
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
     )
 

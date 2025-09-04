@@ -21,7 +21,7 @@ import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -79,5 +79,8 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
         }
       }
     } yield (reportingWindow, obligations)
+
+  def closeObligationStatus(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] =
+    connector.closeReturnsObligationStatus(isaManagerReference).leftMap(mapToErrorResponse)
 
 }

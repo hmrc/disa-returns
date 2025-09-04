@@ -27,13 +27,9 @@ case class BadRequestErr(message: String) extends ErrorResponse {
   val code = "BAD_REQUEST"
 }
 
-case class UnauthorisedErr(message: String) extends ErrorResponse {
-  val code = "UNAUTHORISED"
-}
-
-case object Unauthorised extends ErrorResponse {
+case object UnauthorisedErr extends ErrorResponse {
   val code    = "UNAUTHORISED"
-  val message = "Not authorised to access this service"
+  val message = "Unauthorised"
 }
 
 case object InternalServerErr extends ErrorResponse {
@@ -71,6 +67,11 @@ case object ReturnIdNotMatchedErr extends ErrorResponse {
   val message = "The provided returnId could not be found"
 }
 
+case object MismatchErr extends ErrorResponse {
+  val code    = "MISMATCH_EXPECTED_VS_RECEIVED"
+  val message = "Number of records declared in the header does not match the number submitted."
+}
+
 object ErrorResponse {
 
   implicit val badRequestErrReads: Reads[BadRequestErr] =
@@ -79,12 +80,13 @@ object ErrorResponse {
   private val singletons: Map[String, ErrorResponse] = Map(
     ObligationClosed.code           -> ObligationClosed,
     ReportingWindowClosed.code      -> ReportingWindowClosed,
-    Unauthorised.code               -> Unauthorised,
+    UnauthorisedErr.code            -> UnauthorisedErr,
     InternalServerErr.code          -> InternalServerErr,
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
     ReturnIdNotMatchedErr.code      -> ReturnIdNotMatchedErr,
-    MalformedJsonFailureErr.code    -> MalformedJsonFailureErr
+    MalformedJsonFailureErr.code    -> MalformedJsonFailureErr,
+    MismatchErr.code                -> MismatchErr
   )
 
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {
@@ -96,11 +98,6 @@ object ErrorResponse {
           json.validate[SecondLevelValidationResponse]
         case "BAD_REQUEST" =>
           badRequestErrReads.reads(json)
-        case "UNAUTHORISED" =>
-          (json \ "message").validate[String].map {
-            case "Not authorised to access this service" => Unauthorised
-            case customMsg                               => UnauthorisedErr(customMsg)
-          }
         case code if singletons.contains(code) =>
           JsSuccess(singletons(code))
         case other =>

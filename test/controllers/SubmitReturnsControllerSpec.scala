@@ -260,7 +260,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
     "return 401 Unauthorised  when ETMP responds with an unauthorised error" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Left(Unauthorised)))
+        .thenReturn(Future.successful(Left(UnauthorisedErr)))
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
@@ -268,7 +268,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream())
 
       status(result)                                 shouldBe UNAUTHORIZED
-      (contentAsJson(result) \ "message").as[String] shouldBe "Not authorised to access this service"
+      (contentAsJson(result) \ "message").as[String] shouldBe "Unauthorised"
       (contentAsJson(result) \ "code").as[String]    shouldBe "UNAUTHORISED"
     }
 

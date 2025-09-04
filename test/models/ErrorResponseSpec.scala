@@ -36,13 +36,13 @@ class ErrorResponseSpec extends BaseUnitSpec {
     }
     "deserialize a unauthorised error" in {
       val json = Json.obj(
-        "code"    -> Unauthorised.code,
-        "message" -> Unauthorised.message
+        "code"    -> UnauthorisedErr.code,
+        "message" -> UnauthorisedErr.message
       )
 
       val result = Json.fromJson[ErrorResponse](json)
 
-      result shouldBe JsSuccess(Unauthorised)
+      result shouldBe JsSuccess(UnauthorisedErr)
     }
 
     "deserialize a MultipleErrorResponse with code FORBIDDEN" in {

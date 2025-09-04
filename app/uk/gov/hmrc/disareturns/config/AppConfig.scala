@@ -26,4 +26,11 @@ class AppConfig @Inject() (config: ServicesConfig) {
   lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
   lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
 
+  private val returnResultsSummaryLocation: String =
+    config.getString("urls.returnResultsSummaryLocation")
+
+  def getReturnResultsSummaryLocation(isaManagerReference: String, returnId: String): String =
+    returnResultsSummaryLocation
+      .replace("{isaManagerReference}", isaManagerReference)
+      .replace("{returnId}", returnId)
 }
