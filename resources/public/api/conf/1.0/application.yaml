@@ -352,7 +352,7 @@ paths:
                     type: string
                     format: uri
                     description: Use this URL to retrieve the return results summary after the reporting window closes.
-                    example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/results-summary/b4aba7b8-0d34-4936-923c-d9ef2747c099'
+                    example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/Z1234/b4aba7b8-0d34-4936-923c-d9ef2747c099/results-summary'
         '400':
           description: Bad Request
           content:
@@ -467,7 +467,7 @@ paths:
                     type: string
                     format: uri
                     description: Use this URL to retrieve the results of the specified return.
-                    example: 'https://test-api.service.hmrc.gov.uk/disa-returns/monthly-returns/Z1234/results/b4aba7b8-0d34-4936-923c-d9ef2747c099?page=1'
+                    example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/Z1234/b4aba7b8-0d34-4936-923c-d9ef2747c099/results?page=1'
                   totalRecords:
                     type: integer
                     description: Total number of records in the return results.
