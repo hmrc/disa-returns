@@ -352,7 +352,7 @@ paths:
                     type: string
                     format: uri
                     description: Use this URL to retrieve the return results summary after the reporting window closes.
-                    example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/monthly/Z1234/b4aba7b8-0d34-4936-923c-d9ef2747c099/results-summary'
+                    example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/monthly/Z1234/b4aba7b8-0d34-4936-923c-d9ef2747c099/results/summary'
         '400':
           description: Bad Request
           content:
