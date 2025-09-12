@@ -31,7 +31,7 @@ import java.time.LocalDateTime
 class InitiateReturnsControllerISpec extends BaseIntegrationSpec {
 
   implicit val mongo: ReturnMetadataRepository = app.injector.instanceOf[ReturnMetadataRepository]
-  val isaManagerRef = "Z123456"
+  val isaManagerRef = "Z1234"
   val initiateUrl   = s"/monthly/$isaManagerRef/init"
 
   val validRequestJson: JsObject = Json.obj(
