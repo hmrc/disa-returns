@@ -65,7 +65,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z([0-9]{4}|[0-9]{6})$
+            pattern: ^Z[0-9]{4}$
             type: string
             example: Z1234
         - name: year #It has been pointed out that we could use the taxYear explicitly as a string (like 2025-26). Sukdeb, what do you think?
@@ -196,7 +196,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z([0-9]{4}|[0-9]{6})$
+            pattern: ^Z[0-9]{4}$
             type: string
             example: Z1234
         - name: year
@@ -329,7 +329,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z([0-9]{4}|[0-9]{6})$
+            pattern: ^Z[0-9]{4}$
             type: string
             example: Z1234
         - name: year
@@ -461,7 +461,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z([0-9]{4}|[0-9]{6})$
+            pattern: ^Z[0-9]{4}$
             type: string
             example: Z1234
         - name: year

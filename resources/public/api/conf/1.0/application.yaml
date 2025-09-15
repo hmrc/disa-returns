@@ -64,7 +64,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z([0-9]{4}|[0-9]{6})$
+            pattern: ^Z[0-9]{4}$
             type: string
             example: Z1234
         - $ref: '#/components/parameters/acceptHeader'
@@ -217,7 +217,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z([0-9]{4}|[0-9]{6})$
+            pattern: ^Z[0-9]{4}$
             type: string
             example: Z1234
         - name: returnId
@@ -325,7 +325,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z([0-9]{4}|[0-9]{6})$
+            pattern: ^Z[0-9]{4}$
             type: string
             example: Z1234
         - name: returnId
@@ -440,7 +440,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z([0-9]{4}|[0-9]{6})$
+            pattern: ^Z[0-9]{4}$
             type: string
             example: Z1234
         - name: returnId
@@ -548,7 +548,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z([0-9]{4}|[0-9]{6})$
+            pattern: ^Z[0-9]{4}$
             type: string
             example: Z1234
         - name: returnId
