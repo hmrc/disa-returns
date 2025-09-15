@@ -34,7 +34,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
 
   val controller: InitiateReturnsController = app.injector.instanceOf[InitiateReturnsController]
 
-  val isaManagerRef = "Z123456"
+  val isaManagerRef = "Z1234"
   val boxId         = "box-123"
   val returnId      = "return-789"
   val obligation:      EtmpObligations     = EtmpObligations(false)
