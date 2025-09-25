@@ -22,6 +22,7 @@ import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
+import java.time.{Instant, ZoneOffset, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -64,5 +65,17 @@ class ReturnMetadataRepository @Inject() (mc: MongoComponent)(implicit ec: Execu
       equal("returnId", returnId)
     )
     collection.find(filter).headOption()
+  }
+
+  def existsForZrefAndPeriod(zRef: String, year: Int, month: Int): Future[Boolean] = {
+    val start: Instant = ZonedDateTime.of(year, month, 1, 0, 0, 0, 0, ZoneOffset.UTC).toInstant
+    val end:   Instant = start.atZone(ZoneOffset.UTC).plusMonths(1).toInstant
+
+    val filter = Filters.and(
+      Filters.eq("isaManagerReference", zRef),
+      Filters.gte("createdAt", start),
+      Filters.lt("createdAt", end)
+    )
+    collection.countDocuments(filter).toFuture().map(_ > 0)
   }
 }
