@@ -18,6 +18,7 @@ package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
+import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -64,5 +65,15 @@ class ReturnMetadataRepository @Inject() (mc: MongoComponent)(implicit ec: Execu
       equal("returnId", returnId)
     )
     collection.find(filter).headOption()
+  }
+
+  def existsForZrefAndPeriod(zRef: String, year: Int, month: Month): Future[Boolean] = {
+    val filter = Filters.and(
+      Filters.eq("isaManagerReference", zRef),
+      Filters.eq("submissionRequest.taxYear.endYear", year),
+      Filters.eq("submissionRequest.submissionPeriod", month.toString)
+    )
+
+    collection.countDocuments(filter).toFuture().map(_ > 0)
   }
 }
