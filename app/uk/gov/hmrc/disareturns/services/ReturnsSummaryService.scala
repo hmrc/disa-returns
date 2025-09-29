@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import uk.gov.hmrc.disareturns.models.common.Month.Month
-import uk.gov.hmrc.disareturns.models.summary.repository.SaveReturnsSummaryResult
+import uk.gov.hmrc.disareturns.models.summary.repository.{MonthlyReturnsSummary, SaveReturnsSummaryResult}
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 
 import javax.inject.{Inject, Singleton}
@@ -28,9 +27,9 @@ class ReturnsSummaryService @Inject() (
   summaryRepo: MonthlyReturnsSummaryRepository
 )(implicit ec: ExecutionContext) {
 
-  def saveReturnsSummary(zRef: String, year: Int, month: Month, totalRecords: Int): Future[SaveReturnsSummaryResult] =
+  def saveReturnsSummary(summary: MonthlyReturnsSummary): Future[SaveReturnsSummaryResult] =
     summaryRepo
-      .upsert(zRef, year, month, totalRecords)
+      .upsert(summary)
       .map(_ => SaveReturnsSummaryResult.Saved)
       .recover { case e => SaveReturnsSummaryResult.Error(e.getMessage) }
 }

@@ -30,7 +30,7 @@ import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, PPNSConnector}
-import uk.gov.hmrc.disareturns.repositories.{MonthlyReportDocumentRepository, ReturnMetadataRepository}
+import uk.gov.hmrc.disareturns.repositories.{MonthlyReportDocumentRepository, MonthlyReturnsSummaryRepository, ReturnMetadataRepository}
 import uk.gov.hmrc.disareturns.services.{CompleteReturnService, ETMPService, PPNSService, ReturnMetadataService, ReturnsSummaryService, StreamingParserService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
@@ -70,6 +70,7 @@ abstract class BaseUnitSpec
   val mockCompleteReturnService:           CompleteReturnService           = mock[CompleteReturnService]
   val mockReturnMetadataRepository:        ReturnMetadataRepository        = mock[ReturnMetadataRepository]
   val mockReturnsSummaryService:           ReturnsSummaryService           = mock[ReturnsSummaryService]
+  val mockReturnsSummaryRepository:        MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .overrides(
@@ -80,7 +81,8 @@ abstract class BaseUnitSpec
       bind[StreamingParserService].toInstance(mockStreamingParserService),
       bind[CompleteReturnService].toInstance(mockCompleteReturnService),
       bind[AppConfig].toInstance(mockAppConfig),
-      bind[ReturnsSummaryService].toInstance(mockReturnsSummaryService)
+      bind[ReturnsSummaryService].toInstance(mockReturnsSummaryService),
+      bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository)
     )
     .build()
 }

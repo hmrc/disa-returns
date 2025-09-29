@@ -18,10 +18,10 @@ package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model._
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.common.Month.Month
+import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -36,7 +36,7 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
       domainFormat = MonthlyReturnsSummary.format,
       indexes = Seq(
         IndexModel(
-          keys = Indexes.ascending("zRef", "year", "month"),
+          keys = Indexes.ascending("zRef", "taxYearEnd", "month"),
           indexOptions = IndexOptions().unique(true).name("zRefYearMonthIdx")
         ),
         IndexModel(
@@ -46,26 +46,27 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
             .expireAfter(appConfig.returnSummaryExpiryInDays, TimeUnit.DAYS)
         )
       ),
+      extraCodecs = Codecs.playFormatCodecsBuilder(Month.format).forType[Month.Value].build,
       replaceIndexes = true
     ) {
 
-  def upsert(zRef: String, year: Int, month: Month, totalRecords: Int): Future[Unit] = {
+  def upsert(summary: MonthlyReturnsSummary): Future[Unit] = {
     val now = Instant.now()
     val filter = Filters.and(
-      Filters.eq("zRef", zRef),
-      Filters.eq("year", year),
-      Filters.eq("month", month.toString)
+      Filters.eq("zRef", summary.zRef),
+      Filters.eq("taxYearEnd", summary.taxYearEnd),
+      Filters.eq("month", summary.month)
     )
 
     val setOnInsert = Updates.combine(
-      Updates.setOnInsert("zRef", zRef),
-      Updates.setOnInsert("year", year),
-      Updates.setOnInsert("month", month.toString),
+      Updates.setOnInsert("zRef", summary.zRef),
+      Updates.setOnInsert("taxYearEnd", summary.taxYearEnd),
+      Updates.setOnInsert("month", summary.month),
       Updates.setOnInsert("createdAt", now)
     )
 
     val setters = Updates.combine(
-      Updates.set("totalRecords", totalRecords),
+      Updates.set("totalRecords", summary.totalRecords),
       Updates.set("updatedAt", now)
     )
 

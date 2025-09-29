@@ -27,10 +27,6 @@ case class BadRequestErr(message: String) extends ErrorResponse {
   val code = "BAD_REQUEST"
 }
 
-case class NotFoundErr(message: String = "Not found") extends ErrorResponse {
-  val code = "NOT_FOUND"
-}
-
 case object UnauthorisedErr extends ErrorResponse {
   val code    = "UNAUTHORISED"
   val message = "Unauthorised"
@@ -82,9 +78,6 @@ object ErrorResponse {
   implicit val badRequestErrReads: Reads[BadRequestErr] =
     (JsPath \ "message").read[String].map(BadRequestErr.apply)
 
-  implicit val notFoundErrReads: Reads[NotFoundErr] =
-    (JsPath \ "message").read[String].map(NotFoundErr.apply)
-
   implicit val internalServerErrReads: Reads[InternalServerErr] =
     (JsPath \ "message")
       .readWithDefault[String](
@@ -112,8 +105,6 @@ object ErrorResponse {
           json.validate[SecondLevelValidationResponse]
         case "BAD_REQUEST" =>
           badRequestErrReads.reads(json)
-        case "NOT_FOUND" =>
-          notFoundErrReads.reads(json)
         case "INTERNAL_SERVER_ERROR" =>
           internalServerErrReads.reads(json)
         case code if singletons.contains(code) =>

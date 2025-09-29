@@ -16,7 +16,7 @@
 
 package controllers
 
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers.{any, argThat, eq => eqTo}
 import org.mockito.Mockito
 import org.mockito.Mockito.{verify, when}
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
@@ -27,6 +27,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.{POST, contentAsJson, contentAsString, status}
 import uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, Month}
+import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.models.summary.repository.SaveReturnsSummaryResult.{Error, Saved}
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
 import utils.BaseUnitSpec
@@ -55,7 +56,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
       val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validYearStr/$validMonth")
         .withBody(Json.toJson(sampleBody))
 
-      when(mockReturnsSummaryService.saveReturnsSummary(any, any, any, any)).thenReturn(Future.successful(Saved))
+      when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Saved))
 
       val res = controller.returnsSummaryCallback(validZRef, validYearStr, validMonth.toString).apply(req)
       status(res) mustBe NO_CONTENT
@@ -68,7 +69,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
       val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validYearStr/$validMonth")
         .withBody(Json.toJson(sampleBody))
 
-      when(mockReturnsSummaryService.saveReturnsSummary(any, any, any, any)).thenReturn(Future.successful(Error(msg)))
+      when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Error(msg)))
 
       val res = controller.returnsSummaryCallback(validZRef, validYearStr, validMonth.toString).apply(req)
 
@@ -76,7 +77,12 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
       (contentAsJson(res) \ "code").as[String] mustBe InternalServerErr().code
       (contentAsJson(res) \ "message").as[String] mustBe msg
 
-      verify(mockReturnsSummaryService).saveReturnsSummary(eqTo(validZRef), eqTo(expectedTaxEndYear), eqTo(validMonth), eqTo(totalRecords))
+      verify(mockReturnsSummaryService).saveReturnsSummary(argThat[MonthlyReturnsSummary] { summary =>
+        summary.zRef == validZRef &&
+        summary.taxYearEnd == expectedTaxEndYear &&
+        summary.month == validMonth.toString &&
+        summary.totalRecords == totalRecords
+      })
     }
 
     "return 400 BAD_REQUEST when Z-ref is invalid" in {
@@ -123,12 +129,17 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
       val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validYearStr/$validMonth")
         .withBody(Json.toJson(sampleBody))
 
-      when(mockReturnsSummaryService.saveReturnsSummary(any, any, any, any))
+      when(mockReturnsSummaryService.saveReturnsSummary(any))
         .thenReturn(Future.successful(Saved))
 
       val _ = controller.returnsSummaryCallback(validZRef, validYearStr, validMonth.toString).apply(req)
 
-      verify(mockReturnsSummaryService).saveReturnsSummary(eqTo(validZRef), eqTo(expectedTaxEndYear), eqTo(validMonth), eqTo(totalRecords))
+      verify(mockReturnsSummaryService).saveReturnsSummary(argThat[MonthlyReturnsSummary] { summary =>
+        summary.zRef == validZRef &&
+        summary.taxYearEnd == expectedTaxEndYear &&
+        summary.month == validMonth.toString &&
+        summary.totalRecords == totalRecords
+      })
     }
   }
 }

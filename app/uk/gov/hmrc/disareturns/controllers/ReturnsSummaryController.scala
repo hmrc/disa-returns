@@ -23,7 +23,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.summary.repository.SaveReturnsSummaryResult
+import uk.gov.hmrc.disareturns.models.summary.repository.{MonthlyReturnsSummary, SaveReturnsSummaryResult}
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -49,7 +49,7 @@ class ReturnsSummaryController @Inject() (
               Future.successful(badResult)
 
             case Right((yy, mm)) =>
-              returnsSummaryService.saveReturnsSummary(zRef, yy, mm, req.totalRecords).map {
+              returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(zRef, yy, mm.toString, req.totalRecords)).map {
                 case SaveReturnsSummaryResult.Saved      => NoContent
                 case SaveReturnsSummaryResult.Error(msg) => InternalServerError(Json.toJson(InternalServerErr(msg)))
               }
