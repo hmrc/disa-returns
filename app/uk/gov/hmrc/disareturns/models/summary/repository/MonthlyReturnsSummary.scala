@@ -23,8 +23,8 @@ import java.time.Instant
 
 case class MonthlyReturnsSummary(
   zRef:         String,
-  year:         Int,
-  month:        Int,
+  taxYearEnd:   Int,
+  month:        String,
   totalRecords: Int,
   createdAt:    Instant = Instant.now(),
   updatedAt:    Instant = Instant.now()
