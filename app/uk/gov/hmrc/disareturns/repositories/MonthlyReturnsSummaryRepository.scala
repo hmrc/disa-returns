@@ -17,6 +17,7 @@
 package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model._
+import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.mongo.MongoComponent
@@ -28,7 +29,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
+class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: AppConfig)(implicit ec: ExecutionContext)
     extends PlayMongoRepository[MonthlyReturnsSummary](
       mongoComponent = mc,
       collectionName = "monthlyReturnsSummaries",
@@ -42,7 +43,7 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent)(implicit ec
           keys = Indexes.ascending("updatedAt"),
           indexOptions = IndexOptions()
             .name("updatedAtTtlIdx")
-            .expireAfter(30, TimeUnit.DAYS)
+            .expireAfter(appConfig.returnSummaryExpiryInDays, TimeUnit.DAYS)
         )
       )
     ) {
