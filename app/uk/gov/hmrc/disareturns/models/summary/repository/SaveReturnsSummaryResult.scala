@@ -20,6 +20,5 @@ sealed trait SaveReturnsSummaryResult
 
 object SaveReturnsSummaryResult {
   case object Saved extends SaveReturnsSummaryResult
-  case class NotFound(message: String) extends SaveReturnsSummaryResult
   case class Error(message: String) extends SaveReturnsSummaryResult
 }

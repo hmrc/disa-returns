@@ -49,9 +49,8 @@ class ReturnsSummaryController @Inject() (
 
           case Right((yy, mm)) =>
             returnsSummaryService.saveReturnsSummary(zRef, yy, mm, req.totalRecords).map {
-              case SaveReturnsSummaryResult.Saved         => NoContent
-              case SaveReturnsSummaryResult.NotFound(msg) => NotFound(Json.toJson(NotFoundErr(msg)))
-              case SaveReturnsSummaryResult.Error(msg)    => InternalServerError(Json.toJson(InternalServerErr(msg)))
+              case SaveReturnsSummaryResult.Saved      => NoContent
+              case SaveReturnsSummaryResult.Error(msg) => InternalServerError(Json.toJson(InternalServerErr(msg)))
             }
         }
       }

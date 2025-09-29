@@ -18,26 +18,19 @@ package uk.gov.hmrc.disareturns.services
 
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.summary.repository.SaveReturnsSummaryResult
-import uk.gov.hmrc.disareturns.repositories.{MonthlyReturnsSummaryRepository, ReturnMetadataRepository}
+import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ReturnsSummaryService @Inject() (
-  metadataRepo: ReturnMetadataRepository,
-  summaryRepo:  MonthlyReturnsSummaryRepository
-)(implicit ec:  ExecutionContext) {
+  summaryRepo: MonthlyReturnsSummaryRepository
+)(implicit ec: ExecutionContext) {
 
   def saveReturnsSummary(zRef: String, year: Int, month: Month, totalRecords: Int): Future[SaveReturnsSummaryResult] =
-    metadataRepo
-      .existsForZrefAndPeriod(zRef, year, month)
-      .flatMap {
-        case false => Future.successful(SaveReturnsSummaryResult.NotFound(s"No return found for $zRef for month: $month and year: $year"))
-        case true =>
-          summaryRepo
-            .upsert(zRef, year, month, totalRecords)
-            .map(_ => SaveReturnsSummaryResult.Saved)
-      }
+    summaryRepo
+      .upsert(zRef, year, month, totalRecords)
+      .map(_ => SaveReturnsSummaryResult.Saved)
       .recover { case e => SaveReturnsSummaryResult.Error(e.getMessage) }
 }
