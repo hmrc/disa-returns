@@ -42,17 +42,21 @@ class ReturnsSummaryController @Inject() (
 
   def returnsSummaryCallback(zRef: String, year: String, month: String): Action[JsValue] =
     Action.async(parse.json) { implicit req =>
-      withJsonBody[MonthlyReturnsSummaryReq] { req =>
-        parseAndValidateYearMonth(year, month) match {
-          case Left(badResult) =>
-            Future.successful(badResult)
+      if (IsaRefValidator.isValid(zRef)) {
+        withJsonBody[MonthlyReturnsSummaryReq] { req =>
+          parseAndValidateYearMonth(year, month) match {
+            case Left(badResult) =>
+              Future.successful(badResult)
 
-          case Right((yy, mm)) =>
-            returnsSummaryService.saveReturnsSummary(zRef, yy, mm, req.totalRecords).map {
-              case SaveReturnsSummaryResult.Saved      => NoContent
-              case SaveReturnsSummaryResult.Error(msg) => InternalServerError(Json.toJson(InternalServerErr(msg)))
-            }
+            case Right((yy, mm)) =>
+              returnsSummaryService.saveReturnsSummary(zRef, yy, mm, req.totalRecords).map {
+                case SaveReturnsSummaryResult.Saved      => NoContent
+                case SaveReturnsSummaryResult.Error(msg) => InternalServerError(Json.toJson(InternalServerErr(msg)))
+              }
+          }
         }
+      } else {
+        Future.successful(BadRequest(Json.toJson(BadRequestErr(message = "ISA Manager Reference Number format is invalid"))))
       }
     }
 
