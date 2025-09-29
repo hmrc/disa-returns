@@ -37,7 +37,7 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
           response.json
             .validate[EtmpReportingWindow]
             .fold(
-              _ => Left(InternalServerErr),
+              _ => Left(InternalServerErr()),
               reportingWindow => Right(reportingWindow)
             )
       }
@@ -51,7 +51,7 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
           response.json
             .validate[EtmpObligations]
             .fold(
-              _ => Left(InternalServerErr),
+              _ => Left(InternalServerErr()),
               obligation => Right(obligation)
             )
       }

@@ -45,7 +45,8 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
             .name("updatedAtTtlIdx")
             .expireAfter(appConfig.returnSummaryExpiryInDays, TimeUnit.DAYS)
         )
-      )
+      ),
+      replaceIndexes = true
     ) {
 
   def upsert(zRef: String, year: Int, month: Month, totalRecords: Int): Future[Unit] = {

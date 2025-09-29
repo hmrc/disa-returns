@@ -30,7 +30,7 @@ class HttpHelperSpec extends AnyWordSpec with Matchers {
   "HttpHelper.toHttpError" should {
 
     "return InternalServerError (500) for InternalServerErr" in {
-      val result: Result = HttpHelper.toHttpError(InternalServerErr)
+      val result: Result = HttpHelper.toHttpError(InternalServerErr())
       result.header.status shouldBe INTERNAL_SERVER_ERROR
       val json = contentAsJson(Future.successful(result))
       (json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"

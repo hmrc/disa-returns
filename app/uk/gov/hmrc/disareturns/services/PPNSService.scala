@@ -35,7 +35,7 @@ class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionCon
         response.json
           .validate[Box]
           .fold(
-            _ => Left(InternalServerErr),
+            _ => Left(InternalServerErr()),
             box => Right(box.boxId)
           )
     }

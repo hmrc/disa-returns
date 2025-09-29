@@ -19,17 +19,17 @@ package uk.gov.hmrc.disareturns.controllers
 import com.google.inject.Inject
 import jakarta.inject.Singleton
 import play.api.Logging
-import play.api.libs.json.{JsError, JsSuccess}
-import play.api.mvc.{Action, BodyParser, ControllerComponents, Result}
-import uk.gov.hmrc.disareturns.models.common.Month
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.disareturns.models.common.Month.Month
+import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.summary.repository.SaveReturnsSummaryResult
-import uk.gov.hmrc.disareturns.models.summary.request.CallbackResponses._
-import uk.gov.hmrc.disareturns.models.summary.request.{Issue, MonthlyReturnsSummaryReq}
+import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class ReturnsSummaryController @Inject() (
@@ -37,45 +37,37 @@ class ReturnsSummaryController @Inject() (
   returnsSummaryService: ReturnsSummaryService
 )(implicit ec:           ExecutionContext)
     extends BackendController(cc)
-    with Logging {
+    with Logging
+    with WithJsonBodyWithBadRequest {
 
-  private val returnsSummaryParser: BodyParser[MonthlyReturnsSummaryReq] = parse.json.validate { json =>
-    json.validate[MonthlyReturnsSummaryReq] match {
-      case JsSuccess(value, _) => Right(value)
-      case JsError(errors) =>
-        val response = badRequestWith(
-          errors.map { case (path, err) =>
-            Issue(path.toString(), err.toString())
-          }.toSeq
-        )
+  def returnsSummaryCallback(zRef: String, year: String, month: String): Action[JsValue] =
+    Action.async(parse.json) { implicit req =>
+      withJsonBody[MonthlyReturnsSummaryReq] { req =>
+        parseAndValidateYearMonth(year, month) match {
+          case Left(badResult) =>
+            Future.successful(badResult)
 
-        Left(response)
-    }
-  }
-
-  def returnsSummaryCallback(zRef: String, year: Int, month: Int): Action[MonthlyReturnsSummaryReq] =
-    Action.async(returnsSummaryParser) { implicit req =>
-      parseAndValidateYearMonth(year, month) match {
-        case Left(badResult) =>
-          Future.successful(badResult)
-
-        case Right((yy, mm)) =>
-          returnsSummaryService.saveReturnsSummary(zRef, yy, mm, req.body.totalRecords).map {
-            case SaveReturnsSummaryResult.Saved         => NoContent
-            case SaveReturnsSummaryResult.NotFound(msg) => notFound(msg)
-            case SaveReturnsSummaryResult.Error(msg)    => internalError(msg)
-          }
+          case Right((yy, mm)) =>
+            returnsSummaryService.saveReturnsSummary(zRef, yy, mm, req.totalRecords).map {
+              case SaveReturnsSummaryResult.Saved         => NoContent
+              case SaveReturnsSummaryResult.NotFound(msg) => NotFound(Json.toJson(NotFoundErr(msg)))
+              case SaveReturnsSummaryResult.Error(msg)    => InternalServerError(Json.toJson(InternalServerErr(msg)))
+            }
+        }
       }
     }
 
-  private def parseAndValidateYearMonth(year: Int, month: Int): Either[Result, (Int, Month)] = {
-    val monthToEnum = Month.fromInt(month)
+  private def parseAndValidateYearMonth(year: String, month: String): Either[Result, (Int, Month)] = {
+    val taxYearPattern  = "^20\\d{2}-\\d{2}$".r
+    val monthToEnum     = Try(Month.withName(month)).toOption
+    val taxYearValid    = taxYearPattern.matches(year)
+    lazy val taxYearEnd = year.take(4).toInt + 1
 
     val issues =
-      (if (year < 2026) Seq(Issue("year", "Invalid parameter for year")) else Nil) ++
-        (if (monthToEnum.isEmpty) Seq(Issue("month", "Invalid parameter for month")) else Nil)
+      (if (!taxYearValid || taxYearEnd < 2026) Seq(BadRequestErr(message = "Invalid parameter for tax year")) else Nil) ++
+        (if (monthToEnum.isEmpty) Seq(BadRequestErr(message = "Invalid parameter for month")) else Nil)
 
-    if (issues.nonEmpty) Left(badRequestWith(issues))
-    else Right((year, monthToEnum.get))
+    if (issues.nonEmpty) Left(BadRequest(Json.toJson(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", issues))))
+    else Right((taxYearEnd, monthToEnum.get))
   }
 }

@@ -27,14 +27,19 @@ case class BadRequestErr(message: String) extends ErrorResponse {
   val code = "BAD_REQUEST"
 }
 
+case class NotFoundErr(message: String = "Not found") extends ErrorResponse {
+  val code = "NOT_FOUND"
+}
+
 case object UnauthorisedErr extends ErrorResponse {
   val code    = "UNAUTHORISED"
   val message = "Unauthorised"
 }
 
-case object InternalServerErr extends ErrorResponse {
-  val code    = "INTERNAL_SERVER_ERROR"
-  val message = "There has been an issue processing your request"
+case class InternalServerErr(
+  message: String = "There has been an issue processing your request"
+) extends ErrorResponse {
+  val code = "INTERNAL_SERVER_ERROR"
 }
 
 case object ObligationClosed extends ErrorResponse {
@@ -77,11 +82,20 @@ object ErrorResponse {
   implicit val badRequestErrReads: Reads[BadRequestErr] =
     (JsPath \ "message").read[String].map(BadRequestErr.apply)
 
+  implicit val notFoundErrReads: Reads[NotFoundErr] =
+    (JsPath \ "message").read[String].map(NotFoundErr.apply)
+
+  implicit val internalServerErrReads: Reads[InternalServerErr] =
+    (JsPath \ "message")
+      .readWithDefault[String](
+        "There has been an issue processing your request"
+      )
+      .map(InternalServerErr.apply)
+
   private val singletons: Map[String, ErrorResponse] = Map(
     ObligationClosed.code           -> ObligationClosed,
     ReportingWindowClosed.code      -> ReportingWindowClosed,
     UnauthorisedErr.code            -> UnauthorisedErr,
-    InternalServerErr.code          -> InternalServerErr,
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
     ReturnIdNotMatchedErr.code      -> ReturnIdNotMatchedErr,
@@ -98,6 +112,10 @@ object ErrorResponse {
           json.validate[SecondLevelValidationResponse]
         case "BAD_REQUEST" =>
           badRequestErrReads.reads(json)
+        case "NOT_FOUND" =>
+          notFoundErrReads.reads(json)
+        case "INTERNAL_SERVER_ERROR" =>
+          internalServerErrReads.reads(json)
         case code if singletons.contains(code) =>
           JsSuccess(singletons(code))
         case other =>
@@ -113,6 +131,9 @@ object ErrorResponse {
         Json.obj("code" -> error.code, "message" -> error.message)
     }
   }
+
+  implicit def subtypeWrites[A <: ErrorResponse]: Writes[A] =
+    format.contramap[A](er => er: ErrorResponse)
 }
 
 case class MultipleErrorResponse(
