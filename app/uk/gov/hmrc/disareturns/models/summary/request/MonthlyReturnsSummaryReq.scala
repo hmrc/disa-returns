@@ -16,11 +16,13 @@
 
 package uk.gov.hmrc.disareturns.models.summary.request
 
-import play.api.libs.json.{Reads, __}
+import play.api.libs.json.{Json, Reads, Writes, __}
 
 case class MonthlyReturnsSummaryReq(totalRecords: Int)
 
 object MonthlyReturnsSummaryReq {
   implicit val reads: Reads[MonthlyReturnsSummaryReq] =
     (__ \ "totalRecords").read[Int](Reads.min(0)).map(MonthlyReturnsSummaryReq(_))
+
+  implicit val writes: Writes[MonthlyReturnsSummaryReq] = Json.writes[MonthlyReturnsSummaryReq]
 }
