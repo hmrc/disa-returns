@@ -18,10 +18,9 @@ package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model._
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -45,9 +44,7 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
             .name("updatedAtTtlIdx")
             .expireAfter(appConfig.returnSummaryExpiryInDays, TimeUnit.DAYS)
         )
-      ),
-      extraCodecs = Codecs.playFormatCodecsBuilder(Month.format).forType[Month.Value].build,
-      replaceIndexes = true
+      )
     ) {
 
   def upsert(summary: MonthlyReturnsSummary): Future[Unit] = {
