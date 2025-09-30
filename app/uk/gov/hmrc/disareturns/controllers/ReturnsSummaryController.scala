@@ -23,6 +23,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
+import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 import uk.gov.hmrc.disareturns.models.summary.repository.{MonthlyReturnsSummary, SaveReturnsSummaryResult}
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
@@ -61,13 +62,12 @@ class ReturnsSummaryController @Inject() (
     }
 
   private def parseAndValidateYearMonth(year: String, month: String): Either[Result, (Int, Month)] = {
-    val taxYearPattern  = "^20\\d{2}-\\d{2}$".r
     val monthToEnum     = Try(Month.withName(month)).toOption
-    val taxYearValid    = taxYearPattern.matches(year)
+    val taxYearValid    = TaxYearValidator.isValid(year)
     lazy val taxYearEnd = year.take(4).toInt + 1
 
     val issues =
-      (if (!taxYearValid || taxYearEnd < 2026) Seq(BadRequestErr(message = "Invalid parameter for tax year")) else Nil) ++
+      (if (!taxYearValid) Seq(BadRequestErr(message = "Invalid parameter for tax year")) else Nil) ++
         (if (monthToEnum.isEmpty) Seq(BadRequestErr(message = "Invalid parameter for month")) else Nil)
 
     if (issues.nonEmpty) Left(BadRequest(Json.toJson(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", issues))))
