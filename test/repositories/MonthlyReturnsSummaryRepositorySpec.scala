@@ -21,7 +21,6 @@ import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
-import uk.gov.hmrc.disareturns.models.summary.repository.SaveReturnsSummaryResult._
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 import uk.gov.hmrc.mongo.MongoComponent
 import utils.BaseUnitSpec
@@ -41,7 +40,7 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
       val doc = MonthlyReturnsSummary(
         zRef = "Z1234",
         taxYearEnd = 2026,
-        month = Month.SEP.toString,
+        month = Month.SEP,
         totalRecords = 3
       )
 
@@ -51,7 +50,7 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
       stored must have size 1
       stored.head.zRef mustBe "Z1234"
       stored.head.taxYearEnd mustBe 2026
-      stored.head.month mustBe Month.SEP.toString
+      stored.head.month mustBe Month.SEP
       stored.head.totalRecords mustBe 3
     }
 
@@ -63,7 +62,7 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
       val original = MonthlyReturnsSummary(
         zRef = keyZRef,
         taxYearEnd = keyTaxEnd,
-        month = keyMonth.toString,
+        month = keyMonth,
         totalRecords = 2
       )
 

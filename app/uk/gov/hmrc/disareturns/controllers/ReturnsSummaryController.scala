@@ -49,7 +49,7 @@ class ReturnsSummaryController @Inject() (
               Future.successful(badResult)
 
             case Right((yy, mm)) =>
-              returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(zRef, yy, mm.toString, req.totalRecords)).map {
+              returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(zRef, yy, mm, req.totalRecords)).map {
                 case SaveReturnsSummaryResult.Saved      => NoContent
                 case SaveReturnsSummaryResult.Error(msg) => InternalServerError(Json.toJson(InternalServerErr(msg)))
               }

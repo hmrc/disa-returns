@@ -80,7 +80,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
       verify(mockReturnsSummaryService).saveReturnsSummary(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
         summary.taxYearEnd == expectedTaxEndYear &&
-        summary.month == validMonth.toString &&
+        summary.month == validMonth &&
         summary.totalRecords == totalRecords
       })
     }
@@ -137,7 +137,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
       verify(mockReturnsSummaryService).saveReturnsSummary(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
         summary.taxYearEnd == expectedTaxEndYear &&
-        summary.month == validMonth.toString &&
+        summary.month == validMonth &&
         summary.totalRecords == totalRecords
       })
     }

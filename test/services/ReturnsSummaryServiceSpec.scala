@@ -43,13 +43,13 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
       when(mockReturnsSummaryRepository.upsert(any[MonthlyReturnsSummary])).thenReturn(Future.successful(()))
       val service = new ReturnsSummaryService(mockReturnsSummaryRepository)
 
-      val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZRef, validTaxEndYear, validMonth.toString, totalRecords)))
+      val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZRef, validTaxEndYear, validMonth, totalRecords)))
 
       result mustBe Saved
       verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
         summary.taxYearEnd == validTaxEndYear &&
-        summary.month == validMonth.toString &&
+        summary.month == validMonth &&
         summary.totalRecords == totalRecords
       })
     }
@@ -60,13 +60,13 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
         .thenReturn(Future.failed(new Exception(msg)))
       val service = new ReturnsSummaryService(mockReturnsSummaryRepository)
 
-      val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZRef, validTaxEndYear, validMonth.toString, totalRecords)))
+      val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZRef, validTaxEndYear, validMonth, totalRecords)))
 
       result mustBe Error(msg)
       verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
         summary.taxYearEnd == validTaxEndYear &&
-        summary.month == validMonth.toString &&
+        summary.month == validMonth &&
         summary.totalRecords == totalRecords
       })
     }

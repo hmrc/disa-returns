@@ -32,7 +32,7 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
     extends PlayMongoRepository[MonthlyReturnsSummary](
       mongoComponent = mc,
       collectionName = "monthlyReturnsSummaries",
-      domainFormat = MonthlyReturnsSummary.format,
+      domainFormat = MonthlyReturnsSummary.mongoFormat,
       indexes = Seq(
         IndexModel(
           keys = Indexes.ascending("zRef", "taxYearEnd", "month"),
@@ -52,13 +52,13 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
     val filter = Filters.and(
       Filters.eq("zRef", summary.zRef),
       Filters.eq("taxYearEnd", summary.taxYearEnd),
-      Filters.eq("month", summary.month)
+      Filters.eq("month", summary.month.toString)
     )
 
     val setOnInsert = Updates.combine(
       Updates.setOnInsert("zRef", summary.zRef),
       Updates.setOnInsert("taxYearEnd", summary.taxYearEnd),
-      Updates.setOnInsert("month", summary.month),
+      Updates.setOnInsert("month", summary.month.toString),
       Updates.setOnInsert("createdAt", now)
     )
 
