@@ -18,9 +18,10 @@ package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model._
 import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.models.summary.TaxYear
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -35,7 +36,7 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
       domainFormat = MonthlyReturnsSummary.mongoFormat,
       indexes = Seq(
         IndexModel(
-          keys = Indexes.ascending("zRef", "taxYearEnd", "month"),
+          keys = Indexes.ascending("zRef", "taxYear", "month"),
           indexOptions = IndexOptions().unique(true).name("zRefYearMonthIdx")
         ),
         IndexModel(
@@ -44,20 +45,21 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
             .name("updatedAtTtlIdx")
             .expireAfter(appConfig.returnSummaryExpiryInDays, TimeUnit.DAYS)
         )
-      )
+      ),
+      extraCodecs = Seq(Codecs.playFormatCodec(TaxYear.format))
     ) {
 
   def upsert(summary: MonthlyReturnsSummary): Future[Unit] = {
     val now = Instant.now()
     val filter = Filters.and(
       Filters.eq("zRef", summary.zRef),
-      Filters.eq("taxYearEnd", summary.taxYearEnd),
+      Filters.eq("taxYear", summary.taxYear),
       Filters.eq("month", summary.month.toString)
     )
 
     val setOnInsert = Updates.combine(
       Updates.setOnInsert("zRef", summary.zRef),
-      Updates.setOnInsert("taxYearEnd", summary.taxYearEnd),
+      Updates.setOnInsert("taxYear", summary.taxYear),
       Updates.setOnInsert("month", summary.month.toString),
       Updates.setOnInsert("createdAt", now)
     )

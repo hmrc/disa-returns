@@ -23,7 +23,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
+import uk.gov.hmrc.disareturns.models.summary.{TaxYear, TaxYearValidator}
 import uk.gov.hmrc.disareturns.models.summary.repository.{MonthlyReturnsSummary, SaveReturnsSummaryResult}
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
@@ -41,36 +41,34 @@ class ReturnsSummaryController @Inject() (
     with Logging
     with WithJsonBodyWithBadRequest {
 
-  def returnsSummaryCallback(zRef: String, year: String, month: String): Action[JsValue] =
+  def returnsSummaryCallback(zRef: String, taxYear: String, month: String): Action[JsValue] =
     Action.async(parse.json) { implicit req =>
-      if (IsaRefValidator.isValid(zRef)) {
-        withJsonBody[MonthlyReturnsSummaryReq] { req =>
-          parseAndValidateYearMonth(year, month) match {
-            case Left(badResult) =>
-              Future.successful(badResult)
+      withJsonBody[MonthlyReturnsSummaryReq] { req =>
+        parseAndValidate(zRef, taxYear, month) match {
+          case Left(badResult) =>
+            Future.successful(badResult)
 
-            case Right((yy, mm)) =>
-              returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(zRef, yy, mm, req.totalRecords)).map {
-                case SaveReturnsSummaryResult.Saved      => NoContent
-                case SaveReturnsSummaryResult.Error(msg) => InternalServerError(Json.toJson(InternalServerErr(msg)))
-              }
-          }
+          case Right((yy, mm)) =>
+            returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(zRef, yy, mm, req.totalRecords)).map {
+              case SaveReturnsSummaryResult.Saved      => NoContent
+              case SaveReturnsSummaryResult.Error(msg) => InternalServerError(Json.toJson(InternalServerErr(msg)))
+            }
         }
-      } else {
-        Future.successful(BadRequest(Json.toJson(BadRequestErr(message = "ISA Manager Reference Number format is invalid"))))
       }
     }
 
-  private def parseAndValidateYearMonth(year: String, month: String): Either[Result, (Int, Month)] = {
-    val monthToEnum     = Try(Month.withName(month)).toOption
-    val taxYearValid    = TaxYearValidator.isValid(year)
-    lazy val taxYearEnd = year.take(4).toInt + 1
+  private def parseAndValidate(zRef: String, taxYear: String, month: String): Either[Result, (TaxYear, Month)] = {
+    val zRefValid    = IsaRefValidator.isValid(zRef)
+    val monthToEnum  = Try(Month.withName(month)).toOption
+    val taxYearValid = TaxYearValidator.isValid(taxYear)
 
-    val issues =
-      (if (!taxYearValid) Seq(BadRequestErr(message = "Invalid parameter for tax year")) else Nil) ++
+    val issues = {
+      (if (!zRefValid) Seq(BadRequestErr(message = "ISA Manager Reference Number format is invalid")) else Nil) ++
+        (if (!taxYearValid) Seq(BadRequestErr(message = "Invalid parameter for tax year")) else Nil) ++
         (if (monthToEnum.isEmpty) Seq(BadRequestErr(message = "Invalid parameter for month")) else Nil)
+    }
 
     if (issues.nonEmpty) Left(BadRequest(Json.toJson(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", issues))))
-    else Right((taxYearEnd, monthToEnum.get))
+    else Right((TaxYear(taxYear), monthToEnum.get))
   }
 }

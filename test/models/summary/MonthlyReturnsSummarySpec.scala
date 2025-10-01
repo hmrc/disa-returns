@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package models
+package models.summary
 
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common.Month
+import uk.gov.hmrc.disareturns.models.summary.TaxYear
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import utils.BaseUnitSpec
@@ -34,19 +35,13 @@ class MonthlyReturnsSummarySpec extends BaseUnitSpec {
 
     "write a case class to JSON with month as a string" in {
       val now = Instant.parse("2025-09-30T12:00:00Z")
-      val model = MonthlyReturnsSummary(
-        zRef = "Z1234",
-        taxYearEnd = 2026,
-        month = Month.SEP,
-        totalRecords = 3,
-        createdAt = now,
-        updatedAt = now
-      )
+      val model =
+        MonthlyReturnsSummary(zRef = "Z1234", taxYear = TaxYear("2026-27"), month = Month.SEP, totalRecords = 3, createdAt = now, updatedAt = now)
 
       val js = Json.toJson(model)
 
       (js \ "zRef").as[String] mustBe "Z1234"
-      (js \ "taxYearEnd").as[Int] mustBe 2026
+      (js \ "taxYear").as[TaxYear] mustBe TaxYear("2026-27")
       (js \ "month").as[String] mustBe "SEP"
       (js \ "totalRecords").as[Int] mustBe 3
       (js \ "createdAt").as[Instant] mustBe now
@@ -58,7 +53,7 @@ class MonthlyReturnsSummarySpec extends BaseUnitSpec {
 
       val js = Json.obj(
         "zRef"         -> "Z5678",
-        "taxYearEnd"   -> 2027,
+        "taxYear"      -> TaxYear("2027-28"),
         "month"        -> "JAN",
         "totalRecords" -> 7,
         "createdAt"    -> now,
@@ -68,7 +63,7 @@ class MonthlyReturnsSummarySpec extends BaseUnitSpec {
       val model = js.as[MonthlyReturnsSummary]
 
       model.zRef mustBe "Z5678"
-      model.taxYearEnd mustBe 2027
+      model.taxYear mustBe TaxYear("2027-28")
       model.month mustBe Month.JAN
       model.totalRecords mustBe 7
       model.createdAt mustBe now
@@ -77,7 +72,7 @@ class MonthlyReturnsSummarySpec extends BaseUnitSpec {
 
     "round-trip successfully" in {
       val now   = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS)
-      val model = MonthlyReturnsSummary("Z9999", 2028, Month.DEC, 42, now, now)
+      val model = MonthlyReturnsSummary("Z9999", TaxYear("2026-27"), Month.DEC, 42, now, now)
 
       val js   = Json.toJson(model)
       val back = js.as[MonthlyReturnsSummary]
@@ -88,7 +83,7 @@ class MonthlyReturnsSummarySpec extends BaseUnitSpec {
     "fail reads when month string is invalid" in {
       val js = Json.obj(
         "zRef"         -> "Z1234",
-        "taxYearEnd"   -> 2026,
+        "taxYear"      -> TaxYear("2026-27"),
         "month"        -> "NOPE",
         "totalRecords" -> 1,
         "createdAt"    -> Instant.now(),

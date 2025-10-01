@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package models
+package models.summary
 
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import play.api.libs.json.Json

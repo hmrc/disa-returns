@@ -21,6 +21,7 @@ import org.mockito.Mockito.{reset, verify, when}
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.common.Month
+import uk.gov.hmrc.disareturns.models.summary.TaxYear
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.models.summary.repository.SaveReturnsSummaryResult._
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
@@ -31,7 +32,7 @@ import scala.concurrent.Future
 class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
   private val validZRef       = "Z1234"
-  private val validTaxEndYear = 2026
+  private val validTaxEndYear = TaxYear("2026-27")
   private val validMonth      = Month.SEP
   private val totalRecords    = 3
 
@@ -48,7 +49,7 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
       result mustBe Saved
       verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
-        summary.taxYearEnd == validTaxEndYear &&
+        summary.taxYear == validTaxEndYear &&
         summary.month == validMonth &&
         summary.totalRecords == totalRecords
       })
@@ -65,7 +66,7 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
       result mustBe Error(msg)
       verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
-        summary.taxYearEnd == validTaxEndYear &&
+        summary.taxYear == validTaxEndYear &&
         summary.month == validMonth &&
         summary.totalRecords == totalRecords
       })

@@ -20,13 +20,14 @@ import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.{Format, Json, OFormat, OWrites, Reads, __}
 import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.models.common.Month.Month
+import uk.gov.hmrc.disareturns.models.summary.TaxYear
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 
 case class MonthlyReturnsSummary(
   zRef:         String,
-  taxYearEnd:   Int,
+  taxYear:      TaxYear,
   month:        Month,
   totalRecords: Int,
   createdAt:    Instant = Instant.now(),
@@ -41,7 +42,7 @@ object MonthlyReturnsSummary {
 
     val r: Reads[MonthlyReturnsSummary] = (
       (__ \ "zRef").read[String] and
-        (__ \ "taxYearEnd").read[Int] and
+        (__ \ "taxYear").read[TaxYear] and
         (__ \ "month").format[Month.Value] and
         (__ \ "totalRecords").read[Int] and
         (__ \ "createdAt").read[Instant] and
@@ -51,7 +52,7 @@ object MonthlyReturnsSummary {
     val w: OWrites[MonthlyReturnsSummary] = OWrites { m =>
       Json.obj(
         "zRef"         -> m.zRef,
-        "taxYearEnd"   -> m.taxYearEnd,
+        "taxYear"      -> m.taxYear,
         "month"        -> m.month.toString,
         "totalRecords" -> m.totalRecords,
         "createdAt"    -> m.createdAt,

@@ -16,10 +16,23 @@
 
 package uk.gov.hmrc.disareturns.models.summary
 
+import play.api.libs.json.{Json, OFormat}
+
+import scala.util.matching.Regex
+
+case class TaxYear(value: String)
+
+object TaxYear {
+  implicit val format: OFormat[TaxYear] = Json.format[TaxYear]
+}
+
 object TaxYearValidator {
 
-  private val taxYearPattern = "^20\\d{2}-\\d{2}$".r
+  private val pattern: Regex = raw"^20(\d{2})-(\d{2})$$".r
 
   def isValid(ref: String): Boolean =
-    taxYearPattern.pattern.matcher(ref).matches()
+    ref match {
+      case pattern(startYr, endYr) if endYr.toInt == startYr.toInt + 1 => true
+      case _                                                           => false
+    }
 }

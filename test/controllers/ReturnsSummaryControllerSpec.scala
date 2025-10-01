@@ -27,6 +27,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.{POST, contentAsJson, contentAsString, status}
 import uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, Month}
+import uk.gov.hmrc.disareturns.models.summary.TaxYear
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.models.summary.repository.SaveReturnsSummaryResult.{Error, Saved}
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
@@ -38,11 +39,11 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
 
   private val controller = app.injector.instanceOf[ReturnsSummaryController]
 
-  private val validZRef          = "Z1234"
-  private val validMonth         = Month.SEP
-  private val validYearStr       = "2025-26"
-  private val expectedTaxEndYear = 2026
-  private val totalRecords       = 3
+  private val validZRef       = "Z1234"
+  private val validMonth      = Month.SEP
+  private val validYearStr    = "2025-26"
+  private val expectedTaxYear = TaxYear("2025-26")
+  private val totalRecords    = 3
 
   private val sampleBody = MonthlyReturnsSummaryReq(
     totalRecords = totalRecords
@@ -79,7 +80,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
 
       verify(mockReturnsSummaryService).saveReturnsSummary(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
-        summary.taxYearEnd == expectedTaxEndYear &&
+        summary.taxYear == expectedTaxYear &&
         summary.month == validMonth &&
         summary.totalRecords == totalRecords
       })
@@ -136,7 +137,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
 
       verify(mockReturnsSummaryService).saveReturnsSummary(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
-        summary.taxYearEnd == expectedTaxEndYear &&
+        summary.taxYear == expectedTaxYear &&
         summary.month == validMonth &&
         summary.totalRecords == totalRecords
       })
