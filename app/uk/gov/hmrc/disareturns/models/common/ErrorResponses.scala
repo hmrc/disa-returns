@@ -38,6 +38,10 @@ case class InternalServerErr(
   val code = "INTERNAL_SERVER_ERROR"
 }
 
+case class ReturnNotFoundErr(message: String) extends ErrorResponse {
+  val code = "RETURN_NOT_FOUND"
+}
+
 case object ObligationClosed extends ErrorResponse {
   val code    = "OBLIGATION_CLOSED"
   val message = "Obligation closed"

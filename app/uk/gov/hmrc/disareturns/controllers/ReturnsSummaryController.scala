@@ -20,7 +20,8 @@ import com.google.inject.Inject
 import jakarta.inject.Singleton
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents, Result}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
+import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.summary.{TaxYear, TaxYearValidator}
@@ -35,11 +36,27 @@ import scala.util.Try
 @Singleton
 class ReturnsSummaryController @Inject() (
   cc:                    ControllerComponents,
-  returnsSummaryService: ReturnsSummaryService
+  returnsSummaryService: ReturnsSummaryService,
+  authAction:            AuthAction
 )(implicit ec:           ExecutionContext)
     extends BackendController(cc)
     with Logging
     with WithJsonBodyWithBadRequest {
+
+  def retrieveReturnSummary(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[AnyContent] =
+    (Action andThen authAction).async { _ =>
+      parseAndValidate(isaManagerReferenceNumber, taxYear, month) match {
+        case Left(badResult) =>
+          Future.successful(badResult)
+
+        case Right((ty, m)) =>
+          returnsSummaryService.retrieveReturnSummary(isaManagerReferenceNumber, ty, m).map {
+            case Left(e: InternalServerErr) => InternalServerError(Json.toJson(e))
+            case Left(e: ReturnNotFoundErr) => NotFound(Json.toJson(e))
+            case Right(summary)             => Ok(Json.toJson(summary))
+          }
+      }
+    }
 
   def returnsSummaryCallback(zRef: String, taxYear: String, month: String): Action[JsValue] =
     Action.async(parse.json) { implicit req =>
