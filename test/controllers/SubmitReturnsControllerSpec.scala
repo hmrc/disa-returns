@@ -302,7 +302,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
       val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream())
       status(result)        shouldBe INTERNAL_SERVER_ERROR
-      contentAsJson(result) shouldBe Json.toJson(InternalServerErr: ErrorResponse)
+      contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
     }
   }
 }

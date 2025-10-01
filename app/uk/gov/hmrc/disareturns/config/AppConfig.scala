@@ -33,4 +33,6 @@ class AppConfig @Inject() (config: ServicesConfig) {
     returnResultsSummaryLocation
       .replace("{isaManagerReference}", isaManagerReference)
       .replace("{returnId}", returnId)
+
+  lazy val returnSummaryExpiryInDays = 30
 }

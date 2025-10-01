@@ -205,7 +205,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(Future.successful(Left(InternalServerErr)))
+        .thenReturn(Future.successful(Left(InternalServerErr())))
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
@@ -220,7 +220,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
     "return 500 Internal Server Error when ETMP responds with an upstream error" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Left(InternalServerErr)))
+        .thenReturn(Future.successful(Left(InternalServerErr())))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Right(boxId)))
 

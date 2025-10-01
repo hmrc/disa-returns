@@ -14,26 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.common
+package uk.gov.hmrc.disareturns.models.summary
 
-import play.api.libs.json._
+import play.api.libs.json.{Json, OFormat}
 
-object Month extends Enumeration {
+import scala.util.matching.Regex
 
-  type Month = Value
+case class TaxYear(value: String)
 
-  val JAN: Value = Value("JAN")
-  val FEB: Value = Value("FEB")
-  val MAR: Value = Value("MAR")
-  val APR: Value = Value("APR")
-  val MAY: Value = Value("MAY")
-  val JUN: Value = Value("JUN")
-  val JUL: Value = Value("JUL")
-  val AUG: Value = Value("AUG")
-  val SEP: Value = Value("SEP")
-  val OCT: Value = Value("OCT")
-  val NOV: Value = Value("NOV")
-  val DEC: Value = Value("DEC")
+object TaxYear {
+  implicit val format: OFormat[TaxYear] = Json.format[TaxYear]
+}
 
-  implicit val format: Format[Month.Value] = JsonUtils.enumFormat(Month)
+object TaxYearValidator {
+
+  private val pattern: Regex = raw"^20(\d{2})-(\d{2})$$".r
+
+  def isValid(ref: String): Boolean =
+    ref match {
+      case pattern(startYr, endYr) if endYr.toInt == startYr.toInt + 1 => true
+      case _                                                           => false
+    }
 }

@@ -35,31 +35,31 @@ class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
     "map 500 response to InternalServerErr" in {
       val err    = UpstreamErrorResponse("Internal Server Error", Status.INTERNAL_SERVER_ERROR, Status.INTERNAL_SERVER_ERROR)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
-      result shouldBe InternalServerErr
+      result shouldBe InternalServerErr()
     }
 
     "map 502 response to InternalServerErr" in {
       val err    = UpstreamErrorResponse("Bad Gateway", Status.BAD_GATEWAY, Status.BAD_GATEWAY)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
-      result shouldBe InternalServerErr
+      result shouldBe InternalServerErr()
     }
 
     "map 503 response to InternalServerErr" in {
       val err    = UpstreamErrorResponse("Service Unavailable", Status.SERVICE_UNAVAILABLE, Status.SERVICE_UNAVAILABLE)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
-      result shouldBe InternalServerErr
+      result shouldBe InternalServerErr()
     }
 
     "map other 4xx errors to InternalServerErr" in {
       val err    = UpstreamErrorResponse("Bad Request", Status.BAD_REQUEST, Status.BAD_REQUEST)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
-      result shouldBe InternalServerErr
+      result shouldBe InternalServerErr()
     }
 
     "map unknown status codes to InternalServerErr" in {
       val err    = UpstreamErrorResponse("Some weird status", 207, 207)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
-      result shouldBe InternalServerErr
+      result shouldBe InternalServerErr()
     }
   }
 }

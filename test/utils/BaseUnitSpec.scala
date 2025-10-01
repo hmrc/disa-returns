@@ -16,6 +16,7 @@
 
 package utils
 
+import org.mockito.Mockito
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
@@ -29,8 +30,8 @@ import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, PPNSConnector}
-import uk.gov.hmrc.disareturns.repositories.{MonthlyReportDocumentRepository, ReturnMetadataRepository}
-import uk.gov.hmrc.disareturns.services.{CompleteReturnService, ETMPService, PPNSService, ReturnMetadataService, StreamingParserService}
+import uk.gov.hmrc.disareturns.repositories.{MonthlyReportDocumentRepository, MonthlyReturnsSummaryRepository, ReturnMetadataRepository}
+import uk.gov.hmrc.disareturns.services.{CompleteReturnService, ETMPService, PPNSService, ReturnMetadataService, ReturnsSummaryService, StreamingParserService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
@@ -51,6 +52,8 @@ abstract class BaseUnitSpec
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   implicit val hc: HeaderCarrier    = HeaderCarrier()
 
+  override def beforeEach(): Unit = Mockito.reset()
+
   //MOCKS
   val mockHttpClient:                      HttpClientV2                    = mock[HttpClientV2]
   val mockAppConfig:                       AppConfig                       = mock[AppConfig]
@@ -66,6 +69,8 @@ abstract class BaseUnitSpec
   val mockStreamingParserService:          StreamingParserService          = mock[StreamingParserService]
   val mockCompleteReturnService:           CompleteReturnService           = mock[CompleteReturnService]
   val mockReturnMetadataRepository:        ReturnMetadataRepository        = mock[ReturnMetadataRepository]
+  val mockReturnsSummaryService:           ReturnsSummaryService           = mock[ReturnsSummaryService]
+  val mockReturnsSummaryRepository:        MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .overrides(
@@ -75,7 +80,9 @@ abstract class BaseUnitSpec
       bind[ReturnMetadataService].toInstance(mockMonthlyReportDocumentService),
       bind[StreamingParserService].toInstance(mockStreamingParserService),
       bind[CompleteReturnService].toInstance(mockCompleteReturnService),
-      bind[AppConfig].toInstance(mockAppConfig)
+      bind[AppConfig].toInstance(mockAppConfig),
+      bind[ReturnsSummaryService].toInstance(mockReturnsSummaryService),
+      bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository)
     )
     .build()
 }

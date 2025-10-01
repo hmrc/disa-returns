@@ -29,15 +29,15 @@ object UpstreamErrorMapper extends Logging {
         UnauthorisedErr
       case UpstreamErrorResponse(_, 500, _, _) | UpstreamErrorResponse(_, 502, _, _) | UpstreamErrorResponse(_, 503, _, _) =>
         logger.error(s"Mapping ${err.statusCode} to InternalServerError")
-        InternalServerErr
+        InternalServerErr()
 
       case UpstreamErrorResponse(_, statusCode, _, _) if statusCode >= 400 =>
         logger.error(s"Unhandled upstream error with status=$statusCode, mapping to InternalServerError")
-        InternalServerErr
+        InternalServerErr()
 
       case _ =>
         logger.error(s"Unhandled upstream error, mapping to InternalServerError")
-        InternalServerErr
+        InternalServerErr()
     }
   }
 }

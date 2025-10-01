@@ -104,7 +104,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
       val result: Either[ErrorResponse, EtmpObligations] = service.getObligationStatus(testIsaManagerReferenceNumber).value.futureValue
 
-      result shouldBe Left(InternalServerErr)
+      result shouldBe Left(InternalServerErr())
     }
     "return Left(InternalServerErr) when the response JSON cannot be parsed into a reporting window" in new TestSetup {
       val reportingWindow: String = """{
@@ -117,7 +117,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
       val result: Either[ErrorResponse, EtmpReportingWindow] = service.getReportingWindowStatus().value.futureValue
 
-      result shouldBe Left(InternalServerErr)
+      result shouldBe Left(InternalServerErr())
     }
   }
 

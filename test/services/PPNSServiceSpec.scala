@@ -82,7 +82,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
 
       val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
 
-      result shouldBe Left(InternalServerErr)
+      result shouldBe Left(InternalServerErr())
     }
 
     "return Left(InternalServerErr) when the response JSON cannot be parsed into a Box" in {
@@ -104,7 +104,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
 
       val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
 
-      result shouldBe Left(InternalServerErr)
+      result shouldBe Left(InternalServerErr())
     }
   }
 }

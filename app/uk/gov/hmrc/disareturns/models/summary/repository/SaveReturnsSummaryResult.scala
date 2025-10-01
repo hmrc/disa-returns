@@ -14,26 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.common
+package uk.gov.hmrc.disareturns.models.summary.repository
 
-import play.api.libs.json._
+sealed trait SaveReturnsSummaryResult
 
-object Month extends Enumeration {
-
-  type Month = Value
-
-  val JAN: Value = Value("JAN")
-  val FEB: Value = Value("FEB")
-  val MAR: Value = Value("MAR")
-  val APR: Value = Value("APR")
-  val MAY: Value = Value("MAY")
-  val JUN: Value = Value("JUN")
-  val JUL: Value = Value("JUL")
-  val AUG: Value = Value("AUG")
-  val SEP: Value = Value("SEP")
-  val OCT: Value = Value("OCT")
-  val NOV: Value = Value("NOV")
-  val DEC: Value = Value("DEC")
-
-  implicit val format: Format[Month.Value] = JsonUtils.enumFormat(Month)
+object SaveReturnsSummaryResult {
+  case object Saved extends SaveReturnsSummaryResult
+  case class Error(message: String) extends SaveReturnsSummaryResult
 }

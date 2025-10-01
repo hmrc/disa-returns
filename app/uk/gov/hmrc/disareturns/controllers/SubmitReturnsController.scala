@@ -69,7 +69,7 @@ class SubmitReturnsController @Inject() (
                       BadRequest(Json.toJson(errResponse))
                     case ex =>
                       logger.error(s"streamingParserService.processValidatedStream has failed with the exception: $ex")
-                      InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
+                      InternalServerError(Json.toJson(InternalServerErr()))
                   }
               case Left(error: ErrorResponse) =>
                 Future.successful(HttpHelper.toHttpError(error))

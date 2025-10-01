@@ -22,7 +22,7 @@ import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core.AffinityGroup.Organisation
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, UnauthorisedErr}
+import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
@@ -48,11 +48,11 @@ class AuthAction @Inject() (ac: AuthConnector)(implicit val executionContext: Ex
     } recover {
       case ex: AuthorisationException =>
         logger.warn(s"Authorization failed. Error: ${ex.reason}")
-        Unauthorized(Json.toJson(UnauthorisedErr: ErrorResponse))
+        Unauthorized(Json.toJson(UnauthorisedErr))
 
       case ex =>
         logger.warn(s"Auth request failed with unexpected exception: $ex")
-        InternalServerError(Json.toJson(InternalServerErr: ErrorResponse))
+        InternalServerError(Json.toJson(InternalServerErr()))
     }
   }
 }

@@ -14,26 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.common
+package uk.gov.hmrc.disareturns.models.summary.request
 
-import play.api.libs.json._
+import play.api.libs.json.{Json, Reads, Writes, __}
 
-object Month extends Enumeration {
+case class MonthlyReturnsSummaryReq(totalRecords: Int)
 
-  type Month = Value
+object MonthlyReturnsSummaryReq {
+  implicit val reads: Reads[MonthlyReturnsSummaryReq] =
+    (__ \ "totalRecords").read[Int](Reads.min(0)).map(MonthlyReturnsSummaryReq(_))
 
-  val JAN: Value = Value("JAN")
-  val FEB: Value = Value("FEB")
-  val MAR: Value = Value("MAR")
-  val APR: Value = Value("APR")
-  val MAY: Value = Value("MAY")
-  val JUN: Value = Value("JUN")
-  val JUL: Value = Value("JUL")
-  val AUG: Value = Value("AUG")
-  val SEP: Value = Value("SEP")
-  val OCT: Value = Value("OCT")
-  val NOV: Value = Value("NOV")
-  val DEC: Value = Value("DEC")
-
-  implicit val format: Format[Month.Value] = JsonUtils.enumFormat(Month)
+  implicit val writes: Writes[MonthlyReturnsSummaryReq] = Json.writes[MonthlyReturnsSummaryReq]
 }

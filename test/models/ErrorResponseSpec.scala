@@ -105,5 +105,19 @@ class ErrorResponseSpec extends BaseUnitSpec {
         "path"    -> "/some/path"
       )
     }
+
+    "serialise and deserialise InternalServerErr with default message" in {
+      val err: ErrorResponse = InternalServerErr()
+      val js = Json.toJson(err)
+
+      (js \ "code").as[String]  shouldBe "INTERNAL_SERVER_ERROR"
+      (js \ "message").as[String] should not be empty
+
+      js.as[ErrorResponse] match {
+        case i: InternalServerErr => i.message shouldBe err.message
+        case other => fail(s"Expected InternalServerErr, got $other")
+      }
+    }
+
   }
 }
