@@ -79,6 +79,8 @@ case object MismatchErr extends ErrorResponse {
 
 object ErrorResponse {
 
+  implicit val returnNotFoundErrReads: Reads[ReturnNotFoundErr] = Json.reads[ReturnNotFoundErr]
+
   implicit val badRequestErrReads: Reads[BadRequestErr] =
     (JsPath \ "message").read[String].map(BadRequestErr.apply)
 
@@ -111,6 +113,7 @@ object ErrorResponse {
           badRequestErrReads.reads(json)
         case "INTERNAL_SERVER_ERROR" =>
           internalServerErrReads.reads(json)
+        case "RETURN_NOT_FOUND" => returnNotFoundErrReads.reads(json)
         case code if singletons.contains(code) =>
           JsSuccess(singletons(code))
         case other =>

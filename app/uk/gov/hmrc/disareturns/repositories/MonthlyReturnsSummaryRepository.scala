@@ -50,7 +50,7 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
       extraCodecs = Seq(Codecs.playFormatCodec(TaxYear.format))
     ) {
 
-  def retrieveSummary(isaManagerReferenceNumber: String, taxYear: TaxYear, month: Month): Future[Option[MonthlyReturnsSummary]] = {
+  def retrieveReturnSummary(isaManagerReferenceNumber: String, taxYear: TaxYear, month: Month): Future[Option[MonthlyReturnsSummary]] = {
     val filter = Filters.and(
       Filters.eq("zRef", isaManagerReferenceNumber),
       Filters.eq("taxYear", taxYear),

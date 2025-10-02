@@ -47,7 +47,7 @@ class ReturnsSummaryService @Inject() (
     def returnSummaryResults(totalRecords: Int) = ReturnSummaryResults(returnResultsLocation, totalRecords, appConfig.returnResultsNumberOfPages)
 
     summaryRepo
-      .retrieveSummary(isaManagerReferenceNumber, taxYear, month)
+      .retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month)
       .map {
         case Some(summary) => Right(returnSummaryResults(summary.totalRecords))
         case _             => Left(ReturnNotFoundErr(s"No return found for $isaManagerReferenceNumber for ${month.toString} ${taxYear.value}"))
