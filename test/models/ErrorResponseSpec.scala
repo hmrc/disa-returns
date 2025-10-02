@@ -119,5 +119,17 @@ class ErrorResponseSpec extends BaseUnitSpec {
       }
     }
 
+    "serialise and deserialise ReturnNotFoundErr with custom message" in {
+      val err: ErrorResponse = ReturnNotFoundErr("not-found")
+      val js = Json.toJson(err)
+
+      (js \ "code").as[String]    shouldBe "RETURN_NOT_FOUND"
+      (js \ "message").as[String] shouldBe "not-found"
+
+      js.as[ErrorResponse] match {
+        case i: ReturnNotFoundErr => i.message shouldBe err.message
+        case other => fail(s"Expected ReturnNotFoundErr, got $other")
+      }
+    }
   }
 }

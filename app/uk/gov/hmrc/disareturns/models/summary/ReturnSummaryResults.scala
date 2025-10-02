@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.summary.repository
+package uk.gov.hmrc.disareturns.models.summary
 
-sealed trait SaveReturnsSummaryResult
+import play.api.libs.json.{Json, OFormat}
 
-object SaveReturnsSummaryResult {
-  case object Saved extends SaveReturnsSummaryResult
-  case class Error(message: String) extends SaveReturnsSummaryResult
+case class ReturnSummaryResults(returnResultsLocation: String, totalRecords: Int, numberOfPages: Int)
+
+object ReturnSummaryResults {
+  implicit val format: OFormat[ReturnSummaryResults] = Json.format[ReturnSummaryResults]
 }

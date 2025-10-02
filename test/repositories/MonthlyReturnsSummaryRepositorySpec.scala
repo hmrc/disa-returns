@@ -19,8 +19,6 @@ package repositories
 import org.scalatest.matchers.must.Matchers._
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.common.Month
-import uk.gov.hmrc.disareturns.models.summary.TaxYear
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 import uk.gov.hmrc.mongo.MongoComponent
@@ -30,32 +28,46 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
   protected val databaseName:     String         = "disa-returns-summary-test"
   protected val mongoUri:         String         = s"mongodb://127.0.0.1:27017/$databaseName"
   lazy val mongoComponentForTest: MongoComponent = MongoComponent(mongoUri)
-  val appConfig = app.injector.instanceOf[AppConfig]
+  private val appConfig = app.injector.instanceOf[AppConfig]
 
   protected val repository: MonthlyReturnsSummaryRepository =
     new MonthlyReturnsSummaryRepository(mongoComponentForTest, appConfig)
 
+  override def beforeEach(): Unit = await(repository.collection.drop().toFuture())
+
+  "retrieveReturnSummary" should {
+
+    "find a summary with matching details" in {
+      val doc = MonthlyReturnsSummary(zRef = validZRef, taxYear = validTaxYear, month = validMonth, totalRecords = 3)
+
+      await(repository.collection.insertOne(doc).toFuture())
+
+      val result = await(repository.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
+
+      result.head.zRef mustBe validZRef
+      result.head.taxYear mustBe validTaxYear
+      result.head.month mustBe validMonth
+      result.head.totalRecords mustBe 3
+    }
+  }
+
   "upsert" should {
 
-    "insert a new MonthlyReturnsSummary document when it does not exist" in new TestSetup {
-      val doc = MonthlyReturnsSummary(zRef = "Z1234", taxYear = TaxYear("2026-27"), month = Month.SEP, totalRecords = 3)
+    "insert a new MonthlyReturnsSummary document when it does not exist" in {
+      val doc = MonthlyReturnsSummary(zRef = validZRef, taxYear = validTaxYear, month = validMonth, totalRecords = 3)
 
       await(repository.upsert(doc))
 
       val stored = await(repository.collection.find().toFuture())
       stored must have size 1
-      stored.head.zRef mustBe "Z1234"
-      stored.head.taxYear mustBe TaxYear("2026-27")
-      stored.head.month mustBe Month.SEP
+      stored.head.zRef mustBe validZRef
+      stored.head.taxYear mustBe validTaxYear
+      stored.head.month mustBe validMonth
       stored.head.totalRecords mustBe 3
     }
 
-    "replace the existing document and update fields" in new TestSetup {
-      val keyZRef    = "Z2222"
-      val keyTaxYear = TaxYear("2026-27")
-      val keyMonth   = Month.JAN
-
-      val original = MonthlyReturnsSummary(zRef = keyZRef, taxYear = keyTaxYear, month = keyMonth, totalRecords = 2)
+    "replace the existing document and update fields" in {
+      val original = MonthlyReturnsSummary(zRef = validZRef, taxYear = validTaxYear, month = validMonth, totalRecords = 2)
 
       val updated = original.copy(totalRecords = 9)
 
@@ -67,9 +79,5 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
       stored must have size 1
       stored.head.totalRecords mustBe 9
     }
-  }
-
-  class TestSetup {
-    await(repository.collection.drop().toFuture())
   }
 }
