@@ -26,7 +26,6 @@ import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
-import uk.gov.hmrc.disareturns.models.summary.repository.SaveReturnsSummaryResult.{Error, Saved}
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
 import utils.BaseUnitSpec
@@ -80,7 +79,7 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
       val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, totalRecords)))
 
-      result mustBe Saved
+      result mustBe Right(())
       verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
         summary.taxYear == validTaxYear &&
@@ -96,7 +95,7 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
       val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, totalRecords)))
 
-      result mustBe Error(msg)
+      result mustBe Left(InternalServerErr(msg))
       verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
         summary.taxYear == validTaxYear &&

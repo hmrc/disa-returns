@@ -29,7 +29,6 @@ import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
-import uk.gov.hmrc.disareturns.models.summary.repository.SaveReturnsSummaryResult.{Error, Saved}
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
 import uk.gov.hmrc.disareturns.models.summary.{ReturnSummaryResults, TaxYear}
 import utils.BaseUnitSpec
@@ -133,7 +132,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
       val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validYearStr/$validMonth")
         .withBody(Json.toJson(callbackRequest))
 
-      when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Saved))
+      when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Right(())))
 
       val res = controller.returnsSummaryCallback(validZRef, validYearStr, validMonth.toString).apply(req)
       status(res) mustBe NO_CONTENT
@@ -146,7 +145,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
       val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validYearStr/$validMonth")
         .withBody(Json.toJson(callbackRequest))
 
-      when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Error(msg)))
+      when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Left(InternalServerErr(msg))))
 
       val res = controller.returnsSummaryCallback(validZRef, validYearStr, validMonth.toString).apply(req)
 
@@ -207,7 +206,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
         .withBody(Json.toJson(callbackRequest))
 
       when(mockReturnsSummaryService.saveReturnsSummary(any))
-        .thenReturn(Future.successful(Saved))
+        .thenReturn(Future.successful(Right(())))
 
       val _ = controller.returnsSummaryCallback(validZRef, validYearStr, validMonth.toString).apply(req)
 

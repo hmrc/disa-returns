@@ -25,7 +25,7 @@ import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.summary.{TaxYear, TaxYearValidator}
-import uk.gov.hmrc.disareturns.models.summary.repository.{MonthlyReturnsSummary, SaveReturnsSummaryResult}
+import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -67,8 +67,8 @@ class ReturnsSummaryController @Inject() (
 
           case Right((yy, mm)) =>
             returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(zRef, yy, mm, req.totalRecords)).map {
-              case SaveReturnsSummaryResult.Saved      => NoContent
-              case SaveReturnsSummaryResult.Error(msg) => InternalServerError(Json.toJson(InternalServerErr(msg)))
+              case Right(_)                   => NoContent
+              case Left(e: InternalServerErr) => InternalServerError(Json.toJson(e))
             }
         }
       }

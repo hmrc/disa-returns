@@ -20,7 +20,7 @@ import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.summary.{ReturnSummaryResults, TaxYear}
-import uk.gov.hmrc.disareturns.models.summary.repository.{MonthlyReturnsSummary, SaveReturnsSummaryResult}
+import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 
 import javax.inject.{Inject, Singleton}
@@ -32,11 +32,11 @@ class ReturnsSummaryService @Inject() (
   appConfig:   AppConfig
 )(implicit ec: ExecutionContext) {
 
-  def saveReturnsSummary(summary: MonthlyReturnsSummary): Future[SaveReturnsSummaryResult] =
+  def saveReturnsSummary(summary: MonthlyReturnsSummary): Future[Either[ErrorResponse, Unit]] =
     summaryRepo
       .upsert(summary)
-      .map(_ => SaveReturnsSummaryResult.Saved)
-      .recover { case e => SaveReturnsSummaryResult.Error(e.getMessage) }
+      .map(_ => Right(()))
+      .recover { case e => Left(InternalServerErr(e.getMessage)) }
 
   def retrieveReturnSummary(
     isaManagerReferenceNumber: String,
