@@ -34,13 +34,15 @@ import scala.concurrent.Future
 
 class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
-  private val totalRecords = 3
-
-  override lazy val app: Application = app(bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository))
+  override lazy val app: Application =
+    app(bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository))
   private val service = app.injector.instanceOf[ReturnsSummaryService]
   private val config  = app.injector.instanceOf[AppConfig]
 
   override def beforeEach(): Unit = reset(mockReturnsSummaryRepository)
+
+  private val totalRecords          = 3
+  private val returnResultsLocation = config.getReturnResultsLocation(validZRef, validTaxYear, validMonth)
 
   "ReturnsSummaryService#retrieveReturnSummary" should {
 
@@ -51,7 +53,18 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
       val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
 
       result mustBe Right(
-        ReturnSummaryResults("http://localhost:1200/monthly/Z1234/2026-27/SEP/results?page=1", 1, config.returnResultsNumberOfPages)
+        ReturnSummaryResults(returnResultsLocation, 1, config.getNoOfPagesForReturnResults(1))
+      )
+    }
+
+    "return a rounded-up number of pages (perform ceiling division)" in {
+      val returnSummaryResults = MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, 7)
+      when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
+
+      val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
+
+      result mustBe Right(
+        ReturnSummaryResults(returnResultsLocation, 7, config.getNoOfPagesForReturnResults(7))
       )
     }
 

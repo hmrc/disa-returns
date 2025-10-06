@@ -43,8 +43,9 @@ class ReturnsSummaryService @Inject() (
     taxYear:                   String,
     month:                     Month
   ): Future[Either[ErrorResponse, ReturnSummaryResults]] = {
-    lazy val returnResultsLocation              = appConfig.getReturnResultsLocation(isaManagerReferenceNumber, taxYear, month)
-    def returnSummaryResults(totalRecords: Int) = ReturnSummaryResults(returnResultsLocation, totalRecords, appConfig.returnResultsNumberOfPages)
+    lazy val returnResultsLocation = appConfig.getReturnResultsLocation(isaManagerReferenceNumber, taxYear, month)
+    def returnSummaryResults(totalRecords: Int) =
+      ReturnSummaryResults(returnResultsLocation, totalRecords, appConfig.getNoOfPagesForReturnResults(totalRecords))
 
     summaryRepo
       .retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month)
