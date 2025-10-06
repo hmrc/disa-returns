@@ -19,7 +19,7 @@ package uk.gov.hmrc.disareturns.services
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.common.Month.Month
-import uk.gov.hmrc.disareturns.models.summary.{ReturnSummaryResults, TaxYear}
+import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 
@@ -40,7 +40,7 @@ class ReturnsSummaryService @Inject() (
 
   def retrieveReturnSummary(
     isaManagerReferenceNumber: String,
-    taxYear:                   TaxYear,
+    taxYear:                   String,
     month:                     Month
   ): Future[Either[ErrorResponse, ReturnSummaryResults]] = {
     lazy val returnResultsLocation              = appConfig.getReturnResultsLocation(isaManagerReferenceNumber, taxYear, month)
@@ -50,7 +50,7 @@ class ReturnsSummaryService @Inject() (
       .retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month)
       .map {
         case Some(summary) => Right(returnSummaryResults(summary.totalRecords))
-        case _             => Left(ReturnNotFoundErr(s"No return found for $isaManagerReferenceNumber for ${month.toString} ${taxYear.value}"))
+        case _             => Left(ReturnNotFoundErr(s"No return found for $isaManagerReferenceNumber for ${month.toString} $taxYear"))
       }
       .recover { case e => Left(InternalServerErr(e.getMessage)) }
   }

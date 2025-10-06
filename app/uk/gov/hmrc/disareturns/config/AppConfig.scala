@@ -17,7 +17,6 @@
 package uk.gov.hmrc.disareturns.config
 
 import uk.gov.hmrc.disareturns.models.common.Month.Month
-import uk.gov.hmrc.disareturns.models.summary.TaxYear
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
@@ -40,13 +39,13 @@ class AppConfig @Inject() (config: ServicesConfig) {
       .replace("{isaManagerReference}", isaManagerReference)
       .replace("{returnId}", returnId)
 
-  def getReturnResultsLocation(isaManagerReference: String, taxYear: TaxYear, month: Month): String =
+  def getReturnResultsLocation(isaManagerReference: String, taxYear: String, month: Month): String =
     returnResultsLocation
       .replace("{isaManagerReference}", isaManagerReference)
-      .replace("{taxYear}", taxYear.value)
+      .replace("{taxYear}", taxYear)
       .replace("{month}", month.toString)
 
-  lazy val returnSummaryExpiryInDays = 30
+  lazy val returnSummaryExpiryInDays: Int = config.getInt("returnSummaryExpiryInDays")
 
-  lazy val returnResultsNumberOfPages = 1
+  lazy val returnResultsNumberOfPages: Int = config.getInt("returnResultsNumberOfPages")
 }

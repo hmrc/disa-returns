@@ -16,15 +16,7 @@
 
 package uk.gov.hmrc.disareturns.models.summary
 
-import play.api.libs.json.{Json, OFormat}
-
 import scala.util.matching.Regex
-
-case class TaxYear(value: String)
-
-object TaxYear {
-  implicit val format: OFormat[TaxYear] = Json.format[TaxYear]
-}
 
 object TaxYearValidator {
 

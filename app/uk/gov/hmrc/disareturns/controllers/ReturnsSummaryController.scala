@@ -24,7 +24,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.summary.{TaxYear, TaxYearValidator}
+import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
@@ -74,7 +74,7 @@ class ReturnsSummaryController @Inject() (
       }
     }
 
-  private def parseAndValidate(zRef: String, taxYear: String, month: String): Either[Result, (TaxYear, Month)] = {
+  private def parseAndValidate(zRef: String, taxYear: String, month: String): Either[Result, (String, Month)] = {
     val zRefValid    = IsaRefValidator.isValid(zRef)
     val monthToEnum  = Try(Month.withName(month)).toOption
     val taxYearValid = TaxYearValidator.isValid(taxYear)
@@ -86,6 +86,6 @@ class ReturnsSummaryController @Inject() (
     }
 
     if (issues.nonEmpty) Left(BadRequest(Json.toJson(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", issues))))
-    else Right((TaxYear(taxYear), monthToEnum.get))
+    else Right((taxYear, monthToEnum.get))
   }
 }
