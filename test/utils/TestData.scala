@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.summary.repository
+package utils
 
-sealed trait SaveReturnsSummaryResult
+import uk.gov.hmrc.disareturns.models.common.Month
 
-object SaveReturnsSummaryResult {
-  case object Saved extends SaveReturnsSummaryResult
-  case class Error(message: String) extends SaveReturnsSummaryResult
+trait TestData {
+  val validZRef:    String      = "Z1234"
+  val validTaxYear: String      = "2026-27"
+  val validMonth:   Month.Value = Month.SEP
 }

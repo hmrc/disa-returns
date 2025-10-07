@@ -17,17 +17,16 @@
 package uk.gov.hmrc.disareturns.models.summary.repository
 
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{Format, Json, OFormat, OWrites, Reads, __}
+import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.models.common.Month.Month
-import uk.gov.hmrc.disareturns.models.summary.TaxYear
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 
 case class MonthlyReturnsSummary(
   zRef:         String,
-  taxYear:      TaxYear,
+  taxYear:      String,
   month:        Month,
   totalRecords: Int,
   createdAt:    Instant = Instant.now(),
@@ -42,7 +41,7 @@ object MonthlyReturnsSummary {
 
     val r: Reads[MonthlyReturnsSummary] = (
       (__ \ "zRef").read[String] and
-        (__ \ "taxYear").read[TaxYear] and
+        (__ \ "taxYear").read[String] and
         (__ \ "month").format[Month.Value] and
         (__ \ "totalRecords").read[Int] and
         (__ \ "createdAt").read[Instant] and

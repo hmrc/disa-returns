@@ -9,3 +9,7 @@ POST /monthly/:isaManagerReferenceNumber/:returnId/complete      uk.gov.hmrc.dis
 ## NPS Returns Summary Callback
 
 POST /callback/monthly/:zRef/:year/:month               uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.returnsSummaryCallback(zRef: String, year: String, month: String)
+
+## User returns summary
+
+GET /monthly/:isaManagerReferenceNumber/:taxYear/:month/results/summary   uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.retrieveReturnSummary(isaManagerReferenceNumber:String, taxYear: String, month: String)

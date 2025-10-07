@@ -18,10 +18,10 @@ package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model._
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.summary.TaxYear
+import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -45,9 +45,18 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
             .name("updatedAtTtlIdx")
             .expireAfter(appConfig.returnSummaryExpiryInDays, TimeUnit.DAYS)
         )
-      ),
-      extraCodecs = Seq(Codecs.playFormatCodec(TaxYear.format))
+      )
     ) {
+
+  def retrieveReturnSummary(isaManagerReferenceNumber: String, taxYear: String, month: Month): Future[Option[MonthlyReturnsSummary]] = {
+    val filter = Filters.and(
+      Filters.eq("zRef", isaManagerReferenceNumber),
+      Filters.eq("taxYear", taxYear),
+      Filters.eq("month", month.toString)
+    )
+
+    collection.find(filter).headOption()
+  }
 
   def upsert(summary: MonthlyReturnsSummary): Future[Unit] = {
     val now = Instant.now()

@@ -16,7 +16,6 @@
 
 package utils
 
-import org.mockito.Mockito
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
@@ -25,15 +24,16 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
-import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, PPNSConnector}
 import uk.gov.hmrc.disareturns.repositories.{MonthlyReportDocumentRepository, MonthlyReturnsSummaryRepository, ReturnMetadataRepository}
-import uk.gov.hmrc.disareturns.services.{CompleteReturnService, ETMPService, PPNSService, ReturnMetadataService, ReturnsSummaryService, StreamingParserService}
+import uk.gov.hmrc.disareturns.services._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
+import utils.TestData
 
 import scala.concurrent.ExecutionContext
 
@@ -47,12 +47,11 @@ abstract class BaseUnitSpec
     with MockitoSugar
     with DefaultAwaitTimeout
     with GuiceOneAppPerSuite
-    with TestMocks {
+    with TestMocks
+    with TestData {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   implicit val hc: HeaderCarrier    = HeaderCarrier()
-
-  override def beforeEach(): Unit = Mockito.reset()
 
   //MOCKS
   val mockHttpClient:                      HttpClientV2                    = mock[HttpClientV2]
@@ -85,4 +84,6 @@ abstract class BaseUnitSpec
       bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository)
     )
     .build()
+
+  def app(overrides: GuiceableModule*): Application = GuiceApplicationBuilder().overrides(overrides: _*).build()
 }
