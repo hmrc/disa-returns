@@ -34,37 +34,29 @@ import scala.concurrent.Future
 
 class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
+  private val config = mock[AppConfig]
   override lazy val app: Application =
-    app(bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository))
+    app(bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository), bind[AppConfig].toInstance(mockAppConfig))
   private val service = app.injector.instanceOf[ReturnsSummaryService]
-  private val config  = app.injector.instanceOf[AppConfig]
 
   override def beforeEach(): Unit = reset(mockReturnsSummaryRepository)
 
-  private val totalRecords          = 3
-  private val returnResultsLocation = config.getReturnResultsLocation(validZRef, validTaxYear, validMonth)
+  private val totalRecords = 3
 
   "ReturnsSummaryService#retrieveReturnSummary" should {
 
     "return a ReturnSummaryResults object when a matching summary is found" in {
       val returnSummaryResults = MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, 1)
       when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(1)
+      when(mockAppConfig.getReturnResultsLocation(any, any, any)).thenReturn("results")
 
       val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
 
-      result mustBe Right(
-        ReturnSummaryResults(returnResultsLocation, 1, config.getNoOfPagesForReturnResults(1))
-      )
-    }
-
-    "return a rounded-up number of pages (perform ceiling division)" in {
-      val returnSummaryResults = MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, 7)
-      when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
-
-      val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
+      verify(mockAppConfig).getNoOfPagesForReturnResults(any)
 
       result mustBe Right(
-        ReturnSummaryResults(returnResultsLocation, 7, config.getNoOfPagesForReturnResults(7))
+        ReturnSummaryResults("results", 1, 1)
       )
     }
 
