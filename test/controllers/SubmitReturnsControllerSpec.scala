@@ -16,7 +16,6 @@
 
 package controllers
 
-import org.apache.pekko.Done
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers._
@@ -41,7 +40,6 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
   val isaManagerRef = "Z123456"
   val boxId         = "box-123"
-  val returnId      = "return-789"
   val obligation:      EtmpObligations     = EtmpObligations(false)
   val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
 
@@ -84,12 +82,11 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
-        .thenReturn(Future.successful(Done))
-      when(mockMonthlyReportDocumentRepository.insertBatch(any(), any(), any()))
-        .thenReturn(Future.successful((): Unit))
+      when(mockStreamingParserService.processValidatedStream(any()))
+        .thenReturn(Future.successful(Right(Seq.empty)))
+      when(mockNPSService.submitSubscriptionData(any, any)(any)).thenReturn(Future.successful(Right(())))
 
-      val result = controller.submit(isaManagerReferenceNumber = isaManagerRef, returnId = returnId)(fakeRequestWithStream())
+      val result = controller.submit(isaManagerReferenceNumber = isaManagerRef, validTaxYear, validMonthStr)(fakeRequestWithStream())
 
       status(result) shouldBe NO_CONTENT
     }
@@ -102,10 +99,10 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
-        .thenReturn(Future.failed(FirstLevelValidationException(NinoOrAccountNumMissingErr)))
+      when(mockStreamingParserService.processValidatedStream(any()))
+        .thenReturn(Future.successful(Left(FirstLevelValidationFailure(NinoOrAccountNumMissingErr))))
 
-      val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream(ndJsonLineError))
+      val result = controller.submit("Z123", validTaxYear, validMonthStr).apply(fakeRequestWithStream(ndJsonLineError))
 
       status(result)                                 shouldBe BAD_REQUEST
       (contentAsJson(result) \ "code").as[String]    shouldBe "NINO_OR_ACC_NUM_MISSING"
@@ -121,11 +118,11 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
+      when(mockStreamingParserService.processValidatedStream(any()))
         .thenReturn(
-          Future.failed(
-            SecondLevelValidationException(
-              SecondLevelValidationResponse(errors =
+          Future.successful(
+            Left(
+              SecondLevelValidationFailure(
                 Seq(
                   SecondLevelValidationError(
                     nino = "AB000001C",
@@ -139,7 +136,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
           )
         )
 
-      val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream(ndJsonLine))
+      val result = controller.submit("Z123", validTaxYear, validMonthStr).apply(fakeRequestWithStream(ndJsonLine))
       val json   = contentAsJson(result)
 
       status(result)                shouldBe BAD_REQUEST
@@ -165,11 +162,11 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
+      when(mockStreamingParserService.processValidatedStream(any()))
         .thenReturn(
-          Future.failed(
-            SecondLevelValidationException(
-              SecondLevelValidationResponse(errors =
+          Future.successful(
+            Left(
+              SecondLevelValidationFailure(
                 Seq(
                   SecondLevelValidationError(
                     nino = "AB000001C",
@@ -183,7 +180,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
           )
         )
 
-      val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream(ndJsonLine))
+      val result = controller.submit("Z123", validTaxYear, validMonthStr).apply(fakeRequestWithStream(ndJsonLine))
       val json   = contentAsJson(result)
 
       status(result)                shouldBe BAD_REQUEST
@@ -211,11 +208,11 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(true))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processValidatedStream(any(), any(), any()))
+      when(mockStreamingParserService.processValidatedStream(any()))
         .thenReturn(
-          Future.failed(
-            SecondLevelValidationException(
-              SecondLevelValidationResponse(errors =
+          Future.successful(
+            Left(
+              SecondLevelValidationFailure(
                 Seq(
                   SecondLevelValidationError(
                     nino = "AB000001C",
@@ -235,7 +232,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
           )
         )
 
-      val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream(ndJsonLine))
+      val result = controller.submit("Z123", validTaxYear, validMonthStr).apply(fakeRequestWithStream(ndJsonLine))
       val json   = contentAsJson(result)
 
       status(result) shouldBe BAD_REQUEST
@@ -265,7 +262,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .withHeaders("X-Client-ID" -> "client-abc")
         .withBody(validSubmissionJson)
 
-      val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream())
+      val result = controller.submit("Z123", validTaxYear, validMonthStr).apply(fakeRequestWithStream())
 
       status(result)                                 shouldBe UNAUTHORIZED
       (contentAsJson(result) \ "message").as[String] shouldBe "Unauthorised"
@@ -279,7 +276,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
-      val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream())
+      val result = controller.submit("Z123", validTaxYear, validMonthStr).apply(fakeRequestWithStream())
 
       status(result)                                 shouldBe FORBIDDEN
       (contentAsJson(result) \ "code").as[String]    shouldBe "OBLIGATION_CLOSED"
@@ -293,14 +290,10 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(
-        mockStreamingParserService.processValidatedStream(
-          any[String],
-          any[String],
-          any[Source[Either[ValidationError, IsaAccount], _]]
-        )
+        mockStreamingParserService.processValidatedStream(any[Source[Either[ValidationError, IsaAccount], _]])
       ).thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val result = controller.submit("Z123", "return-123").apply(fakeRequestWithStream())
+      val result = controller.submit("Z123", validTaxYear, validMonthStr).apply(fakeRequestWithStream())
       status(result)        shouldBe INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
     }

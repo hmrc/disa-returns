@@ -30,7 +30,7 @@ import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, NPSConnector, PPNSConnector}
-import uk.gov.hmrc.disareturns.repositories.{MonthlyReportDocumentRepository, MonthlyReturnsSummaryRepository, ReturnMetadataRepository}
+import uk.gov.hmrc.disareturns.repositories.{MonthlyReturnsSummaryRepository, ReturnMetadataRepository}
 import uk.gov.hmrc.disareturns.services._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
@@ -66,7 +66,6 @@ abstract class BaseUnitSpec
   val mockETMPService:                     ETMPService                     = mock[ETMPService]
   val mockBaseConnector:                   BaseConnector                   = mock[BaseConnector]
   val mockMonthlyReportDocumentService:    ReturnMetadataService           = mock[ReturnMetadataService]
-  val mockMonthlyReportDocumentRepository: MonthlyReportDocumentRepository = mock[MonthlyReportDocumentRepository]
   val mockAuthConnector:                   AuthConnector                   = mock[AuthConnector]
   val mockStreamingParserService:          StreamingParserService          = mock[StreamingParserService]
   val mockReturnMetadataRepository:        ReturnMetadataRepository        = mock[ReturnMetadataRepository]

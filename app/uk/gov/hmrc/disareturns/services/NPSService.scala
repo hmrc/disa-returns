@@ -17,9 +17,11 @@
 package uk.gov.hmrc.disareturns.services
 
 import cats.data.EitherT
+import play.api.http.Status.NO_CONTENT
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
-import uk.gov.hmrc.disareturns.models.common.ErrorResponse
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
+import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
@@ -30,4 +32,16 @@ class NPSService @Inject() (connector: NPSConnector)(implicit ec: ExecutionConte
 
   def notification(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] =
     connector.sendNotification(isaManagerReference).leftMap(mapToErrorResponse)
+
+  def submitSubscriptionData(isaManagerRefNo: String, isaSubscriptions: Seq[IsaAccount])(implicit
+                                                                                         hc:                                       HeaderCarrier
+  ): Future[Either[ErrorResponse, Unit]] =
+    connector.submit(isaManagerRefNo, isaSubscriptions).value.map {
+      case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
+      case Right(response) =>
+        response.status match {
+          case NO_CONTENT  => Right(())
+          case otherStatus => Left(InternalServerErr(s"Unexpected status $otherStatus was received from NPS submission"))
+        }
+    }
 }

@@ -17,7 +17,10 @@
 package uk.gov.hmrc.disareturns.connectors
 
 import cats.data.EitherT
+import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
+import uk.gov.hmrc.http.HttpReadsInstances.readEitherOf
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
@@ -26,6 +29,19 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
+
+  def submit(isaManagerRefNo: String, isaSubscriptions: Seq[IsaAccount])(implicit
+    hc:                       HeaderCarrier
+  ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+    val url = s"${appConfig.npsBaseUrl}/nps/submit/$isaManagerRefNo"
+    read(
+      httpClient
+        .post(url"$url")
+        .withBody(Json.toJson(isaSubscriptions))
+        .execute[Either[UpstreamErrorResponse, HttpResponse]],
+      context = "NPSConnector: submit"
+    )
+  }
 
   def sendNotification(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.npsBaseUrl}/nps/declaration/$isaManagerReferenceNumber"
