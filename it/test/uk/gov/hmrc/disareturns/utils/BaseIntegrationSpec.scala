@@ -72,6 +72,10 @@ trait BaseIntegrationSpec
       "microservice.services.ppns.port"   -> wiremockPort.toString,
       "microservice.services.auth.host"   -> wiremockHost,
       "microservice.services.auth.port"   -> wiremockPort.toString,
+      "microservice.services.nps.host"    -> wiremockHost,
+      "microservice.services.nps.port"    -> wiremockPort.toString,
+      "microservice.services.self.host"   -> wiremockHost,
+      "microservice.services.self.port"   -> wiremockPort.toString,
       "urls.returnResultsSummaryLocation" -> "/monthly/{isaManagerReference}/{returnId}/results/summary"
     )
 

@@ -136,6 +136,48 @@ class ETMPConnectorSpec extends BaseUnitSpec {
     }
   }
 
+  "EtmpConnector.sendDeclaration" should {
+
+    "return Right(HttpResponse) when the call to ETMP is successful" in new TestSetup {
+      val mockHttpResponse: HttpResponse = HttpResponse(status = 200, "")
+
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Right(mockHttpResponse)))
+
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendDeclaration(testIsaManagerReferenceNumber).value.futureValue
+
+      result shouldBe Right(mockHttpResponse)
+    }
+
+    "return Left(UpstreamErrorResponse) when the call to ETMP fails with an UpstreamErrorResponse" in new TestSetup {
+      val upstreamErrorResponse: UpstreamErrorResponse = UpstreamErrorResponse(
+        message = "Not authorised to access this service",
+        statusCode = 401,
+        reportAs = 401,
+        headers = Map.empty
+      )
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(upstreamErrorResponse)))
+
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendDeclaration(testIsaManagerReferenceNumber).value.futureValue
+
+      result shouldBe Left(upstreamErrorResponse)
+    }
+
+    "return Left(UpstreamErrorResponse) when the call to ETMP fails with an unexpected Throwable exception" in new TestSetup {
+      val runtimeException = new RuntimeException("Connection timeout")
+
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.failed(runtimeException))
+
+      val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
+        connector.sendDeclaration(testIsaManagerReferenceNumber).value.futureValue
+
+      result.statusCode shouldBe 500
+      result.message      should include("Unexpected error: Connection timeout")
+    }
+  }
+
   trait TestSetup {
     val testIsaManagerReferenceNumber: String        = "123456"
     val connector:                     ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
@@ -144,6 +186,8 @@ class ETMPConnectorSpec extends BaseUnitSpec {
     when(mockHttpClient.get(url"$testUrl/etmp/check-obligation-status/$testIsaManagerReferenceNumber"))
       .thenReturn(mockRequestBuilder)
     when(mockHttpClient.get(url"$testUrl/etmp/check-reporting-window"))
+      .thenReturn(mockRequestBuilder)
+    when(mockHttpClient.post(url"$testUrl/etmp/declaration/$testIsaManagerReferenceNumber"))
       .thenReturn(mockRequestBuilder)
   }
 }

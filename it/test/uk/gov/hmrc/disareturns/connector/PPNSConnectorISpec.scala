@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.disareturns.connector
 
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
+import play.api.http.Status.{NOT_FOUND, OK, UNAUTHORIZED}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.config.Constants
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
-import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
+import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 
 class PPNSConnectorISpec extends BaseIntegrationSpec {
 
@@ -30,9 +30,9 @@ class PPNSConnectorISpec extends BaseIntegrationSpec {
   override val testClientId = "test-client-id-12345"
   val url                   = "/box?clientId=test-client-id-12345&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"
 
-  "PPNSConnector.getBoxId" should {
+  "PPNSConnector.getBox" should {
 
-    "return Right(Box) when PPNS returns a 200 with valid Box JSON" in {
+    "return Right(Some(boxId)) when PPNS returns a 200 with valid Box JSON" in {
       val boxJson =
         s"""
            |{
@@ -46,31 +46,32 @@ class PPNSConnectorISpec extends BaseIntegrationSpec {
            |""".stripMargin
 
       stubGet(url = url, status = OK, body = boxJson)
-      val Right(response) = await(connector.getBox(testClientId).value)
 
-      response.status                                        shouldBe OK
-      (response.json \ "boxId").as[String]                   shouldBe "boxId1"
-      (response.json \ "boxName").as[String]                 shouldBe s"${Constants.BoxName}"
-      (response.json \ "boxCreator" \ "clientId").as[String] shouldBe testClientId
-      (response.json \ "applicationId").as[String]           shouldBe "applicationId"
+      val result = await(connector.getBox(testClientId))
 
+      result shouldBe Right(Some("boxId1"))
+    }
+
+    "return Right(None) when PPNS returns a 404" in {
+      stubGet(url = url, status = NOT_FOUND, body = "")
+
+      val result = await(connector.getBox(testClientId))
+
+      result shouldBe Right(None)
     }
 
     "return Left(UpstreamErrorResponse) when PPNS returns a 401" in {
-
       stubGet(url = url, status = UNAUTHORIZED, body = "Unauthorized")
 
-      val Left(response) = await(connector.getBox(testClientId).value)
-      response.statusCode shouldBe UNAUTHORIZED
-      response.message      should include("Unauthorized")
-    }
+      val result = await(connector.getBox(testClientId))
 
-    "return Left(UpstreamErrorResponse) when the call fails with unexpected exception" in {
-      stopWiremock()
-
-      val Left(response) = await(connector.getBox(testClientId).value)
-      response.statusCode shouldBe INTERNAL_SERVER_ERROR
-      response.message      should include("Unexpected error:")
+      result match {
+        case Left(error) =>
+          error.statusCode shouldBe UNAUTHORIZED
+          error.message      should include("Unexpected status from PPNS: 401")
+        case _ => fail("Expected Left(UpstreamErrorResponse)")
+      }
     }
   }
+
 }

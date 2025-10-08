@@ -80,7 +80,7 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
       }
     } yield (reportingWindow, obligations)
 
-  def closeObligationStatus(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] =
-    connector.closeReturnsObligationStatus(isaManagerReference).leftMap(mapToErrorResponse)
+  def declaration(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] =
+    connector.sendDeclaration(isaManagerReference).leftMap(mapToErrorResponse)
 
 }
