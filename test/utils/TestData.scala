@@ -19,7 +19,8 @@ package utils
 import uk.gov.hmrc.disareturns.models.common.Month
 
 trait TestData {
-  val validZRef:    String      = "Z1234"
-  val validTaxYear: String      = "2026-27"
-  val validMonth:   Month.Value = Month.SEP
+  val validZRef:     String      = "Z1234"
+  val validTaxYear:  String      = "2026-27"
+  val validMonth:    Month.Value = Month.SEP
+  val validMonthStr: String      = "SEP"
 }

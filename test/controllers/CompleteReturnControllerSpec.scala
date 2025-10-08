@@ -24,7 +24,7 @@ import play.api.test._
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.controllers.CompleteReturnController
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, MismatchErr, ObligationClosed, ReportingWindowClosed}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, ObligationClosed, ReportingWindowClosed}
 import uk.gov.hmrc.disareturns.models.complete.CompleteReturnResponse
 import uk.gov.hmrc.http.HttpResponse
 import utils.BaseUnitSpec
@@ -54,7 +54,7 @@ class CompleteReturnControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockETMPService.closeObligationStatus(any())(any()))
         .thenReturn(EitherT.right[ErrorResponse](Future.successful(HttpResponse(200))))
-      when(mockCompleteReturnService.validateRecordCount(isaManagerReference, returnId)).thenReturn(Future.successful(Right(completeResponse)))
+      when(mockAppConfig.getReturnResultsSummaryLocation(any, any)).thenReturn(returnSummaryLocation)
 
       val request = FakeRequest(POST, s"/complete/$isaManagerReference/$returnId")
       val result  = controller.complete(isaManagerReference, returnId)(request)
@@ -112,21 +112,6 @@ class CompleteReturnControllerSpec extends BaseUnitSpec {
       val json = contentAsJson(result)
       (json \ "code").as[String]    shouldBe "OBLIGATION_CLOSED"
       (json \ "message").as[String] shouldBe "Obligation closed"
-    }
-
-    "return 400 BadRequest Mismatch when number of records declared in the header does not match the number submitted" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      when(mockMonthlyReportDocumentService.existsByIsaManagerReferenceAndReturnId(isaManagerReference, returnId)).thenReturn(Future.successful(true))
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockCompleteReturnService.validateRecordCount(isaManagerReference, returnId)).thenReturn(Future.successful(Left(MismatchErr)))
-      val request = FakeRequest(GET, s"/complete/$isaManagerReference/$returnId")
-      val result  = controller.complete(isaManagerReference, returnId)(request)
-
-      status(result) shouldBe BAD_REQUEST
-      val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "MISMATCH_EXPECTED_VS_RECEIVED"
-      (json \ "message").as[String] shouldBe "Number of records declared in the header does not match the number submitted."
     }
   }
 

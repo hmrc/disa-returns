@@ -24,7 +24,6 @@ import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.{SubmissionRequest, TaxYear}
 import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaType, LifetimeIsaClosure, ReasonForClosure}
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 import java.time.LocalDate
@@ -116,7 +115,7 @@ class CompleteReturnControllerISpec extends BaseIntegrationSpec {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerReference)
 
-      val result = completeRequest(isaManagerReference = isaManagerReference, returnId = returnId, submissions = false)
+      val result = completeRequest(isaManagerReference = isaManagerReference, returnId = returnId)
       result.status shouldBe BAD_REQUEST
 
       (result.json \ "code").as[String]    shouldBe "MISMATCH_EXPECTED_VS_RECEIVED"
@@ -160,14 +159,11 @@ class CompleteReturnControllerISpec extends BaseIntegrationSpec {
     requestBody:         String = "",
     headers:             Seq[(String, String)] = testHeaders,
     isaManagerReference: String = isaManagerReference,
-    returnId:            String = returnId,
-    submissions:         Boolean = true
+    returnId:            String = returnId
   ): WSResponse = {
     stubAuth()
     await(returnMetadataRepository.dropCollection())
-    await(reportingMetadataRepository.dropCollection())
     setupReturnMetadata()
-    if (submissions) setupMonthlySubmissions()
     await(
       ws.url(
         s"http://localhost:$port/monthly/$isaManagerReference/$returnId/complete"
@@ -190,31 +186,4 @@ class CompleteReturnControllerISpec extends BaseIntegrationSpec {
         )
       )
     )
-
-  def setupMonthlySubmissions(): Unit = await(
-    reportingMetadataRepository.insertBatch(
-      isaManagerId = isaManagerReference,
-      returnId = returnId,
-      reports = Seq(
-        LifetimeIsaClosure(
-          accountNumber = "STD000001",
-          nino = "AB000001C",
-          firstName = "First1",
-          middleName = None,
-          lastName = "Last1",
-          dateOfBirth = LocalDate.parse("1980-01-02"),
-          isaType = IsaType.LIFETIME_CASH,
-          reportingATransfer = false,
-          dateOfLastSubscription = LocalDate.parse("2025-06-01"),
-          totalCurrentYearSubscriptionsToDate = BigDecimal(2500.00),
-          marketValueOfAccount = BigDecimal(10000.00),
-          dateOfFirstSubscription = LocalDate.parse("2025-06-01"),
-          closureDate = LocalDate.parse("2025-06-01"),
-          reasonForClosure = ReasonForClosure.CANCELLED,
-          lisaQualifyingAddition = BigDecimal(10000.00),
-          lisaBonusClaim = BigDecimal(10000.00)
-        )
-      )
-    )
-  )
 }

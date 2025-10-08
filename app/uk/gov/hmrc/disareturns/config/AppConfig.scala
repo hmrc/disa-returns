@@ -26,6 +26,7 @@ class AppConfig @Inject() (config: ServicesConfig) {
 
   lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
   lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
+  lazy val npsBaseUrl:  String = config.baseUrl(serviceName = "nps")
 
   private val returnResultsSummaryLocation: String =
     config.getString("urls.returnResultsSummaryLocation")

@@ -17,7 +17,6 @@
 package uk.gov.hmrc.disareturns.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock.{get, serverError, stubFor, urlEqualTo}
-import org.mongodb.scala.model.Filters
 import play.api.http.Status._
 import play.api.libs.json._
 import play.api.libs.ws.WSResponse
@@ -25,7 +24,6 @@ import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.{SubmissionRequest, TaxYear}
 import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts._
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 import java.time.LocalDate
@@ -34,6 +32,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
   val testIsaManagerReference = "Z123456"
   val testReturnId            = "return-789"
+  val testTaxYear = "2026-27"
   val validNdJson =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
@@ -47,27 +46,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val result = initiateRequest(validLifetimeIsaNewSubscription)
       result.status shouldBe NO_CONTENT
-
-      checkMongoRepository().map(_.isaReport) shouldBe Some(
-        Seq(
-          LifetimeIsaNewSubscription(
-            accountNumber = "STD000001",
-            nino = "AB000001C",
-            firstName = "First1",
-            middleName = None,
-            lastName = "Last1",
-            dateOfBirth = LocalDate.of(1980, 1, 2),
-            isaType = IsaType.LIFETIME_CASH,
-            reportingATransfer = false,
-            dateOfFirstSubscription = LocalDate.of(2025, 6, 1),
-            dateOfLastSubscription = LocalDate.of(2025, 6, 1),
-            totalCurrentYearSubscriptionsToDate = 2500.00,
-            marketValueOfAccount = 10000.00,
-            lisaQualifyingAddition = 5000.00,
-            lisaBonusClaim = 5000.00
-          )
-        )
-      )
     }
 
     "return 204 for successful submission - LifetimeIsaClosure" in {
@@ -78,29 +56,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val result = initiateRequest(validLifetimeIsaClosure)
       result.status shouldBe NO_CONTENT
-
-      checkMongoRepository().map(_.isaReport) shouldBe Some(
-        Seq(
-          LifetimeIsaClosure(
-            accountNumber = "STD000001",
-            nino = "AB000001C",
-            firstName = "First1",
-            middleName = None,
-            lastName = "Last1",
-            dateOfBirth = LocalDate.parse("1980-01-02"),
-            isaType = IsaType.LIFETIME_CASH,
-            reportingATransfer = false,
-            dateOfLastSubscription = LocalDate.parse("2025-06-01"),
-            totalCurrentYearSubscriptionsToDate = BigDecimal(2500.00),
-            marketValueOfAccount = BigDecimal(10000.00),
-            dateOfFirstSubscription = LocalDate.parse("2025-06-01"),
-            closureDate = LocalDate.parse("2025-06-01"),
-            reasonForClosure = ReasonForClosure.CANCELLED,
-            lisaQualifyingAddition = BigDecimal(10000.00),
-            lisaBonusClaim = BigDecimal(10000.00)
-          )
-        )
-      )
     }
 
     "return 204 for successful submission - LifetimeIsaTransfer" in {
@@ -111,29 +66,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val result = initiateRequest(validLifetimeIsaTransfer)
       result.status shouldBe NO_CONTENT
-
-      checkMongoRepository().map(_.isaReport) shouldBe Some(
-        Seq(
-          LifetimeIsaTransfer(
-            accountNumber = "STD000001",
-            nino = "AB000001C",
-            firstName = "First1",
-            middleName = None,
-            lastName = "Last1",
-            dateOfBirth = LocalDate.parse("1980-01-02"),
-            isaType = IsaType.LIFETIME_CASH,
-            reportingATransfer = true,
-            dateOfFirstSubscription = LocalDate.parse("2025-06-01"),
-            dateOfLastSubscription = LocalDate.parse("2025-06-01"),
-            totalCurrentYearSubscriptionsToDate = BigDecimal(2500.00),
-            marketValueOfAccount = BigDecimal(10000.00),
-            accountNumberOfTransferringAccount = "123456",
-            amountTransferred = BigDecimal(10001.00),
-            lisaQualifyingAddition = BigDecimal(10000.00),
-            lisaBonusClaim = BigDecimal(10000.00)
-          )
-        )
-      )
     }
 
     "return 204 for successful submission - LifetimeIsaTransferAndClosure" in {
@@ -143,31 +75,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val result = initiateRequest(validLifetimeIsaTransferAndClosure)
       result.status shouldBe NO_CONTENT
-
-      checkMongoRepository().map(_.isaReport) shouldBe Some(
-        Seq(
-          LifetimeIsaTransferAndClosure(
-            accountNumber = "STD000001",
-            nino = "AB000001C",
-            firstName = "First1",
-            middleName = None,
-            lastName = "Last1",
-            dateOfBirth = LocalDate.parse("1980-01-02"),
-            isaType = IsaType.LIFETIME_CASH,
-            reportingATransfer = true,
-            dateOfFirstSubscription = LocalDate.parse("2025-06-01"),
-            dateOfLastSubscription = LocalDate.parse("2025-06-01"),
-            closureDate = LocalDate.parse("2025-06-01"),
-            totalCurrentYearSubscriptionsToDate = BigDecimal(2500.00),
-            marketValueOfAccount = BigDecimal(10000.00),
-            accountNumberOfTransferringAccount = "123456",
-            amountTransferred = BigDecimal(10001.00),
-            reasonForClosure = ReasonForClosure.CANCELLED,
-            lisaQualifyingAddition = BigDecimal(10000.00),
-            lisaBonusClaim = BigDecimal(10000.00)
-          )
-        )
-      )
     }
 
     "return 204 for successful submission - StandardIsaNewSubscription" in {
@@ -178,25 +85,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val result = initiateRequest(validStandardIsaNewSubscription)
       result.status shouldBe NO_CONTENT
-
-      checkMongoRepository().map(_.isaReport) shouldBe Some(
-        Seq(
-          StandardIsaNewSubscription(
-            accountNumber = "STD000001",
-            nino = "AB000001C",
-            firstName = "First1",
-            middleName = None,
-            lastName = "Last1",
-            dateOfBirth = LocalDate.parse("1980-01-02"),
-            isaType = IsaType.STOCKS_AND_SHARES,
-            reportingATransfer = false,
-            dateOfLastSubscription = LocalDate.parse("2025-06-01"),
-            totalCurrentYearSubscriptionsToDate = BigDecimal(2500.00),
-            marketValueOfAccount = BigDecimal(10000.00),
-            flexibleIsa = true
-          )
-        )
-      )
     }
 
     "return 204 for successful submission - StandardIsaTransfer" in {
@@ -207,27 +95,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val result = initiateRequest(validStandardIsaTransfer)
       result.status shouldBe NO_CONTENT
-
-      checkMongoRepository().map(_.isaReport) shouldBe Some(
-        Seq(
-          StandardIsaTransfer(
-            accountNumber = "STD000001",
-            nino = "AB000001C",
-            firstName = "First1",
-            middleName = None,
-            lastName = "Last1",
-            dateOfBirth = LocalDate.parse("1980-01-02"),
-            isaType = IsaType.STOCKS_AND_SHARES,
-            reportingATransfer = true,
-            dateOfLastSubscription = LocalDate.parse("2025-06-01"),
-            totalCurrentYearSubscriptionsToDate = BigDecimal(2500.00),
-            marketValueOfAccount = BigDecimal(10000.00),
-            accountNumberOfTransferringAccount = "12345",
-            amountTransferred = BigDecimal(10000.00),
-            flexibleIsa = true
-          )
-        )
-      )
     }
 
     "return 400 with correct error response body request body with missing accountNumber" in {
@@ -1101,30 +968,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
     }
 
-    "return NOT_FOUND with correct error message if not ReturnMetaData exists" in {
-      val result = initiateRequest(requestBody = validNdJson, withReturnMetaData = false)
-      result.status                 shouldBe NOT_FOUND
-      result.json.as[ErrorResponse] shouldBe ReturnIdNotMatchedErr
-    }
-
-    "return NOT_FOUND with correct error message if returnId matches in mongo but isaManagerRef does not" in {
-      val result = initiateRequest(requestBody = validNdJson, isaManagerReference = "incorrect-isa-ref")
-      result.status                 shouldBe NOT_FOUND
-      result.json.as[ErrorResponse] shouldBe ReturnIdNotMatchedErr
-    }
-
-    "return NOT_FOUND with correct error message if isaManagerRef matches in mongo but returnId does not" in {
-      val result = initiateRequest(requestBody = validNdJson, returnId = "incorrect-return-id")
-      result.status                 shouldBe NOT_FOUND
-      result.json.as[ErrorResponse] shouldBe ReturnIdNotMatchedErr
-    }
-
-    "return NOT_FOUND with correct error message if neither isaManagerRef or returned matches in mongo" in {
-      val result = initiateRequest(requestBody = validNdJson, isaManagerReference = "incorrect-isa-ref", returnId = "incorrect-return-id")
-      result.status                 shouldBe NOT_FOUND
-      result.json.as[ErrorResponse] shouldBe ReturnIdNotMatchedErr
-    }
-
     "return UNAUTHORISED if auth checks fail" in {
       val result = initiateRequest(validNdJson, withAuth = false)
       result.status                 shouldBe UNAUTHORIZED
@@ -1187,17 +1030,17 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     requestBody:         String,
     headers:             Seq[(String, String)] = testHeaders,
     isaManagerReference: String = testIsaManagerReference,
-    returnId:            String = testReturnId,
+    taxYear:            String = testTaxYear,
+    month: String = Month.SEP.toString,
     withReturnMetaData:  Boolean = true,
     withAuth:            Boolean = true
   ): WSResponse = {
     if (withAuth) stubAuth() else stubAuthFail()
     await(returnMetadataRepository.dropCollection())
-    await(reportingMetadataRepository.dropCollection())
     if (withReturnMetaData) setupReturnMetadataRepository()
     await(
       ws.url(
-        s"http://localhost:$port/monthly/$isaManagerReference/$returnId"
+        s"http://localhost:$port/monthly/$isaManagerReference/$taxYear/$month"
       ).withFollowRedirects(follow = false)
         .withHttpHeaders(
           headers: _*
@@ -1216,17 +1059,5 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
           isaManagerReference = testIsaManagerReference
         )
       )
-    )
-
-  def checkMongoRepository(): Option[MonthlyReportDocument] =
-    await(
-      reportingMetadataRepository.collection
-        .find(
-          Filters.and(
-            Filters.equal("isaManagerReferenceNumber", testIsaManagerReference),
-            Filters.equal("returnId", testReturnId)
-          )
-        )
-        .headOption()
     )
 }
