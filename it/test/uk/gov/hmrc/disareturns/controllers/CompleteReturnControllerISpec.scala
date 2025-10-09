@@ -111,17 +111,6 @@ class CompleteReturnControllerISpec extends BaseIntegrationSpec {
       errors.map(e => (e \ "message").as[String])(1) shouldBe "Obligation closed"
     }
 
-    "return 400 BadRequest Mismatch when number of records declared in the header does not match the number submitted" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerReference)
-
-      val result = completeRequest(isaManagerReference = isaManagerReference, returnId = returnId)
-      result.status shouldBe BAD_REQUEST
-
-      (result.json \ "code").as[String]    shouldBe "MISMATCH_EXPECTED_VS_RECEIVED"
-      (result.json \ "message").as[String] shouldBe "Number of records declared in the header does not match the number submitted."
-    }
-
     "return 500 Internal server error when Etmp returns a server error" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubFor(

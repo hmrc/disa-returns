@@ -16,6 +16,7 @@
 
 package utils
 
+import org.mockito.Mockito.reset
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
@@ -28,7 +29,7 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, PPNSConnector}
+import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, NPSConnector, PPNSConnector}
 import uk.gov.hmrc.disareturns.repositories.{MonthlyReturnsSummaryRepository, ReturnMetadataRepository}
 import uk.gov.hmrc.disareturns.services._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -53,6 +54,12 @@ abstract class BaseUnitSpec
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   implicit val hc: HeaderCarrier    = HeaderCarrier()
 
+  override def afterEach(): Unit = {
+    super.afterEach()
+    reset(mockReturnsSummaryRepository)
+    reset(mockReturnMetadataRepository)
+  }
+
   //MOCKS
   val mockHttpClient:                   HttpClientV2                    = mock[HttpClientV2]
   val mockAppConfig:                    AppConfig                       = mock[AppConfig]
@@ -62,6 +69,7 @@ abstract class BaseUnitSpec
   val mockETMPConnector:                ETMPConnector                   = mock[ETMPConnector]
   val mockETMPService:                  ETMPService                     = mock[ETMPService]
   val mockBaseConnector:                BaseConnector                   = mock[BaseConnector]
+  val mockNPSConnector:                 NPSConnector                    = mock[NPSConnector]
   val mockMonthlyReportDocumentService: ReturnMetadataService           = mock[ReturnMetadataService]
   val mockAuthConnector:                AuthConnector                   = mock[AuthConnector]
   val mockStreamingParserService:       StreamingParserService          = mock[StreamingParserService]

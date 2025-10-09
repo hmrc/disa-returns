@@ -38,7 +38,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
   val controller: SubmitReturnsController = app.injector.instanceOf[SubmitReturnsController]
 
-  val boxId         = "box-123"
+  val boxId = "box-123"
   val obligation:      EtmpObligations     = EtmpObligations(false)
   val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
 
@@ -280,6 +280,22 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       status(result)                                 shouldBe FORBIDDEN
       (contentAsJson(result) \ "code").as[String]    shouldBe "OBLIGATION_CLOSED"
       (contentAsJson(result) \ "message").as[String] shouldBe "Obligation closed"
+    }
+
+    "return 500 when NPS returns unexpected error" in {
+      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockMonthlyReportDocumentService.existsByIsaManagerReferenceAndReturnId(any(), any()))
+        .thenReturn(Future.successful(true))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockStreamingParserService.processSource(any()))
+        .thenReturn(Future.successful(Right(Seq.empty)))
+      when(mockNPSService.submitSubscriptionData(any, any)(any)).thenReturn(Future.successful(Left(InternalServerErr())))
+
+      val result = controller.submit(validZRef, validTaxYear, validMonthStr)(fakeRequestWithStream())
+
+      status(result)        shouldBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
     }
 
     "return 500 for unexpected errors" in {

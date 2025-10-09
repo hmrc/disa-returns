@@ -67,25 +67,31 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
       val source: Source[ByteString, NotUsed]              = Source.single(ByteString(validIsaAccountJson + "\n"))
       val result: Either[ValidationError, Seq[IsaAccount]] = service.processSource(source).futureValue
 
-      result.isRight shouldBe true
+      result.isRight           shouldBe true
       result.toOption.get.head shouldBe Json.parse(validIsaAccountJson).as[IsaAccount]
     }
 
     "return a Left when IsaAccount fails domain validation with missing first name" in new Setup {
-      val invalidIsaAccountJson: String =
+      val invalidIsaAccountJson1: String =
         """{"accountNumber":"STD000001","nino":"AB000001C","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+      val invalidIsaAccountJson2: String =
+        """{"accountNumber":"STD000002","nino":"AB000001C","firstName":"Jeff","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
-      val source: Source[ByteString, NotUsed]              = Source.single(ByteString(invalidIsaAccountJson + "\n"))
+      val source: Source[ByteString, NotUsed]              = Source.single(ByteString(invalidIsaAccountJson1 + "\n" + invalidIsaAccountJson2 + "\n"))
       val result: Either[ValidationError, Seq[IsaAccount]] = service.processSource(source).futureValue
 
       result.isLeft shouldBe true
 
       result.left.toOption.get match {
-        case SecondLevelValidationFailure(err +: _) =>
-          err.code          shouldBe "MISSING_FIRST_NAME"
-          err.message       shouldBe "First name field is missing"
-          err.nino          shouldBe "AB000001C"
-          err.accountNumber shouldBe "STD000001"
+        case SecondLevelValidationFailure(err :: err2 :: _) =>
+          err.code           shouldBe "MISSING_FIRST_NAME"
+          err.message        shouldBe "First name field is missing"
+          err.nino           shouldBe "AB000001C"
+          err.accountNumber  shouldBe "STD000001"
+          err2.code          shouldBe "MISSING_LAST_NAME"
+          err2.message       shouldBe "Last name field is missing"
+          err2.nino          shouldBe "AB000001C"
+          err2.accountNumber shouldBe "STD000002"
         case other =>
           fail(s"Unexpected validation error: $other")
       }

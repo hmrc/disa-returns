@@ -42,7 +42,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
     }
   }
 
-   private def findDuplicateFields(line: String): JsResult[Unit] = {
+  private def findDuplicateFields(line: String): JsResult[Unit] = {
     val keys = "\"([^\"]+)\"\\s*:".r.findAllMatchIn(line).map(_.group(1)).toList
     keys.diff(keys.distinct).headOption match {
       case Some(dupKey) =>
@@ -113,7 +113,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
         val (errors, validAccounts) = batch.partitionMap(identity)
 
         if (errors.nonEmpty) {
-          val firstLevelErrors = errors.collect { case FirstLevelValidationFailure(err) => err }
+          val firstLevelErrors  = errors.collect { case FirstLevelValidationFailure(err) => err }
           val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err }.flatten
 
           val failureException = if (firstLevelErrors.nonEmpty) {

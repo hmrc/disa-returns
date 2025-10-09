@@ -66,5 +66,4 @@ class CompleteReturnController @Inject() (
           }
       }
     }
-
 }
