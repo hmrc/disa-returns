@@ -16,27 +16,22 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
-import com.github.tomakehurst.wiremock.client.WireMock.{get, serverError, stubFor, urlEqualTo}
+import com.github.tomakehurst.wiremock.client.WireMock.{created, get, post, serverError, stubFor, urlEqualTo}
 import play.api.http.Status._
 import play.api.libs.json._
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.initiate.inboundRequest.{SubmissionRequest, TaxYear}
-import uk.gov.hmrc.disareturns.models.initiate.mongo.ReturnMetadata
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
-
-import java.time.LocalDate
 
 class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
-  val testIsaManagerReference = "Z123456"
-  val testReturnId            = "return-789"
+  val testIsaManagerReference = "Z1234"
   val testTaxYear = "2026-27"
   val validNdJson =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
 
-  "POST /monthly/:isaManagerRef/:returnId" should {
+  "POST /monthly/:isaManagerRef/:taxYear/:month" should {
 
     "return 204 for successful submission - LifetimeIsaNewSubscription" in {
       val validLifetimeIsaNewSubscription =
@@ -44,6 +39,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      stubNps(NO_CONTENT, testIsaManagerReference)
+
       val result = initiateRequest(validLifetimeIsaNewSubscription)
       result.status shouldBe NO_CONTENT
     }
@@ -54,6 +51,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      stubNps(NO_CONTENT, testIsaManagerReference)
+
       val result = initiateRequest(validLifetimeIsaClosure)
       result.status shouldBe NO_CONTENT
     }
@@ -64,6 +63,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      stubNps(NO_CONTENT, testIsaManagerReference)
+
       val result = initiateRequest(validLifetimeIsaTransfer)
       result.status shouldBe NO_CONTENT
     }
@@ -73,6 +74,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"2025-06-01","amountTransferred":10001.00, "lisaQualifyingAddition":10000.00, "lisaBonusClaim":10000.00, "closureDate":"2025-06-01", "reasonForClosure":"CANCELLED"}"""
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      stubNps(NO_CONTENT, testIsaManagerReference)
+
       val result = initiateRequest(validLifetimeIsaTransferAndClosure)
       result.status shouldBe NO_CONTENT
     }
@@ -83,6 +86,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      stubNps(NO_CONTENT, testIsaManagerReference)
+
       val result = initiateRequest(validStandardIsaNewSubscription)
       result.status shouldBe NO_CONTENT
     }
@@ -93,6 +98,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      stubNps(NO_CONTENT, testIsaManagerReference)
+
       val result = initiateRequest(validStandardIsaTransfer)
       result.status shouldBe NO_CONTENT
     }
@@ -1018,6 +1025,34 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
       (result.json \ "message").as[String] shouldBe "There has been an issue processing your request"
     }
+
+    "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from NPS" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      stubFor(
+        post(urlEqualTo(s"/nps/submit/$testIsaManagerReference"))
+          .willReturn(serverError)
+      )
+      val result = initiateRequest(validNdJson)
+
+      result.status                        shouldBe INTERNAL_SERVER_ERROR
+      (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
+      (result.json \ "message").as[String] shouldBe "There has been an issue processing your request"
+    }
+
+    "return 500 Internal Server Error when upstream unexpected status returned from NPS" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      stubFor(
+        post(urlEqualTo(s"/nps/submit/$testIsaManagerReference"))
+          .willReturn(created)
+      )
+      val result = initiateRequest(validNdJson)
+
+      result.status                        shouldBe INTERNAL_SERVER_ERROR
+      (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
+      (result.json \ "message").as[String] shouldBe "Unexpected status 201 was received from NPS submission"
+    }
   }
 
   override val testHeaders: Seq[(String, String)] = Seq(
@@ -1032,12 +1067,9 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     isaManagerReference: String = testIsaManagerReference,
     taxYear:            String = testTaxYear,
     month: String = Month.SEP.toString,
-    withReturnMetaData:  Boolean = true,
     withAuth:            Boolean = true
   ): WSResponse = {
     if (withAuth) stubAuth() else stubAuthFail()
-    await(returnMetadataRepository.dropCollection())
-    if (withReturnMetaData) setupReturnMetadataRepository()
     await(
       ws.url(
         s"http://localhost:$port/monthly/$isaManagerReference/$taxYear/$month"
@@ -1048,16 +1080,4 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
         .post(requestBody + "\n")
     )
   }
-
-  def setupReturnMetadataRepository(): String =
-    await(
-      returnMetadataRepository.insert(
-        ReturnMetadata(
-          returnId = testReturnId,
-          boxId = "box-id",
-          submissionRequest = SubmissionRequest(totalRecords = 1000, submissionPeriod = Month.JAN, taxYear = TaxYear(LocalDate.now.getYear)),
-          isaManagerReference = testIsaManagerReference
-        )
-      )
-    )
 }

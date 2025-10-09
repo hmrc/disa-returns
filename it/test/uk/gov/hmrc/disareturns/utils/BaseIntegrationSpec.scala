@@ -75,7 +75,8 @@ trait BaseIntegrationSpec
       "microservice.services.nps.host"  -> wiremockHost,
       "microservice.services.nps.port"  -> wiremockPort.toString,
       "microservice.services.self.host" -> wiremockHost,
-      "microservice.services.self.port" -> wiremockPort.toString
+      "microservice.services.self.port" -> wiremockPort.toString,
+      "urls.returnResultsSummaryLocation" -> "/monthly/{isaManagerReference}/{returnId}/results/summary"
     )
 
   override def beforeAll(): Unit = {
