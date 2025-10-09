@@ -24,15 +24,18 @@ import org.apache.pekko.util.ByteString
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{Action, BodyParser, ControllerComponents}
+import play.api.mvc.{Action, BodyParser, ControllerComponents, Result}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
+import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
+import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 import uk.gov.hmrc.disareturns.services.{ETMPService, NPSService, StreamingParserService}
 import uk.gov.hmrc.disareturns.utils.HttpHelper
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class SubmitReturnsController @Inject() (
@@ -45,41 +48,59 @@ class SubmitReturnsController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def streamingParser: BodyParser[Source[ByteString, _]] = BodyParser("Streaming NDJSON") { request =>
+  private def streamingParser: BodyParser[Source[ByteString, _]] = BodyParser("Streaming NDJSON") { request =>
     Accumulator.source[ByteString].map(Right.apply)
   }
 
   def submit(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[Source[ByteString, _]] =
     (Action andThen authAction).async(streamingParser) { implicit request =>
-      etmpService
-        .validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
-        .flatMap {
-          case Right(_) =>
-            val source: Source[ByteString, _] = request.body
-            val validatedStream   = streamingParserService.process(source)
-            val validationResults = streamingParserService.processValidatedStream(validatedStream)
+      validateParams(isaManagerReferenceNumber, taxYear, month) match {
+        case Left(badResult) => Future.successful(badResult)
+        case Right(_) =>
+          etmpService
+            .validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
+            .flatMap {
+              case Right(_) =>
+                val source: Source[ByteString, _] = request.body
+                val validationResults = streamingParserService.processSource(source)
 
-            validationResults.flatMap {
-              case Left(error: ValidationError) =>
-                error match {
-                  case FirstLevelValidationFailure(err) => Future.successful(BadRequest(Json.toJson(err)))
-                  case SecondLevelValidationFailure(errors) =>
-                    Future.successful(BadRequest(Json.toJson(SecondLevelValidationResponse(errors = errors))))
-                  case err =>
-                    logger.error(s"streamingParserService.processValidatedStream has failed with the error: $err")
-                    Future.successful(InternalServerError(Json.toJson(InternalServerErr())))
+                validationResults.flatMap {
+                  case Left(error: ValidationError) =>
+                    error match {
+                      case FirstLevelValidationFailure(err) => Future.successful(BadRequest(Json.toJson(err)))
+                      case SecondLevelValidationFailure(errors) =>
+                        Future.successful(BadRequest(Json.toJson(SecondLevelValidationResponse(errors = errors))))
+                      case err =>
+                        logger.error(s"streamingParserService.processSource has failed with the error: $err")
+                        Future.successful(InternalServerError(Json.toJson(InternalServerErr())))
+                    }
+                  case Right(subscriptions: Seq[IsaAccount]) =>
+                    npsService.submitSubscriptionData(isaManagerReferenceNumber, subscriptions) map {
+                      case Left(error) =>
+                        logger.error(s"Submission of data to NPS has failed with the error: $error")
+                        HttpHelper.toHttpError(error)
+                      case Right(_) => NoContent
+                    }
                 }
-              case Right(subscriptions: Seq[IsaAccount]) =>
-                npsService.submitSubscriptionData(isaManagerReferenceNumber, subscriptions) map {
-                  case Left(error) =>
-                    logger.error(s"Submission of data to NPS has failed with the error: $error")
-                    HttpHelper.toHttpError(error)
-                  case Right(_) => NoContent
-                }
+              case Left(error: ErrorResponse) =>
+                Future.successful(HttpHelper.toHttpError(error))
             }
-          case Left(error: ErrorResponse) =>
-            Future.successful(HttpHelper.toHttpError(error))
-        }
+      }
     }
+
+  private def validateParams(zRef: String, taxYear: String, month: String): Either[Result, (String, Month)] = {
+    val zRefValid    = IsaRefValidator.isValid(zRef)
+    val monthToEnum  = Try(Month.withName(month)).toOption
+    val taxYearValid = TaxYearValidator.isValid(taxYear)
+
+    val issues = {
+      (if (!zRefValid) Seq(BadRequestErr(message = "ISA Manager Reference Number format is invalid")) else Nil) ++
+        (if (!taxYearValid) Seq(BadRequestErr(message = "Invalid parameter for tax year")) else Nil) ++
+        (if (monthToEnum.isEmpty) Seq(BadRequestErr(message = "Invalid parameter for month")) else Nil)
+    }
+
+    if (issues.nonEmpty) Left(BadRequest(Json.toJson(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", issues))))
+    else Right((taxYear, monthToEnum.get))
+  }
 
 }

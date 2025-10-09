@@ -32,7 +32,7 @@ import scala.util.{Failure, Success, Try}
 @Singleton
 class StreamingParserService @Inject() (implicit val mat: Materializer) {
 
-  def process(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] = {
+  private def process(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] = {
     val validated = validatedStream(source)
     validated.prefixAndTail(1).flatMapConcat {
       case (Seq(), _) =>
@@ -42,7 +42,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
     }
   }
 
-  def findDuplicateFields(line: String): JsResult[Unit] = {
+   private def findDuplicateFields(line: String): JsResult[Unit] = {
     val keys = "\"([^\"]+)\"\\s*:".r.findAllMatchIn(line).map(_.group(1)).toList
     keys.diff(keys.distinct).headOption match {
       case Some(dupKey) =>
@@ -52,7 +52,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
     }
   }
 
-  def validateSecondLevel(line: String, jsValue: JsValue, nino: String, accountNumber: String): Either[ValidationError, IsaAccount] = {
+  private def validateSecondLevel(line: String, jsValue: JsValue, nino: String, accountNumber: String): Either[ValidationError, IsaAccount] = {
     val combinedValidation: JsResult[IsaAccount] = findDuplicateFields(line).flatMap { _ =>
       jsValue.validate[IsaAccount]
     }
@@ -83,7 +83,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
     }
   }
 
-  def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
+  private def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
     source
       .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = false))
       .map(_.utf8String.trim)
@@ -102,16 +102,18 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
         }
       }
 
-  def processValidatedStream(
-    validatedStream: Source[Either[ValidationError, IsaAccount], _]
-  ): Future[Either[ValidationError, Seq[IsaAccount]]] =
+  def processSource(
+    source: Source[ByteString, _]
+  ): Future[Either[ValidationError, Seq[IsaAccount]]] = {
+    val validatedStream = process(source)
+
     validatedStream
       .grouped(27000)
       .map { batch =>
         val (errors, validAccounts) = batch.partitionMap(identity)
 
         if (errors.nonEmpty) {
-          val firstLevelErrors  = errors.collect { case FirstLevelValidationFailure(err) => err }
+          val firstLevelErrors = errors.collect { case FirstLevelValidationFailure(err) => err }
           val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err }.flatten
 
           val failureException = if (firstLevelErrors.nonEmpty) {
@@ -125,4 +127,5 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
         }
       }
       .runWith(Sink.head[Either[ValidationError, Seq[IsaAccount]]])
+  }
 }
