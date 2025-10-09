@@ -58,6 +58,12 @@ trait CommonStubs {
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
     )
 
+  def stubNps(status: Int, isaManagerRef: String): Unit =
+    stubFor(
+      post(urlEqualTo(s"/nps/submit/$isaManagerRef"))
+        .willReturn(aResponse().withStatus(status))
+    )
+
   val testClientId = "test-client-id"
   val testHeaders: Seq[(String, String)] = Seq(
     "X-Client-ID"   -> testClientId,

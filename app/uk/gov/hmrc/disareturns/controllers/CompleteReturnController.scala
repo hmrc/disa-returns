@@ -20,9 +20,11 @@ import com.google.inject.Inject
 import jakarta.inject.Singleton
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.services.{CompleteReturnService, ETMPService, ReturnMetadataService}
+import uk.gov.hmrc.disareturns.models.complete.CompleteReturnResponse
+import uk.gov.hmrc.disareturns.services.{ETMPService, ReturnMetadataService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.disareturns.utils.HttpHelper
 
@@ -33,8 +35,8 @@ class CompleteReturnController @Inject() (
   cc:                    ControllerComponents,
   etmpService:           ETMPService,
   returnMetadataService: ReturnMetadataService,
-  returnsService:        CompleteReturnService,
-  authAction:            AuthAction
+  authAction:            AuthAction,
+  appConfig:             AppConfig
 )(implicit ec:           ExecutionContext)
     extends BackendController(cc) {
   def complete(isaManagerReferenceNumber: String, returnId: String): Action[AnyContent] =
@@ -51,16 +53,14 @@ class CompleteReturnController @Inject() (
               etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber).flatMap {
                 case Left(error) => Future.successful(HttpHelper.toHttpError(error))
                 case Right(_) =>
-                  returnsService.validateRecordCount(isaManagerReferenceNumber, returnId).flatMap {
-                    case Left(err) => Future.successful(BadRequest(Json.toJson(err)))
-                    case Right(response) =>
-                      etmpService
-                        .closeObligationStatus(isaManagerReferenceNumber)
-                        .foldF(
-                          error => Future.successful(HttpHelper.toHttpError(error)),
-                          _ => Future.successful(Ok(Json.toJson(response)))
-                        )
-                  }
+                  val returnResultsSummaryLocation = appConfig.getReturnResultsSummaryLocation(isaManagerReferenceNumber, returnId)
+                  val response                     = CompleteReturnResponse(returnResultsSummaryLocation)
+                  etmpService
+                    .closeObligationStatus(isaManagerReferenceNumber)
+                    .foldF(
+                      error => Future.successful(HttpHelper.toHttpError(error)),
+                      _ => Future.successful(Ok(Json.toJson(response)))
+                    )
               }
             }
           }
