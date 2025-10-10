@@ -36,9 +36,9 @@ class PPNSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(i
       .map { response =>
         response.status match {
           case 200 =>
-            val maybeBoxId = (response.json \ "boxId").asOpt[String]
-            logger.info(s"[PPNSConnector][getBox] Successfully retrieved boxId: $maybeBoxId for clientId=$clientId")
-            Right(maybeBoxId)
+            val optBoxId = (response.json \ "boxId").asOpt[String]
+            logger.info(s"[PPNSConnector][getBox] Successfully retrieved boxId: $optBoxId for clientId=$clientId")
+            Right(optBoxId)
           case 404 =>
             logger.warn(s"[PPNSConnector][getBox] Box not found for clientId=$clientId (status 404)")
             Right(None)
