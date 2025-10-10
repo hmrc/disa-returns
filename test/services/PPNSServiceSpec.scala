@@ -16,95 +16,52 @@
 
 package services
 
-import cats.data.EitherT
 import org.mockito.Mockito._
-import play.api.libs.json.Json
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, UnauthorisedErr}
-import uk.gov.hmrc.disareturns.models.ppns.response.{Box, BoxCreator}
+import uk.gov.hmrc.disareturns.models.common.InternalServerErr
 import uk.gov.hmrc.disareturns.services.PPNSService
-import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.UpstreamErrorResponse
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
 
 class PPNSServiceSpec extends BaseUnitSpec {
 
-  val testClientId: String      = "123456"
-  val service:      PPNSService = new PPNSService(mockPPNSConnector)
+  val testClientId = "123456"
+
+  val service = new PPNSService(mockPPNSConnector)
 
   "PPNSService.getBoxId" should {
 
-    "return BoxId when call to PPNS connector returns a Box" in {
-      val expectedResponse: Box = Box(
-        boxId = "boxId1",
-        boxName = "Test_Box",
-        boxCreator = BoxCreator(clientId = testClientId),
-        applicationId = Some("applicationId"),
-        subscriber = None
-      )
-      val boxJson      = Json.toJson(expectedResponse)
-      val httpResponse = HttpResponse(200, boxJson.toString())
+    "return Right(Some(boxId)) when connector returns a box successfully" in {
+      val boxId = "box_1"
 
       when(mockPPNSConnector.getBox(testClientId))
-        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+        .thenReturn(Future.successful(Right(Some(boxId))))
 
-      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
+      val result = service.getBoxId(testClientId).futureValue
 
-      result shouldBe Right(expectedResponse.boxId)
+      result shouldBe Right(Some(boxId))
     }
 
-    "return Left(UpstreamErrorResponse) when the call to ETMP connector fails with an UpstreamErrorResponse" in {
-      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
-        message = "Not authorised to access this service",
-        statusCode = 401,
-        reportAs = 401,
-        headers = Map.empty
-      )
-
+    "return Right(None) when connector returns no box" in {
       when(mockPPNSConnector.getBox(testClientId))
-        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
+        .thenReturn(Future.successful(Right(None)))
 
-      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
+      val result = service.getBoxId(testClientId).futureValue
 
-      result shouldBe Left(UnauthorisedErr)
+      result shouldBe Right(None)
     }
 
-    "return Left(InternalServerErr) when the call to ETMP connector fails with an UpstreamErrorResponse" in {
-      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
-        message = "Forbidden to access this service",
-        statusCode = 403,
-        reportAs = 403,
-        headers = Map.empty
-      )
+    "return Left(InternalServerErr) when connector returns an error" in {
+      val error = UpstreamErrorResponse("Internal Server Error", 500)
 
       when(mockPPNSConnector.getBox(testClientId))
-        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
+        .thenReturn(Future.successful(Left(error)))
 
-      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
-
-      result shouldBe Left(InternalServerErr())
-    }
-
-    "return Left(InternalServerErr) when the response JSON cannot be parsed into a Box" in {
-      val box = """{
-                  |    "boxId": "boxName",
-                  |    "boxCreator":{
-                  |        "clientId": "clientId"
-                  |    },
-                  |    "subscriber": {
-                  |        "subscribedDateTime": "2020-06-01T10:27:33.613+0000",
-                  |        "callBackUrl": "https://www.example.com/callback",
-                  |        "subscriptionType": "API_PUSH_SUBSCRIBER"
-                  |    }
-                  |}""".stripMargin
-      val httpResponse = HttpResponse(200, box)
-
-      when(mockPPNSConnector.getBox(testClientId))
-        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
-
-      val result: Either[ErrorResponse, String] = service.getBoxId(testClientId).futureValue
+      val result = service.getBoxId(testClientId).futureValue
 
       result shouldBe Left(InternalServerErr())
     }
   }
+
 }

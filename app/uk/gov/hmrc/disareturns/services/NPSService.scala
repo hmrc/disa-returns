@@ -16,19 +16,18 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import uk.gov.hmrc.disareturns.connectors.PPNSConnector
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
-import uk.gov.hmrc.http.HeaderCarrier
+import cats.data.EitherT
+import uk.gov.hmrc.disareturns.connectors.NPSConnector
+import uk.gov.hmrc.disareturns.models.common.ErrorResponse
+import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionContext) {
+class NPSService @Inject() (connector: NPSConnector)(implicit ec: ExecutionContext) {
 
-  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[ErrorResponse, Option[String]]] =
-    connector.getBox(clientId).map {
-      case Right(boxOpt) => Right(boxOpt)
-      case Left(_)       => Left(InternalServerErr())
-    }
+  def notification(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] =
+    connector.sendNotification(isaManagerReference).leftMap(mapToErrorResponse)
 }

@@ -54,11 +54,12 @@ class InitiateReturnsController @Inject() (
                 case Right(boxId) =>
                   returnMetadataService
                     .saveReturnMetadata(
-                      boxId = boxId,
+                      //get boxId functionality has been refactored. The controller will be deleted as part of DFI-922 so ignore the boxId.get
+                      boxId = boxId.get,
                       submissionRequest = submissionRequest,
                       isaManagerReference = isaManagerReferenceNumber
                     )
-                    .map(returnId => Ok(Json.toJson(buildSuccessResponse(returnId, submissionRequest, boxId))))
+                    .map(returnId => Ok(Json.toJson(buildSuccessResponse(returnId, submissionRequest, boxId.get))))
               }
           }
         }

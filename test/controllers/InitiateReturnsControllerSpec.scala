@@ -53,7 +53,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(Future.successful(Right(boxId)))
+        .thenReturn(Future.successful(Right(Some(boxId))))
       when(mockMonthlyReportDocumentService.saveReturnMetadata(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
@@ -79,7 +79,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(Future.successful(Right(boxId)))
+        .thenReturn(Future.successful(Right(Some(boxId))))
       when(mockMonthlyReportDocumentService.saveReturnMetadata(any(), any(), any()))
         .thenReturn(Future.successful(returnId))
 
@@ -222,7 +222,7 @@ class InitiateReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(InternalServerErr())))
       when(mockPPNSService.getBoxId(any())(any()))
-        .thenReturn(Future.successful(Right(boxId)))
+        .thenReturn(Future.successful(Right(Some(boxId))))
 
       val request = FakeRequest("POST", s"/monthly/$isaManagerRef/init")
         .withHeaders("X-Client-ID" -> "client-abc")

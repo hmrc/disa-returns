@@ -38,15 +38,15 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implici
       context = "ETMPConnector: getReturnsObligationStatus"
     )
   }
-  def closeReturnsObligationStatus(
+  def sendDeclaration(
     isaManagerReferenceNumber: String
   )(implicit hc:               HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.etmpBaseUrl}/etmp/close-obligation-status/$isaManagerReferenceNumber"
+    val url = s"${appConfig.etmpBaseUrl}/etmp/declaration/$isaManagerReferenceNumber"
     read(
       http
         .post(url"$url")
         .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = "ETMPConnector: closeReturnsObligationStatus"
+      context = "ETMPConnector: sendDeclaration"
     )
   }
 

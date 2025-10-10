@@ -16,6 +16,7 @@
 
 package utils
 
+import org.mockito.Mockito
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
@@ -28,7 +29,7 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, PPNSConnector}
+import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, NPSConnector, PPNSConnector}
 import uk.gov.hmrc.disareturns.repositories.{MonthlyReportDocumentRepository, MonthlyReturnsSummaryRepository, ReturnMetadataRepository}
 import uk.gov.hmrc.disareturns.services._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -53,6 +54,8 @@ abstract class BaseUnitSpec
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   implicit val hc: HeaderCarrier    = HeaderCarrier()
 
+  override def beforeEach(): Unit = Mockito.reset()
+
   //MOCKS
   val mockHttpClient:                      HttpClientV2                    = mock[HttpClientV2]
   val mockAppConfig:                       AppConfig                       = mock[AppConfig]
@@ -70,6 +73,8 @@ abstract class BaseUnitSpec
   val mockReturnMetadataRepository:        ReturnMetadataRepository        = mock[ReturnMetadataRepository]
   val mockReturnsSummaryService:           ReturnsSummaryService           = mock[ReturnsSummaryService]
   val mockReturnsSummaryRepository:        MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
+  val mockNPSConnector:                    NPSConnector                    = mock[NPSConnector]
+  val mockNPSService:                      NPSService                      = mock[NPSService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .overrides(
@@ -81,7 +86,8 @@ abstract class BaseUnitSpec
       bind[CompleteReturnService].toInstance(mockCompleteReturnService),
       bind[AppConfig].toInstance(mockAppConfig),
       bind[ReturnsSummaryService].toInstance(mockReturnsSummaryService),
-      bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository)
+      bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository),
+      bind[NPSService].toInstance(mockNPSService)
     )
     .build()
 

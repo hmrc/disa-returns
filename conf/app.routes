@@ -4,8 +4,6 @@ POST /monthly/:isaManagerReferenceNumber/init           uk.gov.hmrc.disareturns.
 
 POST /monthly/:isaManagerReferenceNumber/:returnId      uk.gov.hmrc.disareturns.controllers.SubmitReturnsController.submit(isaManagerReferenceNumber:String, returnId: String)
 
-POST /monthly/:isaManagerReferenceNumber/:returnId/complete      uk.gov.hmrc.disareturns.controllers.CompleteReturnController.complete(isaManagerReferenceNumber:String, returnId: String)
-
 ## NPS Returns Summary Callback
 
 POST /callback/monthly/:zRef/:year/:month               uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.returnsSummaryCallback(zRef: String, year: String, month: String)
@@ -13,3 +11,5 @@ POST /callback/monthly/:zRef/:year/:month               uk.gov.hmrc.disareturns.
 ## User returns summary
 
 GET /monthly/:isaManagerReferenceNumber/:taxYear/:month/results/summary   uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.retrieveReturnSummary(isaManagerReferenceNumber:String, taxYear: String, month: String)
+
+POST /monthly/:isaManagerReferenceNumber/:taxYear/:month/declaration            uk.gov.hmrc.disareturns.controllers.DeclarationController.declare(isaManagerReferenceNumber:String, taxYear: String,month)
