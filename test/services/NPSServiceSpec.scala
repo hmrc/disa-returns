@@ -62,7 +62,7 @@ class NPSServiceSpec extends BaseUnitSpec {
     }
   }
 
-  "NPSService.submitSubscriptionData" should {
+  "NPSService.submitIsaAccounts" should {
 
     "return Right(()) when connector responds with 204 NO_CONTENT" in {
       val httpResponse: HttpResponse = HttpResponse(NO_CONTENT, "")
@@ -71,7 +71,7 @@ class NPSServiceSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
       val result: Either[ErrorResponse, Unit] =
-        service.submitSubscriptionData(validZRef, Seq.empty).futureValue
+        service.submitIsaAccounts(validZRef, Seq.empty).futureValue
 
       result shouldBe Right(())
     }
@@ -88,7 +88,7 @@ class NPSServiceSpec extends BaseUnitSpec {
         .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
       val result: Either[ErrorResponse, Unit] =
-        service.submitSubscriptionData(validZRef, Seq.empty).futureValue
+        service.submitIsaAccounts(validZRef, Seq.empty).futureValue
 
       result shouldBe Left(UnauthorisedErr)
     }
@@ -100,7 +100,7 @@ class NPSServiceSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
       val result: Either[ErrorResponse, Unit] =
-        service.submitSubscriptionData(validZRef, Seq.empty).futureValue
+        service.submitIsaAccounts(validZRef, Seq.empty).futureValue
 
       result shouldBe Left(InternalServerErr("Unexpected status 200 was received from NPS submission"))
     }

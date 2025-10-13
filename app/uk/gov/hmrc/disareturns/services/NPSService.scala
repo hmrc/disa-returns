@@ -19,8 +19,8 @@ package uk.gov.hmrc.disareturns.services
 import cats.data.EitherT
 import play.api.http.Status.NO_CONTENT
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
@@ -33,10 +33,10 @@ class NPSService @Inject() (connector: NPSConnector)(implicit ec: ExecutionConte
   def notification(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] =
     connector.sendNotification(isaManagerReference).leftMap(mapToErrorResponse)
 
-  def submitSubscriptionData(isaManagerRefNo: String, isaSubscriptions: Seq[IsaAccount])(implicit
-                                                                                         hc:                                       HeaderCarrier
+  def submitIsaAccounts(isaManagerReferenceNumber: String, isaAccounts: Seq[IsaAccount])(implicit
+    hc:                                            HeaderCarrier
   ): Future[Either[ErrorResponse, Unit]] =
-    connector.submit(isaManagerRefNo, isaSubscriptions).value.map {
+    connector.submit(isaManagerReferenceNumber, isaAccounts).value.map {
       case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
       case Right(response) =>
         response.status match {

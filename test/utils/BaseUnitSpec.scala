@@ -57,22 +57,22 @@ abstract class BaseUnitSpec
   override def beforeEach(): Unit = Mockito.reset()
 
   //MOCKS
-  val mockHttpClient:                      HttpClientV2                    = mock[HttpClientV2]
-  val mockAppConfig:                       AppConfig                       = mock[AppConfig]
-  val mockRequestBuilder:                  RequestBuilder                  = mock[RequestBuilder]
-  val mockPPNSService:                     PPNSService                     = mock[PPNSService]
-  val mockPPNSConnector:                   PPNSConnector                   = mock[PPNSConnector]
-  val mockETMPConnector:                   ETMPConnector                   = mock[ETMPConnector]
-  val mockETMPService:                     ETMPService                     = mock[ETMPService]
-  val mockBaseConnector:                   BaseConnector                   = mock[BaseConnector]
-  val mockMonthlyReportDocumentService:    ReturnMetadataService           = mock[ReturnMetadataService]
-  val mockAuthConnector:                   AuthConnector                   = mock[AuthConnector]
-  val mockStreamingParserService:          StreamingParserService          = mock[StreamingParserService]
-  val mockReturnMetadataRepository:        ReturnMetadataRepository        = mock[ReturnMetadataRepository]
-  val mockReturnsSummaryService:           ReturnsSummaryService           = mock[ReturnsSummaryService]
-  val mockReturnsSummaryRepository:        MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
-  val mockNPSConnector:                    NPSConnector                    = mock[NPSConnector]
-  val mockNPSService:                      NPSService                      = mock[NPSService]
+  val mockHttpClient:                   HttpClientV2                    = mock[HttpClientV2]
+  val mockAppConfig:                    AppConfig                       = mock[AppConfig]
+  val mockRequestBuilder:               RequestBuilder                  = mock[RequestBuilder]
+  val mockPPNSService:                  PPNSService                     = mock[PPNSService]
+  val mockPPNSConnector:                PPNSConnector                   = mock[PPNSConnector]
+  val mockETMPConnector:                ETMPConnector                   = mock[ETMPConnector]
+  val mockETMPService:                  ETMPService                     = mock[ETMPService]
+  val mockBaseConnector:                BaseConnector                   = mock[BaseConnector]
+  val mockMonthlyReportDocumentService: ReturnMetadataService           = mock[ReturnMetadataService]
+  val mockAuthConnector:                AuthConnector                   = mock[AuthConnector]
+  val mockStreamingParserService:       StreamingParserService          = mock[StreamingParserService]
+  val mockReturnMetadataRepository:     ReturnMetadataRepository        = mock[ReturnMetadataRepository]
+  val mockReturnsSummaryService:        ReturnsSummaryService           = mock[ReturnsSummaryService]
+  val mockReturnsSummaryRepository:     MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
+  val mockNPSConnector:                 NPSConnector                    = mock[NPSConnector]
+  val mockNPSService:                   NPSService                      = mock[NPSService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .overrides(

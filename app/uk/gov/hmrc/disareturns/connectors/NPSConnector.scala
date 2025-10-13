@@ -30,14 +30,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
 
-  def submit(isaManagerRefNo: String, isaSubscriptions: Seq[IsaAccount])(implicit
-    hc:                       HeaderCarrier
+  def submit(isaManagerReferenceNumber: String, isaAccounts: Seq[IsaAccount])(implicit
+    hc:                                 HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.npsBaseUrl}/nps/submit/$isaManagerRefNo"
+    val url = s"${appConfig.npsBaseUrl}/nps/submit/$isaManagerReferenceNumber"
     read(
       httpClient
         .post(url"$url")
-        .withBody(Json.toJson(isaSubscriptions))
+        .withBody(Json.toJson(isaAccounts))
         .execute[Either[UpstreamErrorResponse, HttpResponse]],
       context = "NPSConnector: submit"
     )

@@ -83,7 +83,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processSource(any()))
         .thenReturn(Future.successful(Right(Seq.empty)))
-      when(mockNPSService.submitSubscriptionData(any, any)(any)).thenReturn(Future.successful(Right(())))
+      when(mockNPSService.submitIsaAccounts(any, any)(any)).thenReturn(Future.successful(Right(())))
 
       val result = controller.submit(validZRef, validTaxYear, validMonthStr)(fakeRequestWithStream())
 
@@ -290,7 +290,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processSource(any()))
         .thenReturn(Future.successful(Right(Seq.empty)))
-      when(mockNPSService.submitSubscriptionData(any, any)(any)).thenReturn(Future.successful(Left(InternalServerErr())))
+      when(mockNPSService.submitIsaAccounts(any, any)(any)).thenReturn(Future.successful(Left(InternalServerErr())))
 
       val result = controller.submit(validZRef, validTaxYear, validMonthStr)(fakeRequestWithStream())
 

@@ -74,7 +74,7 @@ class SubmitReturnsController @Inject() (
                         Future.successful(InternalServerError(Json.toJson(InternalServerErr())))
                     }
                   case Right(subscriptions: Seq[IsaAccount]) =>
-                    npsService.submitSubscriptionData(isaManagerReferenceNumber, subscriptions) map {
+                    npsService.submitIsaAccounts(isaManagerReferenceNumber, subscriptions) map {
                       case Left(error) =>
                         logger.error(s"Submission of data to NPS has failed with the error: $error")
                         HttpHelper.toHttpError(error)
