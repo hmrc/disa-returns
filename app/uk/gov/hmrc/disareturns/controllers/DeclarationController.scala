@@ -59,7 +59,7 @@ class DeclarationController @Inject() (
           } yield response
           result.fold(
             error => HttpHelper.toHttpError(error),
-            optBoxId => Ok(Json.toJson(successfulResponse(isaManagerReferenceNumber, taxYear, month, config, optBoxId)))
+            optBoxId => Ok(Json.toJson(successfulResponse(isaManagerReferenceNumber, taxYear, month, optBoxId)))
           )
       }
     }
@@ -67,7 +67,6 @@ class DeclarationController @Inject() (
     isaManagerReferenceNumber: String,
     taxYear:                   String,
     month:                     String,
-    config:                    AppConfig,
     optBoxId:                  Option[String]
   ): DeclarationSuccessfulResponse = {
     val returnResultsSummaryLocation =
