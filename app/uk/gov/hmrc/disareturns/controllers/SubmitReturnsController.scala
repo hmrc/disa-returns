@@ -24,18 +24,16 @@ import org.apache.pekko.util.ByteString
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{Action, BodyParser, ControllerComponents, Result}
+import play.api.mvc.{Action, BodyParser, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
-import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
+import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
-import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 import uk.gov.hmrc.disareturns.services.{ETMPService, NPSService, StreamingParserService}
 import uk.gov.hmrc.disareturns.utils.HttpHelper
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 @Singleton
 class SubmitReturnsController @Inject() (
@@ -54,8 +52,9 @@ class SubmitReturnsController @Inject() (
 
   def submit(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[Source[ByteString, _]] =
     (Action andThen authAction).async(streamingParser) { implicit request =>
-      validateParams(isaManagerReferenceNumber, taxYear, month) match {
-        case Left(badResult) => Future.successful(badResult)
+      ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
+        case Left(errors) =>
+          Future.successful(BadRequest(Json.toJson(errors)))
         case Right(_) =>
           etmpService
             .validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
@@ -87,20 +86,4 @@ class SubmitReturnsController @Inject() (
             }
       }
     }
-
-  private def validateParams(zRef: String, taxYear: String, month: String): Either[Result, (String, Month)] = {
-    val zRefValid    = IsaRefValidator.isValid(zRef)
-    val monthToEnum  = Try(Month.withName(month)).toOption
-    val taxYearValid = TaxYearValidator.isValid(taxYear)
-
-    val issues = {
-      (if (!zRefValid) Seq(BadRequestErr(message = "ISA Manager Reference Number format is invalid")) else Nil) ++
-        (if (!taxYearValid) Seq(BadRequestErr(message = "Invalid parameter for tax year")) else Nil) ++
-        (if (monthToEnum.isEmpty) Seq(BadRequestErr(message = "Invalid parameter for month")) else Nil)
-    }
-
-    if (issues.nonEmpty) Left(BadRequest(Json.toJson(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", issues))))
-    else Right((taxYear, monthToEnum.get))
-  }
-
 }
