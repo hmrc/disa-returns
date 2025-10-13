@@ -47,8 +47,8 @@ class ReturnsSummaryController @Inject() (
         case Left(errors) =>
           Future.successful(BadRequest(Json.toJson(errors)))
 
-        case Right((_, ty, m)) =>
-          returnsSummaryService.retrieveReturnSummary(isaManagerReferenceNumber, ty, m).map {
+        case Right((isaManagerReferenceNumber, taxYear, month)) =>
+          returnsSummaryService.retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month).map {
             case Left(e: InternalServerErr) => InternalServerError(Json.toJson(e))
             case Left(e: ReturnNotFoundErr) => NotFound(Json.toJson(e))
             case Right(summary)             => Ok(Json.toJson(summary))
@@ -56,15 +56,15 @@ class ReturnsSummaryController @Inject() (
       }
     }
 
-  def returnsSummaryCallback(zRef: String, taxYear: String, month: String): Action[JsValue] =
+  def returnsSummaryCallback(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[JsValue] =
     Action.async(parse.json) { implicit req =>
       withJsonBody[MonthlyReturnsSummaryReq] { req =>
-        ValidationHelper.validateParams(zRef, taxYear, month) match {
+        ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
           case Left(errors) =>
             Future.successful(BadRequest(Json.toJson(errors)))
 
-          case Right((_, yy, mm)) =>
-            returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(zRef, yy, mm, req.totalRecords)).map {
+          case Right((isaManagerReferenceNumber, taxYear, month)) =>
+            returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(isaManagerReferenceNumber, taxYear, month, req.totalRecords)).map {
               case Right(_)                   => NoContent
               case Left(e: InternalServerErr) => InternalServerError(Json.toJson(e))
             }
