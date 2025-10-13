@@ -18,9 +18,10 @@ package uk.gov.hmrc.disareturns.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, OK}
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
+import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 class DeclarationControllerISpec extends BaseIntegrationSpec {
@@ -81,11 +82,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     val result         = declarationRequest(isaManagerRef, invalidTaxYear, month)
 
     result.status shouldBe BAD_REQUEST
-    val json = result.json
-    (json \ "code").as[String]    shouldBe "BAD_REQUEST"
-    (json \ "message").as[String] shouldBe "Issue(s) with your request"
-    val errors = (json \ "errors").as[Seq[JsObject]]
-    errors.find(_.keys.contains("message")).flatMap(_.\("message").asOpt[String]) shouldBe Some("Invalid parameter for tax year")
+    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(isaManagerRef, invalidTaxYear, month).get)
   }
 
   "return 400 Bad Request for invalid month" in {
@@ -93,11 +90,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     val result       = declarationRequest(isaManagerRef, taxYear, invalidMonth)
 
     result.status shouldBe BAD_REQUEST
-    val json = result.json
-    (json \ "code").as[String]    shouldBe "BAD_REQUEST"
-    (json \ "message").as[String] shouldBe "Issue(s) with your request"
-    val errors = (json \ "errors").as[Seq[JsObject]]
-    errors.find(_.keys.contains("message")).flatMap(_.\("message").asOpt[String]) shouldBe Some("Invalid parameter for month")
+    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(isaManagerRef, taxYear, invalidMonth).get)
   }
 
   "return 400 Bad Request for invalid isaManagerRef" in {
@@ -105,11 +98,8 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     val result               = declarationRequest(invalidIsaManagerRef, taxYear, month)
 
     result.status shouldBe BAD_REQUEST
-    val json = result.json
-    (json \ "code").as[String]    shouldBe "BAD_REQUEST"
-    (json \ "message").as[String] shouldBe "Issue(s) with your request"
-    val errors = (json \ "errors").as[Seq[JsObject]]
-    errors.find(_.keys.contains("message")).flatMap(_.\("message").asOpt[String]) shouldBe Some("ISA Manager Reference Number format is invalid")
+    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(invalidIsaManagerRef, taxYear, month).get)
+
   }
 
   "return 400 Bad Request  when the clientId is missing from the header" in {

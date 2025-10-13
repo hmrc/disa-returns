@@ -19,7 +19,7 @@ package controllers
 import cats.data.EitherT
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import play.api.libs.json.JsObject
+import play.api.libs.json.Json
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -27,6 +27,7 @@ import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.controllers.DeclarationController
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ObligationClosed, ReportingWindowClosed}
+import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.http.HttpResponse
 import utils.BaseUnitSpec
 
@@ -36,11 +37,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
   val controller: DeclarationController = app.injector.instanceOf[DeclarationController]
 
-  val isaManagerRef = "Z1234"
-  val taxYear       = "2025-26"
-  val month         = "MAY"
-  val clientId      = "client-999"
-  val boxId         = "box-123"
+  val clientId = "client-999"
+  val boxId    = "box-123"
   val obligation:      EtmpObligations     = EtmpObligations(false)
   val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
   val testUrl              = "http://localhost:9000"
@@ -63,12 +61,12 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Right(Some(boxId))))
 
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$isaManagerRef/$taxYear/$month/declaration")
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
 
-      val result = controller.declare(isaManagerRef, taxYear, month)(request)
+      val result = controller.declare(validZRef, validTaxYear, validMonth.toString)(request)
 
-      val summaryLocation = s"$testUrl/monthly/$isaManagerRef/$taxYear/$month/results/summary"
+      val summaryLocation = s"$testUrl/monthly/$validZRef/$validTaxYear/$validMonth/results/summary"
 
       status(result)                                                      shouldBe OK
       (contentAsJson(result) \ "returnResultsSummaryLocation").as[String] shouldBe summaryLocation
@@ -88,12 +86,12 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Right(None)))
 
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$isaManagerRef/$taxYear/$month/declaration")
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
 
-      val result = controller.declare(isaManagerRef, taxYear, month)(request)
+      val result = controller.declare(validZRef, validTaxYear, validMonth.toString)(request)
 
-      val summaryLocation = s"$testUrl/monthly/$isaManagerRef/$taxYear/$month/results/summary"
+      val summaryLocation = s"$testUrl/monthly/$validZRef/$validTaxYear/$validMonth/results/summary"
 
       status(result)                                                      shouldBe OK
       (contentAsJson(result) \ "returnResultsSummaryLocation").as[String] shouldBe summaryLocation
@@ -101,47 +99,36 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 400 BadRequest when validation fails for taxYear" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$isaManagerRef/$invalidTaxYear/$month/declaration")
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$invalidTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
-      val result = controller.declare(isaManagerRef, invalidTaxYear, month)(request)
-      status(result) shouldBe BAD_REQUEST
-      val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "BAD_REQUEST"
-      (json \ "message").as[String] shouldBe "Issue(s) with your request"
-      val errors = (json \ "errors").as[Seq[JsObject]]
-      errors.find(_.keys.contains("message")).flatMap(_.\("message").asOpt[String]) shouldBe Some("Invalid parameter for tax year")
+      val result = controller.declare(validZRef, invalidTaxYear, validMonth.toString)(request)
+      status(result)        shouldBe BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(ValidationHelper.validateParams(validZRef, invalidTaxYear, validMonth.toString).get)
     }
 
     "return 400 BadRequest when validation fails for month" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$isaManagerRef/$taxYear/$invalidMonth/declaration")
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$invalidMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
-      val result = controller.declare(isaManagerRef, taxYear, invalidMonth)(request)
-      status(result) shouldBe BAD_REQUEST
-      val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "BAD_REQUEST"
-      (json \ "message").as[String] shouldBe "Issue(s) with your request"
-      val errors = (json \ "errors").as[Seq[JsObject]]
-      errors.find(_.keys.contains("message")).flatMap(_.\("message").asOpt[String]) shouldBe Some("Invalid parameter for month")
+      val result = controller.declare(validZRef, validTaxYear, invalidMonth)(request)
+      status(result)        shouldBe BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(ValidationHelper.validateParams(validZRef, validTaxYear, invalidMonth).get)
     }
 
     "return 400 BadRequest when validation fails for isaManagerReference" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$invalidIsaManagerRef/$taxYear/$month/declaration")
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$invalidIsaManagerRef/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
-      val result = controller.declare(invalidIsaManagerRef, taxYear, month)(request)
-      status(result) shouldBe BAD_REQUEST
-      val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "BAD_REQUEST"
-      (json \ "message").as[String] shouldBe "Issue(s) with your request"
-      val errors = (json \ "errors").as[Seq[JsObject]]
-      errors.find(_.keys.contains("message")).flatMap(_.\("message").asOpt[String]) shouldBe Some("ISA Manager Reference Number format is invalid")
+      val result = controller.declare(invalidIsaManagerRef, validTaxYear, validMonth.toString)(request)
+      status(result)        shouldBe BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(ValidationHelper.validateParams(invalidIsaManagerRef, validTaxYear, validMonth.toString).get)
+
     }
 
     "return 400 BadRequest when the clientId is missing from the header" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$isaManagerRef/$taxYear/$month/declaration")
-      val result = controller.declare(isaManagerRef, taxYear, month)(request)
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
+      val result = controller.declare(validZRef, validTaxYear, validMonth.toString)(request)
       status(result) shouldBe BAD_REQUEST
       val json = contentAsJson(result)
       (json \ "code").as[String]    shouldBe "BAD_REQUEST"
@@ -153,10 +140,10 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ReportingWindowClosed)))
 
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$isaManagerRef/$taxYear/$month/declaration")
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
 
-      val result = controller.declare(isaManagerRef, taxYear, month)(request)
+      val result = controller.declare(validZRef, validTaxYear, validMonth.toString)(request)
 
       status(result) shouldBe FORBIDDEN
       val json = contentAsJson(result)
@@ -170,10 +157,10 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$isaManagerRef/$taxYear/$month/declaration")
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
 
-      val result = controller.declare(isaManagerRef, taxYear, month)(request)
+      val result = controller.declare(validZRef, validTaxYear, validMonth.toString)(request)
 
       status(result) shouldBe FORBIDDEN
       val json = contentAsJson(result)
@@ -194,10 +181,10 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Left(InternalServerErr())))
 
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$isaManagerRef/$taxYear/$month/declaration")
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
 
-      val result = controller.declare(isaManagerRef, taxYear, month)(request)
+      val result = controller.declare(validZRef, validTaxYear, validMonth.toString)(request)
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
       println(status(result))
