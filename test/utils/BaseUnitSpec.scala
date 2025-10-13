@@ -69,7 +69,6 @@ abstract class BaseUnitSpec
   val mockMonthlyReportDocumentRepository: MonthlyReportDocumentRepository = mock[MonthlyReportDocumentRepository]
   val mockAuthConnector:                   AuthConnector                   = mock[AuthConnector]
   val mockStreamingParserService:          StreamingParserService          = mock[StreamingParserService]
-  val mockCompleteReturnService:           CompleteReturnService           = mock[CompleteReturnService]
   val mockReturnMetadataRepository:        ReturnMetadataRepository        = mock[ReturnMetadataRepository]
   val mockReturnsSummaryService:           ReturnsSummaryService           = mock[ReturnsSummaryService]
   val mockReturnsSummaryRepository:        MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
@@ -83,7 +82,6 @@ abstract class BaseUnitSpec
       bind[PPNSService].toInstance(mockPPNSService),
       bind[ReturnMetadataService].toInstance(mockMonthlyReportDocumentService),
       bind[StreamingParserService].toInstance(mockStreamingParserService),
-      bind[CompleteReturnService].toInstance(mockCompleteReturnService),
       bind[AppConfig].toInstance(mockAppConfig),
       bind[ReturnsSummaryService].toInstance(mockReturnsSummaryService),
       bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository),
