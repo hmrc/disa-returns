@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.disareturns.utils
 
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.http.Status
 import play.api.http.Status.OK
@@ -56,6 +57,24 @@ trait CommonStubs {
     stubFor(
       post(urlEqualTo(s"/etmp/close-obligation-status/$isaManagerRef"))
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
+    )
+
+  def stubPPNSBoxId(boxResponseJson: String, clientId: String): Unit =
+    stubFor(
+      get(urlEqualTo(s"/box?clientId=$clientId&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"))
+        .willReturn(ok(boxResponseJson))
+    )
+
+  def stubETMPDeclaration(status: ResponseDefinitionBuilder, isaManagerRef: String): Unit =
+    stubFor(
+      post(urlEqualTo(s"/etmp/declaration/$isaManagerRef"))
+        .willReturn(status)
+    )
+
+  def stubNPSNotification(status: ResponseDefinitionBuilder, isaManagerRef: String): Unit =
+    stubFor(
+      post(urlEqualTo(s"/nps/declaration/$isaManagerRef"))
+        .willReturn(status)
     )
 
   val testClientId = "test-client-id"

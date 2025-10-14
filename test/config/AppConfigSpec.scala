@@ -26,12 +26,11 @@ import utils.BaseUnitSpec
 class AppConfigSpec extends BaseUnitSpec {
 
   private val configMap: Map[String, Any] = Map(
-    "microservice.services.etmp.host"   -> "etmp",
-    "microservice.services.etmp.port"   -> "1204",
-    "urls.returnResultsSummaryLocation" -> "/monthly/{isaManagerReference}/{returnId}/results/summary",
-    "urls.returnResultsLocation"        -> "/monthly/{isaManagerReference}/{taxYear}/{month}/results",
-    "returnSummaryExpiryInDays"         -> 30,
-    "returnResultsRecordsPerPage"       -> 10
+    "microservice.services.etmp.host" -> "etmp",
+    "microservice.services.etmp.port" -> "1204",
+    "urls.returnResultsLocation"      -> "/monthly/{isaManagerReference}/{taxYear}/{month}/results",
+    "returnSummaryExpiryInDays"       -> 30,
+    "returnResultsRecordsPerPage"     -> 10
   )
 
   private val configuration  = Configuration.from(configMap)
@@ -42,11 +41,6 @@ class AppConfigSpec extends BaseUnitSpec {
 
     "load the correct base URLs" in {
       appConfig.etmpBaseUrl mustBe "http://etmp:1204"
-    }
-
-    "generate the correct Return Results Summary Location URL" in {
-      val result = appConfig.getReturnResultsSummaryLocation("Z1234", "RET-001")
-      result mustBe "/monthly/Z1234/RET-001/results/summary"
     }
 
     "generate the correct Return Results Location URL" in {

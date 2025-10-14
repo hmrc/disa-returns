@@ -36,4 +36,7 @@ object Month extends Enumeration {
   val DEC: Value = Value("DEC")
 
   implicit val format: Format[Month.Value] = JsonUtils.enumFormat(Month)
+
+  def isValid(month: String): Boolean =
+    Month.values.exists(_.toString == month)
 }

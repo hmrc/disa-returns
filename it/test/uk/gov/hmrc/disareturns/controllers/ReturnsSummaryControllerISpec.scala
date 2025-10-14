@@ -28,7 +28,7 @@ import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
-  private lazy val repo  = app.injector.instanceOf[MonthlyReturnsSummaryRepository]
+  private lazy val repo      = app.injector.instanceOf[MonthlyReturnsSummaryRepository]
   private lazy val appConfig = app.injector.instanceOf[AppConfig]
 
   override def beforeAll(): Unit = {
@@ -36,10 +36,10 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
     await(repo.collection.drop().toFuture())
   }
 
-  private val zRef        = "Z1234"
-  private val taxYear     = "2025-26"
-  private val monthEnum   = Month.SEP
-  private val monthToken  = monthEnum.toString
+  private val zRef         = "Z1234"
+  private val taxYear      = "2025-26"
+  private val monthEnum    = Month.SEP
+  private val monthToken   = monthEnum.toString
   private val totalRecords = 3
 
   private val returnsSummaryJson = Json.obj("totalRecords" -> totalRecords)
@@ -56,9 +56,9 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
       stored must have size 1
       val doc = stored.head
-      doc.zRef         mustBe zRef
-      doc.taxYear   mustBe taxYear
-      doc.month        mustBe monthEnum
+      doc.zRef mustBe zRef
+      doc.taxYear mustBe taxYear
+      doc.month mustBe monthEnum
       doc.totalRecords mustBe totalRecords
     }
 
@@ -71,13 +71,13 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
       res.status mustBe BAD_REQUEST
 
-      (res.json \ "code").as[String]    mustBe "BAD_REQUEST"
+      (res.json \ "code").as[String] mustBe "BAD_REQUEST"
       (res.json \ "message").as[String] mustBe "Issue(s) with your request"
 
       val errors = (res.json \ "errors").as[Seq[JsValue]]
-      errors.map(e => (e \ "message").as[String]) must contain ("ISA Manager Reference Number format is invalid")
-      errors.map(e => (e \ "message").as[String]) must contain ("Invalid parameter for tax year")
-      errors.map(e => (e \ "message").as[String]) must contain ("Invalid parameter for month")
+      errors.map(e => (e \ "message").as[String]) must contain("ISA Manager Reference Number format is invalid")
+      errors.map(e => (e \ "message").as[String]) must contain("Invalid parameter for tax year")
+      errors.map(e => (e \ "message").as[String]) must contain("Invalid parameter for month")
     }
 
     "return 400 when the JSON body is invalid or missing required fields" in {
@@ -105,16 +105,16 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
         )
 
       res.status mustBe OK
-      (res.json \ "returnResultsLocation").as[String]         mustBe appConfig.getReturnResultsLocation(zRef, taxYear, monthEnum)
-      (res.json \ "numberOfPages").as[Int]        mustBe appConfig.getNoOfPagesForReturnResults(totalRecords)
-      (res.json \ "totalRecords").as[Int]    mustBe totalRecords
+      (res.json \ "returnResultsLocation").as[String] mustBe appConfig.getReturnResultsLocation(zRef, taxYear, monthEnum)
+      (res.json \ "numberOfPages").as[Int] mustBe appConfig.getNoOfPagesForReturnResults(totalRecords)
+      (res.json \ "totalRecords").as[Int] mustBe totalRecords
     }
 
     "return 404 when no summary is found" in {
       val res = retrieveReturnsSummaryRequest(
         isaManagerReference = zRef,
-        taxYear             = taxYear,
-        month               = monthToken
+        taxYear = taxYear,
+        month = monthToken
       )
 
       res.status mustBe NOT_FOUND
@@ -125,33 +125,33 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
     "return 400 with aggregated issues when zRef, taxYear and month are invalid" in {
       val res = retrieveReturnsSummaryRequest(
         isaManagerReference = "Z1111000000000",
-        taxYear             = "2025-27",
-        month               = "SEPT"
+        taxYear = "2025-27",
+        month = "SEPT"
       )
 
       res.status mustBe BAD_REQUEST
-      (res.json \ "code").as[String]    mustBe "BAD_REQUEST"
+      (res.json \ "code").as[String] mustBe "BAD_REQUEST"
       (res.json \ "message").as[String] mustBe "Issue(s) with your request"
 
       val errors = (res.json \ "errors").as[Seq[JsValue]]
-      errors.map(e => (e \ "message").as[String]) must contain ("ISA Manager Reference Number format is invalid")
-      errors.map(e => (e \ "message").as[String]) must contain ("Invalid parameter for tax year")
-      errors.map(e => (e \ "message").as[String]) must contain ("Invalid parameter for month")
+      errors.map(e => (e \ "message").as[String]) must contain("ISA Manager Reference Number format is invalid")
+      errors.map(e => (e \ "message").as[String]) must contain("Invalid parameter for tax year")
+      errors.map(e => (e \ "message").as[String]) must contain("Invalid parameter for month")
     }
   }
 
   def retrieveReturnsSummaryRequest(
-                       headers:             Seq[(String, String)] = testHeaders,
-                       isaManagerReference: String,
-                       taxYear: String,
-                       month: String
-                     ): WSResponse = {
+    headers:             Seq[(String, String)] = testHeaders,
+    isaManagerReference: String,
+    taxYear:             String,
+    month:               String
+  ): WSResponse = {
     stubAuth()
     await(repo.collection.drop().toFuture())
     await(
       ws.url(
-          s"http://localhost:$port/monthly/$isaManagerReference/$taxYear/$month/results/summary"
-        ).withFollowRedirects(follow = false)
+        s"http://localhost:$port/monthly/$isaManagerReference/$taxYear/$month/results/summary"
+      ).withFollowRedirects(follow = false)
         .withHttpHeaders(
           headers: _*
         )
@@ -160,17 +160,17 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
   }
 
   def returnsSummaryCallbackRequest(
-                                     requestBody: JsObject,
-                                     isaManagerReference: String,
-                                     taxYear: String,
-                                     month: String,
-                                     headers:             Seq[(String, String)] = Seq("Authorization" -> "mock-bearer-token"),
-                                   ): WSResponse = {
+    requestBody:         JsObject,
+    isaManagerReference: String,
+    taxYear:             String,
+    month:               String,
+    headers:             Seq[(String, String)] = Seq("Authorization" -> "mock-bearer-token")
+  ): WSResponse = {
     await(repo.collection.drop().toFuture())
     await(
       ws.url(
-          s"http://localhost:$port/callback/monthly/$isaManagerReference/$taxYear/$month"
-        ).withFollowRedirects(follow = false)
+        s"http://localhost:$port/callback/monthly/$isaManagerReference/$taxYear/$month"
+      ).withFollowRedirects(follow = false)
         .withHttpHeaders(
           headers: _*
         )

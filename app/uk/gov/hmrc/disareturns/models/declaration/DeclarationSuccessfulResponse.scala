@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.complete
+package uk.gov.hmrc.disareturns.models.declaration
 
 import play.api.libs.json.{Json, OFormat}
 
-case class CompleteReturnResponse(returnResultsSummaryLocation: String)
+case class DeclarationSuccessfulResponse(returnResultsSummaryLocation: String, boxId: Option[String] = None)
 
-object CompleteReturnResponse {
-  implicit val format: OFormat[CompleteReturnResponse] = Json.format[CompleteReturnResponse]
+object DeclarationSuccessfulResponse {
+  implicit val format: OFormat[DeclarationSuccessfulResponse] = Json.format[DeclarationSuccessfulResponse]
 }

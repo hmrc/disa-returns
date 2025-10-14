@@ -127,10 +127,10 @@ class ETMPServiceSpec extends BaseUnitSpec {
       val etmpObligationsJson: JsValue         = Json.toJson(expectedResponse)
       val httpResponse:        HttpResponse    = HttpResponse(200, etmpObligationsJson.toString())
 
-      when(mockETMPConnector.closeReturnsObligationStatus(testIsaManagerReferenceNumber))
+      when(mockETMPConnector.sendDeclaration(testIsaManagerReferenceNumber))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result: Either[ErrorResponse, HttpResponse] = service.closeObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[ErrorResponse, HttpResponse] = service.declaration(testIsaManagerReferenceNumber).value.futureValue
 
       result shouldBe Right(httpResponse)
     }
@@ -145,10 +145,10 @@ class ETMPServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockETMPConnector.closeReturnsObligationStatus(testIsaManagerReferenceNumber))
+      when(mockETMPConnector.sendDeclaration(testIsaManagerReferenceNumber))
         .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      val result: Either[ErrorResponse, HttpResponse] = service.closeObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[ErrorResponse, HttpResponse] = service.declaration(testIsaManagerReferenceNumber).value.futureValue
 
       result shouldBe Left(UnauthorisedErr)
     }

@@ -26,19 +26,13 @@ class AppConfig @Inject() (config: ServicesConfig) {
 
   lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
   lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
-
-  private val returnResultsSummaryLocation: String =
-    config.getString("urls.returnResultsSummaryLocation")
+  lazy val npsBaseUrl:  String = config.baseUrl(serviceName = "nps")
+  lazy val selfHost:    String = config.baseUrl(serviceName = "self")
 
   private val returnResultsLocation: String =
     config.getString("urls.returnResultsLocation")
 
   // TODO replace the following two methods with calls to controller when built
-  def getReturnResultsSummaryLocation(isaManagerReference: String, returnId: String): String =
-    returnResultsSummaryLocation
-      .replace("{isaManagerReference}", isaManagerReference)
-      .replace("{returnId}", returnId)
-
   def getReturnResultsLocation(isaManagerReference: String, taxYear: String, month: Month): String =
     returnResultsLocation
       .replace("{isaManagerReference}", isaManagerReference)
