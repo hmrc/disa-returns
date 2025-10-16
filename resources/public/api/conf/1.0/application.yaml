@@ -624,7 +624,6 @@ components:
         - firstName
         - lastName
         - dateOfBirth
-        - isaType
         - reportingATransfer
         - dateOfLastSubscription
         - totalCurrentYearSubscriptionsToDate
@@ -656,20 +655,18 @@ components:
           description: The date of birth of the account holder (YYYY-MM-DD).
           example: 1980-01-01
           pattern: ^\d{4}-\d{2}-\d{2}$
-        isaType:
-          type: string
-          description: The type of ISA account.
-          example: LIFETIME_CASH
-          enum:
-            - CASH
-            - STOCKS_AND_SHARES
-            - INNOVATIVE_FINANCE
-            - LIFETIME_CASH
-            - LIFETIME_STOCKS_AND_SHARES
-        reportingATransfer:
-          type: boolean
-          description: Indicates if the ISA account is a reporting transfer.
-          example: true
+        amountTransferredIn:
+          type: number
+          format: double
+          description: Total value transferred in.
+          example: 3000.00
+          pattern: ^\d+\.\d{2}$
+        amountTransferredOut:
+          type: number
+          format: double
+          description: Total value transferred out.
+          example: 3000.00
+          pattern: ^\d+\.\d{2}$
         dateOfLastSubscription:
           type: string
           format: date
@@ -692,15 +689,17 @@ components:
         title: Investor Details
         type: object
         anyOf:
-          - title: Lifetime ISA - New Subscription
+          - title: Lifetime ISA - Subscription
             allOf:
               - $ref: '#/components/schemas/investorDetailsBase'
               - type: object
                 properties:
                   isaType:
-                    enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
-                  reportingATransfer:
-                    enum: [ false ]
+                    type: string
+                    description: The type of ISA account.
+                    example: LIFETIME
+                    enum:
+                      - LIFETIME
                   dateOfFirstSubscription:
                     type: string
                     format: date
@@ -712,65 +711,27 @@ components:
                     format: double
                     description: The amount of the current subscription that qualifies for a LISA bonus.
                     example: 1000.00
-                    pattern: ^\d+\.\d{2}$
+                    pattern: ^-?\d+\.\d{2}$
                   lisaBonusClaim:
                     type: number
                     format: double
                     description: The amount being claimed as a LISA bonus.
                     example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                required: [ dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim ]
-                not:
-                  required: [ closureDate, accountNumberOfTransferringAccount ]
-          - title: Lifetime ISA - Transfer
-            allOf:
-              - $ref: '#/components/schemas/investorDetailsBase'
-              - type: object
-                properties:
-                  isaType:
-                    enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
-                  reportingATransfer:
-                    enum: [ true ]
-                  accountNumberOfTransferringAccount:
-                    type: string
-                    description: The account number of the transferring ISA account.
-                    example: 87654321
-                  amountTransferred:
-                    type: number
-                    format: double
-                    description: The amount transferred to the ISA account.
-                    example: 5000.00
-                    pattern: ^\d+\.\d{2}$
-                  dateOfFirstSubscription:
-                    type: string
-                    format: date
-                    description: Date of first subscription to the ISA account (YYYY-MM-DD).
-                    example: 2025-04-06
-                    pattern: ^\d{4}-\d{2}-\d{2}$
-                  lisaQualifyingAddition:
-                    type: number
-                    format: double
-                    description: The amount of the current subscription that qualifies for a LISA bonus.
-                    example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                  lisaBonusClaim:
-                    type: number
-                    format: double
-                    description: The amount being claimed as a LISA bonus.
-                    example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                required: [ dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred, lisaQualifyingAddition, lisaBonusClaim ]
-                not:
-                  required: [ closureDate ]
+                    pattern: ^-?\d+\.\d{2}$
+                required: [ isaType, dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim, amountTransferredIn, amountTransferredOut ]
+#                not:
+#                  required: [ closureDate, accountNumberOfTransferringAccount ]
           - title: Lifetime ISA - Closure
             allOf:
               - $ref: '#/components/schemas/investorDetailsBase'
               - type: object
                 properties:
                   isaType:
-                    enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
-                  reportingATransfer:
-                    enum: [ false ]
+                    type: string
+                    description: The type of ISA account.
+                    example: LIFETIME
+                    enum:
+                      - LIFETIME
                   dateOfFirstSubscription:
                     type: string
                     format: date
@@ -798,23 +759,45 @@ components:
                     format: double
                     description: The amount of the current subscription that qualifies for a LISA bonus.
                     example: 1000.00
-                    pattern: ^\d+\.\d{2}$
+                    pattern: ^-?\d+\.\d{2}$
                   lisaBonusClaim:
                     type: number
                     format: double
                     description: The amount being claimed as a LISA bonus.
                     example: 1000.00
-                    pattern: ^\d+\.\d{2}$
+                    pattern: ^-?\d+\.\d{2}$
                 required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim ]
-          - title: Lifetime ISA - Transfer & Closure
+          - title: Standard ISA - Subscription
             allOf:
               - $ref: '#/components/schemas/investorDetailsBase'
               - type: object
                 properties:
                   isaType:
-                    enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
-                  reportingATransfer:
-                    enum: [ true ]
+                    type: string
+                    description: The type of ISA account.
+                    example: CASH
+                    enum:
+                      - CASH
+                      - STOCK_AND_SHARES
+                      - INNOVATIVE_FINANCE
+                  flexibleIsa:
+                    type: boolean
+                    description: Indicates if the ISA account is flexible.
+                    example: false
+                required: [ flexibleIsa, amountTransferredIn, amountTransferredOut ]
+          - title: Standard ISA - Closure
+            allOf:
+              - $ref: '#/components/schemas/investorDetailsBase'
+              - type: object
+                properties:
+                  isaType:
+                    type: string
+                    description: The type of ISA account.
+                    example: CASH
+                    enum:
+                      - CASH
+                      - STOCK_AND_SHARES
+                      - INNOVATIVE_FINANCE
                   accountNumberOfTransferringAccount:
                     type: string
                     description: The account number of the transferring ISA account.
@@ -825,12 +808,10 @@ components:
                     description: The amount transferred to the ISA account.
                     example: 5000.00
                     pattern: ^\d+\.\d{2}$
-                  dateOfFirstSubscription:
-                    type: string
-                    format: date
-                    description: Date of first subscription to the ISA account (YYYY-MM-DD).
-                    example: 2025-04-06
-                    pattern: ^\d{4}-\d{2}-\d{2}$
+                  flexibleIsa:
+                    type: boolean
+                    description: Indicates if the ISA account is flexible.
+                    example: false
                   closureDate:
                     type: string
                     format: date
@@ -845,63 +826,7 @@ components:
                       - CANCELLED
                       - CLOSED
                       - VOID
-                      - TRANSFERRED_IN_FULL
-                      - ALL_FUNDS_WITHDRAWN
-                  lisaQualifyingAddition:
-                    type: number
-                    format: double
-                    description: The amount of the current subscription that qualifies for a LISA bonus.
-                    example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                  lisaBonusClaim:
-                    type: number
-                    format: double
-                    description: The amount being claimed as a LISA bonus.
-                    example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim, accountNumberOfTransferringAccount, amountTransferred ]
-          - title: Standard ISA - New Subscription
-            allOf:
-              - $ref: '#/components/schemas/investorDetailsBase'
-              - type: object
-                properties:
-                  isaType:
-                    enum: [ CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE ]
-                  reportingATransfer:
-                    enum: [ false ]
-                  flexibleIsa:
-                    type: boolean
-                    description: Indicates if the ISA account is flexible.
-                    example: false
-                required: [ flexibleIsa ]
-                not:
-                  required: [ closureDate, accountNumberOfTransferringAccount, dateOfFirstSubscription ]
-          - title: Standard ISA - Transfer
-            allOf:
-              - $ref: '#/components/schemas/investorDetailsBase'
-              - type: object
-                properties:
-                  isaType:
-                    enum: [ CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE ]
-                  reportingATransfer:
-                    enum: [ true ]
-                  accountNumberOfTransferringAccount:
-                    type: string
-                    description: The account number of the transferring ISA account.
-                    example: 87654321
-                  amountTransferred:
-                    type: number
-                    format: double
-                    description: The amount transferred to the ISA account.
-                    example: 5000.00
-                    pattern: ^\d+\.\d{2}$
-                  flexibleIsa:
-                    type: boolean
-                    description: Indicates if the ISA account is flexible.
-                    example: false
-                required: [ accountNumberOfTransferringAccount, amountTransferred, flexibleIsa ]
-                not:
-                  required: [ closureDate ]
+                required: [ accountNumberOfTransferringAccount, amountTransferred, flexibleIsa, closureDate, reasonForClosure ]
     returnResult:
       type: object
       properties:
