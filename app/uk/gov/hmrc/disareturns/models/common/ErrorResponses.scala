@@ -67,11 +67,6 @@ case object MalformedJsonFailureErr extends ErrorResponse {
   val message = "One of the NDJson lines contains malformed JSON"
 }
 
-case object ReturnIdNotMatchedErr extends ErrorResponse {
-  val code    = "RETURN_ID_NOT_FOUND"
-  val message = "The provided returnId could not be found"
-}
-
 case object MismatchErr extends ErrorResponse {
   val code    = "MISMATCH_EXPECTED_VS_RECEIVED"
   val message = "Number of records declared in the header does not match the number submitted."
@@ -97,7 +92,6 @@ object ErrorResponse {
     UnauthorisedErr.code            -> UnauthorisedErr,
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
-    ReturnIdNotMatchedErr.code      -> ReturnIdNotMatchedErr,
     MalformedJsonFailureErr.code    -> MalformedJsonFailureErr,
     MismatchErr.code                -> MismatchErr
   )

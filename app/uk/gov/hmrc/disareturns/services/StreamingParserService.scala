@@ -16,14 +16,12 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import org.apache.pekko.Done
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
-import play.api.libs.json.{JsError, JsPath, JsResult, JsSuccess, JsValue, Json, JsonValidationError}
+import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
-import uk.gov.hmrc.disareturns.repositories.MonthlyReportDocumentRepository
 import uk.gov.hmrc.disareturns.services.validation.DataValidator
 import uk.gov.hmrc.disareturns.services.validation.DataValidator.jsErrorToDomainError
 
@@ -32,9 +30,9 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocumentRepository, implicit val mat: Materializer) {
+class StreamingParserService @Inject() (implicit val mat: Materializer) {
 
-  def process(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] = {
+  private def process(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] = {
     val validated = validatedStream(source)
     validated.prefixAndTail(1).flatMapConcat {
       case (Seq(), _) =>
@@ -44,7 +42,7 @@ class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocume
     }
   }
 
-  def findDuplicateFields(line: String): JsResult[Unit] = {
+  private def findDuplicateFields(line: String): JsResult[Unit] = {
     val keys = "\"([^\"]+)\"\\s*:".r.findAllMatchIn(line).map(_.group(1)).toList
     keys.diff(keys.distinct).headOption match {
       case Some(dupKey) =>
@@ -54,7 +52,7 @@ class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocume
     }
   }
 
-  def validateSecondLevel(line: String, jsValue: JsValue, nino: String, accountNumber: String): Either[ValidationError, IsaAccount] = {
+  private def validateSecondLevel(line: String, jsValue: JsValue, nino: String, accountNumber: String): Either[ValidationError, IsaAccount] = {
     val combinedValidation: JsResult[IsaAccount] = findDuplicateFields(line).flatMap { _ =>
       jsValue.validate[IsaAccount]
     }
@@ -62,20 +60,22 @@ class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocume
       case JsSuccess(account, _) =>
         DataValidator.validate(account) match {
           case None      => Right(account)
-          case Some(err) => Left(SecondLevelValidationFailure(err))
+          case Some(err) => Left(SecondLevelValidationFailure(Seq(err)))
         }
 
       case JsError(errors) =>
         jsErrorToDomainError(errors, nino, accountNumber).headOption match {
-          case Some(error) => Left(SecondLevelValidationFailure(error))
+          case Some(error) => Left(SecondLevelValidationFailure(Seq(error)))
           case None =>
             Left(
               SecondLevelValidationFailure(
-                SecondLevelValidationError(
-                  nino,
-                  accountNumber,
-                  "UNKNOWN_VALIDATION",
-                  "Unknown validation error"
+                Seq(
+                  SecondLevelValidationError(
+                    nino,
+                    accountNumber,
+                    "UNKNOWN_VALIDATION",
+                    "Unknown validation error"
+                  )
                 )
               )
             )
@@ -83,7 +83,7 @@ class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocume
     }
   }
 
-  def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
+  private def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
     source
       .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = false))
       .map(_.utf8String.trim)
@@ -102,29 +102,30 @@ class StreamingParserService @Inject() (reportingRepository: MonthlyReportDocume
         }
       }
 
-  def processValidatedStream(
-    isaManagerReferenceNumber: String,
-    returnId:                  String,
-    validatedStream:           Source[Either[ValidationError, IsaAccount], _]
-  ): Future[Done] =
+  def processSource(
+    source: Source[ByteString, _]
+  ): Future[Either[ValidationError, Seq[IsaAccount]]] = {
+    val validatedStream = process(source)
+
     validatedStream
       .grouped(27000)
-      .mapAsync(1) { batch =>
+      .map { batch =>
         val (errors, validAccounts) = batch.partitionMap(identity)
 
         if (errors.nonEmpty) {
           val firstLevelErrors  = errors.collect { case FirstLevelValidationFailure(err) => err }
-          val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err }
+          val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err }.flatten
 
           val failureException = if (firstLevelErrors.nonEmpty) {
-            FirstLevelValidationException(firstLevelErrors.head)
+            FirstLevelValidationFailure(firstLevelErrors.head)
           } else {
-            SecondLevelValidationException(SecondLevelValidationResponse(errors = secondLevelErrors.toList))
+            SecondLevelValidationFailure(secondLevelErrors.toList)
           }
-          Future.failed(failureException)
+          Left(failureException)
         } else {
-          reportingRepository.insertBatch(isaManagerReferenceNumber, returnId, validAccounts)
+          Right(validAccounts)
         }
       }
-      .runWith(Sink.ignore)
+      .runWith(Sink.head[Either[ValidationError, Seq[IsaAccount]]])
+  }
 }

@@ -21,7 +21,7 @@ import play.api.libs.json.{Json, OFormat}
 sealed trait ValidationError
 
 case class FirstLevelValidationFailure(error: ErrorResponse) extends ValidationError
-case class SecondLevelValidationFailure(error: SecondLevelValidationError) extends ValidationError
+case class SecondLevelValidationFailure(errors: Seq[SecondLevelValidationError]) extends ValidationError
 
 object FirstLevelValidationFailure {
   implicit val format: OFormat[FirstLevelValidationFailure] = Json.format[FirstLevelValidationFailure]

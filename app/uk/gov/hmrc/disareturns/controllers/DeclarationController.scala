@@ -48,9 +48,9 @@ class DeclarationController @Inject() (
   def declare(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[AnyContent] =
     (Action andThen authAction andThen clientIdAction).async { implicit request =>
       ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
-        case Some(errors) =>
+        case Left(errors) =>
           Future.successful(BadRequest(Json.toJson(errors)))
-        case None =>
+        case Right(_) =>
           val result: EitherT[Future, ErrorResponse, Option[String]] = for {
             _        <- EitherT(etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber))
             _        <- etmpService.declaration(isaManagerReferenceNumber)

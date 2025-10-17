@@ -82,7 +82,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     val result         = declarationRequest(isaManagerRef, invalidTaxYear, month)
 
     result.status shouldBe BAD_REQUEST
-    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(isaManagerRef, invalidTaxYear, month).get)
+    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(isaManagerRef, invalidTaxYear, month).left.toOption.get)
   }
 
   "return 400 Bad Request for invalid month" in {
@@ -90,7 +90,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     val result       = declarationRequest(isaManagerRef, taxYear, invalidMonth)
 
     result.status shouldBe BAD_REQUEST
-    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(isaManagerRef, taxYear, invalidMonth).get)
+    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(isaManagerRef, taxYear, invalidMonth).left.toOption.get)
   }
 
   "return 400 Bad Request for invalid isaManagerRef" in {
@@ -98,7 +98,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     val result               = declarationRequest(invalidIsaManagerRef, taxYear, month)
 
     result.status shouldBe BAD_REQUEST
-    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(invalidIsaManagerRef, taxYear, month).get)
+    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(invalidIsaManagerRef, taxYear, month).left.toOption.get)
 
   }
 

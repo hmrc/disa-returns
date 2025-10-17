@@ -16,10 +16,13 @@
 
 package connectors
 
+import cats.data.EitherT
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
+import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
+import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
@@ -32,11 +35,14 @@ class NPSConnectorSpec extends BaseUnitSpec {
     val connector  = new NPSConnector(mockHttpClient, mockAppConfig)
     val testIsaRef = "Z1234"
     val testUrl    = "http://localhost:1204"
+    val testSubscriptions: Seq[IsaAccount] = Seq.empty
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     when(mockAppConfig.npsBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.post(url"$testUrl/nps/declaration/$testIsaRef")).thenReturn(mockRequestBuilder)
+    when(mockHttpClient.post(url"$testUrl/nps/submit/$validZRef")).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
   }
 
   "NPSConnector.notify" should {
@@ -77,6 +83,76 @@ class NPSConnectorSpec extends BaseUnitSpec {
           err.message      should include("Unexpected error: Connection timeout")
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
+    }
+  }
+
+  "NPSConnector.submit" should {
+
+    "return Right(HttpResponse) when the NPS submit call succeeds" in new TestSetup {
+      val mockHttpResponse: HttpResponse =
+        HttpResponse(status = 204, json = Json.toJson(testSubscriptions), headers = Map.empty)
+
+      when(mockBaseConnector.read(any(), any()))
+        .thenAnswer { invocation =>
+          val fut =
+            invocation.getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](
+              0,
+              classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]]
+            )
+          EitherT(fut)
+        }
+
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Right(mockHttpResponse)))
+
+      val result: Either[UpstreamErrorResponse, HttpResponse] =
+        connector.submit(validZRef, testSubscriptions).value.futureValue
+
+      result shouldBe Right(mockHttpResponse)
+    }
+
+    "return Left(UpstreamErrorResponse) when NPS returns an upstream error" in new TestSetup {
+      val upstreamError: UpstreamErrorResponse = UpstreamErrorResponse(
+        message = "Not authorised to access this service",
+        statusCode = 401,
+        reportAs = 401,
+        headers = Map.empty
+      )
+
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(upstreamError)))
+
+      val result: Either[UpstreamErrorResponse, HttpResponse] =
+        connector.submit(validZRef, testSubscriptions).value.futureValue
+
+      result shouldBe Left(upstreamError)
+    }
+
+    "return Left(UpstreamErrorResponse) when an unexpected Throwable occurs" in new TestSetup {
+      val runtimeException = new RuntimeException("Connection timeout")
+
+      when(mockBaseConnector.read(any(), any()))
+        .thenAnswer { invocation =>
+          val fut =
+            invocation.getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](
+              0,
+              classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]]
+            )
+          EitherT(
+            fut.recover { case e =>
+              Left(UpstreamErrorResponse(s"Unexpected error: ${e.getMessage}", 500, 500))
+            }
+          )
+        }
+
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.failed(runtimeException))
+
+      val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
+        connector.submit(validZRef, testSubscriptions).value.futureValue
+
+      result.statusCode shouldBe 500
+      result.message      should include("Unexpected error: Connection timeout")
     }
   }
 }

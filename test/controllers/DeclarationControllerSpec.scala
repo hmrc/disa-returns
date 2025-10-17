@@ -103,7 +103,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
         .withHeaders("X-Client-ID" -> clientId)
       val result = controller.declare(validZRef, invalidTaxYear, validMonth.toString)(request)
       status(result)        shouldBe BAD_REQUEST
-      contentAsJson(result) shouldBe Json.toJson(ValidationHelper.validateParams(validZRef, invalidTaxYear, validMonth.toString).get)
+      contentAsJson(result) shouldBe Json.toJson(ValidationHelper.validateParams(validZRef, invalidTaxYear, validMonth.toString).left.toOption.get)
     }
 
     "return 400 BadRequest when validation fails for month" in {
@@ -112,7 +112,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
         .withHeaders("X-Client-ID" -> clientId)
       val result = controller.declare(validZRef, validTaxYear, invalidMonth)(request)
       status(result)        shouldBe BAD_REQUEST
-      contentAsJson(result) shouldBe Json.toJson(ValidationHelper.validateParams(validZRef, validTaxYear, invalidMonth).get)
+      contentAsJson(result) shouldBe Json.toJson(ValidationHelper.validateParams(validZRef, validTaxYear, invalidMonth).left.toOption.get)
     }
 
     "return 400 BadRequest when validation fails for isaManagerReference" in {
@@ -120,8 +120,10 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$invalidIsaManagerRef/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
       val result = controller.declare(invalidIsaManagerRef, validTaxYear, validMonth.toString)(request)
-      status(result)        shouldBe BAD_REQUEST
-      contentAsJson(result) shouldBe Json.toJson(ValidationHelper.validateParams(invalidIsaManagerRef, validTaxYear, validMonth.toString).get)
+      status(result) shouldBe BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(
+        ValidationHelper.validateParams(invalidIsaManagerRef, validTaxYear, validMonth.toString).left.toOption.get
+      )
 
     }
 

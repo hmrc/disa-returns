@@ -16,42 +16,43 @@
 
 package models.helpers
 
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 
 class ValidationHelperSpec extends AnyWordSpec with Matchers {
 
   "ValidationHelper.validateParams" should {
 
-    "return None when all parameters are valid" in {
+    "return Right when all parameters are valid" in {
       val result = ValidationHelper.validateParams("Z1234", "2023-24", "FEB")
-      result shouldBe None
+      result shouldBe Right("Z1234", "2023-24", Month.FEB)
     }
 
     "return error when ISA Manager Reference Number is invalid" in {
       val result = ValidationHelper.validateParams("Invalid", "2023-24", "JAN")
-      result                                                                                         shouldBe defined
-      result.get.errors.exists(_.message.contains("ISA Manager Reference Number format is invalid")) shouldBe true
+      result                                                                                                       shouldBe a[Left[_, _]]
+      result.left.toOption.get.errors.exists(_.message.contains("ISA Manager Reference Number format is invalid")) shouldBe true
     }
 
     "return error when tax year is invalid" in {
       val result = ValidationHelper.validateParams("Z1234", "20-24", "MAY")
-      result                                                                         shouldBe defined
-      result.get.errors.exists(_.message.contains("Invalid parameter for tax year")) shouldBe true
+      result                                                                                       shouldBe a[Left[_, _]]
+      result.left.toOption.get.errors.exists(_.message.contains("Invalid parameter for tax year")) shouldBe true
     }
 
     "return error when month is invalid" in {
       val result = ValidationHelper.validateParams("Z1234", "2023-24", "13")
-      result                                                                      shouldBe defined
-      result.get.errors.exists(_.message.contains("Invalid parameter for month")) shouldBe true
+      result                                                                                    shouldBe a[Left[_, _]]
+      result.left.toOption.get.errors.exists(_.message.contains("Invalid parameter for month")) shouldBe true
     }
 
     "return multiple errors when all parameters are invalid" in {
       val result = ValidationHelper.validateParams("1234", "20-24", "13")
-      result                         shouldBe defined
-      result.get.errors.size         shouldBe 3
-      result.get.errors.map(_.message) should contain allOf (
+      result                                       shouldBe a[Left[_, _]]
+      result.left.toOption.get.errors.size         shouldBe 3
+      result.left.toOption.get.errors.map(_.message) should contain allOf (
         "ISA Manager Reference Number format is invalid",
         "Invalid parameter for tax year",
         "Invalid parameter for month"
