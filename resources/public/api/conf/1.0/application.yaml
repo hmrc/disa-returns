@@ -12,7 +12,7 @@ info:
     # Supported use cases
     - Submit monthly returns of current-year subscription data, including related transfers, withdrawals and corrections.
     - Check the status of submitted returns to confirm processing or availability of results.
-    - Retrieve validation results to identify accepted records and correct any errors.
+    - Retrieve reconciliation results to identify accepted records and correct any errors.
 
     # Integration requirements
     - REST API using JSON over HTTPS.
@@ -38,8 +38,8 @@ tags:
       and mark the return as complete to trigger validation and processing by HMRC.
   - name: Monthly Return Results
     description: |
-      Check the status of a submitted return and retrieve the validation results when available. 
-      Validation results include accepted records and details of any validation errors. 
+      Check the status of a submitted return and retrieve the reconciliation results when available. 
+      Reconciliation results include accepted records and details of any reconciliation issues. 
       Results are paginated to support large datasets.
 
 paths:
@@ -184,7 +184,7 @@ paths:
     post:
       summary: Declare that the submission is complete
       description: |
-        Use this endpoint to declare that the submission is complete. This will prevent any further submissions this month.
+        Use this endpoint to declare that the submission is complete. This will prevent any further submissions this month. Please be aware that this is equivalent to signing a legal declaration.
       operationId: declareComplete
       tags:
         - Monthly Returns Submission
@@ -241,7 +241,7 @@ paths:
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         200:
-          description: Submission completed. Validation and reconciliation results will be available after processing is complete.
+          description: Submission completed. Reconciliation results will be available after processing is complete.
           content:
             application/json:
               schema:
@@ -440,11 +440,11 @@ paths:
 
   /monthly/{isaManagerReferenceNumber}/{taxYear}/{month}/results:
     get:
-      summary: Retrieve return validation results
+      summary: Retrieve reconciliation results for the the months return
       description: |
-        Use this endpoint to retrieve validation results for the specified monthly return. 
+        Use this endpoint to retrieve results for the specified monthly return's reconciliation. 
         The API returns results in paginated batches.
-      operationId: getReconcilliationResults
+      operationId: getReconciliationResults
       tags:
         - Monthly Return Results
       security:
@@ -500,7 +500,7 @@ paths:
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         200:
-          description: Validation results for the specified page of the monthly return.
+          description: Reconciliation results for the specified page of the monthly return.
           content:
             application/json:
               schema:
@@ -838,6 +838,7 @@ components:
           oneOf:
             - $ref: '#/components/schemas/returnResultOverSubscribed'
             - $ref: '#/components/schemas/returnResultUnableToIdentifyInvestor'
+            - $ref: '#/components/schemas/returnResultFailedEligibility'
     returnResultOverSubscribed:
       type: object
       properties:
@@ -866,3 +867,16 @@ components:
           type: string
           description: The reason for the inability to identify the investor.
           example: The National Insurance number provided does not match any records.
+    returnResultFailedEligibility:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The result of the return submission
+          enum:
+            - INELIGIBLE
+          example: INELIGIBLE
+        message:
+          type: string
+          description: The reason for the state eligibility
+          example: This account holder is too young
