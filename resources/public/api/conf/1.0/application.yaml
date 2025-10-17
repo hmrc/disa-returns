@@ -50,7 +50,7 @@ paths:
         Use this endpoint to submit a batch of account records for the specified 
         monthly return. The payload size of each request must not exceed 10 MB. 
         Ensure you have submitted all records for the month before calling the declaration endpoint.
-      operationId: submitMonthlyReturnPage
+      operationId: submitMonthlyReturn
       tags:
         - Monthly Returns Submission
       security:
@@ -389,14 +389,14 @@ paths:
                     description: Total number of pages in the result set.
                     example: 2
         401:
-          description: Bad Request
+          description: Unauthorised
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   code:
-                    title: Error Code Types
+                    title: Error Code Type
                     type: string
                     description: Error Code
                     enum:
@@ -417,12 +417,10 @@ paths:
                     description: Types of errors encountered.
                     enum:
                       - RETURN_NOT_FOUND
-                      - RETURN_RESULTS_NOT_READY
                   message:
                     type: string
                     enum:
                       - Return not found
-                      - Return results not ready for month
         500:
           description: Internal Server Error
           content:
@@ -446,7 +444,7 @@ paths:
       description: |
         Use this endpoint to retrieve validation results for the specified monthly return. 
         The API returns results in paginated batches.
-      operationId: getReturnValidationResults
+      operationId: getReconcilliationResults
       tags:
         - Monthly Return Results
       security:
@@ -530,14 +528,14 @@ paths:
                       $ref: '#/components/schemas/returnResult'
                     description: The return results for the specified page.
         401:
-          description: Bad Request
+          description: Unauthorised
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   code:
-                    title: Error Code Types
+                    title: Error Code Type
                     type: string
                     description: Error Code
                     enum:
@@ -558,14 +556,12 @@ paths:
                     description: Types of errors encountered
                     enum:
                       - RETURN_NOT_FOUND
-                      - RETURN_RESULTS_NOT_READY
                       - PAGE_NOT_FOUND
                   message:
                     type: string
                     enum:
                       - Return not found
-                      - Return results not ready for month
-                      - No page {page} found
+                      - No page {pageNumber} found
         500:
           description: Internal Server Error
           content:
