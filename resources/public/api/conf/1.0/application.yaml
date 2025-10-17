@@ -624,7 +624,6 @@ components:
         - firstName
         - lastName
         - dateOfBirth
-        - reportingATransfer
         - dateOfLastSubscription
         - totalCurrentYearSubscriptionsToDate
         - marketValueOfAccount
