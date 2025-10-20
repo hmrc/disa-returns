@@ -6,7 +6,7 @@ info:
   description: |
     # Overview
     Use this API to submit monthly reports of current-year ISA subscription data. 
-    Before you can use the API, you must be approved by HMRC as an ISA manager. 
+    Before you can use the API, you must be approved by HMRC as an ISA manager.
     In future, enrolment for digital ISA reporting will also be required.
 
     # Supported use cases
@@ -46,9 +46,9 @@ tags:
       After a monthly report is marked complete and the reporting window closes, 
       HMRC will begin a process that reconciles your submission against other ISA managers' submissions. 
       This will involve validation against business rules and checks on each investor's 
-      eligibility and their annual ISA subscription limits. 
-      
-      Check the status of a submitted return and retrieve the reconciliation results when available. 
+      eligibility and their annual ISA subscription limits.
+
+      You can check the status of a submitted return and retrieve the reconciliation results when available. 
       Reconciliation results include accepted records and details of any reconciliation issues. 
       Results are paginated to support large datasets.
 
@@ -207,6 +207,7 @@ paths:
         Use this endpoint to confirm that all data has been submitted. 
         Declaring a monthly report as complete is a legal confirmation that 
         all account data for the period has been fully and accurately reported to HMRC.
+
         After this step, no further data can be added for that month.
 
         The API checks whether the reporting window is open and whether a report has 
@@ -549,7 +550,6 @@ paths:
       responses:
         200:
           description: Reconciliation results for the specified page of the monthly report.
-
           content:
             application/json:
               schema:
@@ -987,5 +987,3 @@ components:
           description: Human readable message outlining the error
           example: "Last name field is missing"
 
-
->>>>>>> f969475 (updated spec to reflect new models (#25))
