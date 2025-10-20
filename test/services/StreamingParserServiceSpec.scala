@@ -22,7 +22,7 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.isaAccounts.{IsaAccount, IsaType, LifetimeIsaTransferAndClosure, ReasonForClosure}
+import uk.gov.hmrc.disareturns.models.isaAccounts._
 import uk.gov.hmrc.disareturns.services.StreamingParserService
 import utils.BaseUnitSpec
 

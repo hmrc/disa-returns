@@ -17,7 +17,7 @@
 package models
 
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.isaAccounts.{IsaAccount, LifetimeIsaClosure, LifetimeIsaNewSubscription, LifetimeIsaTransfer, LifetimeIsaTransferAndClosure, StandardIsaNewSubscription, StandardIsaTransfer}
+import uk.gov.hmrc.disareturns.models.isaAccounts._
 import utils.BaseUnitSpec
 
 class IsaAccountSpec extends BaseUnitSpec {
