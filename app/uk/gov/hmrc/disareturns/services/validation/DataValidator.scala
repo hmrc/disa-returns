@@ -18,7 +18,7 @@ package uk.gov.hmrc.disareturns.services.validation
 
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts._
+import uk.gov.hmrc.disareturns.models.isaAccounts.{IsaAccount, LifetimeIsaClosure, LifetimeIsaNewSubscription, LifetimeIsaTransfer, LifetimeIsaTransferAndClosure, StandardIsaNewSubscription, StandardIsaTransfer}
 import uk.gov.hmrc.disareturns.utils.JsonImplicits._
 
 import scala.collection.Seq

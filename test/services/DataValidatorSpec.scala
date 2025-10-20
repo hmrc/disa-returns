@@ -18,7 +18,7 @@ package services
 
 import play.api.libs.json.{JsPath, Json, JsonValidationError}
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts._
+import uk.gov.hmrc.disareturns.models.isaAccounts.{IsaType, LifetimeIsaClosure, LifetimeIsaNewSubscription, ReasonForClosure, StandardIsaTransfer}
 import uk.gov.hmrc.disareturns.services.validation.DataValidator
 import utils.BaseUnitSpec
 

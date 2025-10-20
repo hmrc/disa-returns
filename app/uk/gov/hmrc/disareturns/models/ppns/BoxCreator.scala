@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.ppns.response
+package uk.gov.hmrc.disareturns.models.ppns
 
 import play.api.libs.json.{Json, OFormat}
 
-case class Box(boxId: String, boxName: String, boxCreator: BoxCreator, applicationId: Option[String] = None, subscriber: Option[Subscriber] = None)
+case class BoxCreator(clientId: String)
 
-object Box {
-  implicit val format: OFormat[Box] = Json.format[Box]
+object BoxCreator {
+  implicit val format: OFormat[BoxCreator] = Json.format[BoxCreator]
 }

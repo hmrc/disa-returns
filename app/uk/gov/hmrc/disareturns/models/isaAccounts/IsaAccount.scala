@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.submission.isaAccounts
+package uk.gov.hmrc.disareturns.models.isaAccounts
 
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
+import IsaType.IsaType
 
 import java.time.LocalDate
 
