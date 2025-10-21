@@ -26,7 +26,7 @@ class ValidationHelperSpec extends AnyWordSpec with Matchers {
   "ValidationHelper.validateParams" should {
 
     "return Right when all parameters are valid" in {
-      val result = ValidationHelper.validateParams("Z1234", "2023-24", "FEB")
+      val result = ValidationHelper.validateParams("z1234", "2023-24", "FEB")
       result shouldBe Right("Z1234", "2023-24", Month.FEB)
     }
 

@@ -29,7 +29,7 @@ object ValidationHelper {
       Option.unless(Month.isValid(month))(BadRequestErr("Invalid parameter for month"))
     ).flatten
     if (errors.nonEmpty) Left(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", errors))
-    else Right((isaManagerReferenceNumber, year, Month.withName(month)))
+    else Right((isaManagerReferenceNumber.toUpperCase, year, Month.withName(month)))
   }
 
 }
