@@ -12,7 +12,7 @@ info:
     # Supported use cases
     - Submit monthly returns of current-year subscription data, including related transfers, withdrawals and corrections.
     - Check the status of submitted returns to confirm processing or availability of results.
-    - Retrieve validation results to identify accepted records and correct any errors.
+    - Retrieve reconciliation results to identify accepted records and correct any errors.
 
     # Integration requirements
     - REST API using JSON over HTTPS.
@@ -38,8 +38,8 @@ tags:
       and mark the return as complete to trigger validation and processing by HMRC.
   - name: Monthly Return Results
     description: |
-      Check the status of a submitted return and retrieve the validation results when available. 
-      Validation results include accepted records and details of any validation errors. 
+      Check the status of a submitted return and retrieve the reconciliation results when available. 
+      Reconciliation results include accepted records and details of any reconciliation issues. 
       Results are paginated to support large datasets.
 
 paths:
@@ -50,7 +50,7 @@ paths:
         Use this endpoint to submit a batch of account records for the specified 
         monthly return. The payload size of each request must not exceed 10 MB. 
         Ensure you have submitted all records for the month before calling the declaration endpoint.
-      operationId: submitMonthlyReturnPage
+      operationId: submitMonthlyReturn
       tags:
         - Monthly Returns Submission
       security:
@@ -65,7 +65,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z[0-9]{4}$
+            pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
         - name: taxYear
@@ -120,16 +120,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Type
-                    type: string
-                    description: Error Code
-                    example: INVALID_YEAR
-                  message:
-                    type: string
-                    example: Tax year required
+                oneOf:
+                  - $ref: '#/components/schemas/badSubmissionGeneral'
+                  - $ref: '#/components/schemas/badSubmissionComplex'
         401:
           description: Unauthorised
           content:
@@ -184,7 +177,7 @@ paths:
     post:
       summary: Declare that the submission is complete
       description: |
-        Use this endpoint to declare that the submission is complete. This will prevent any further submissions this month.
+        Use this endpoint to declare that the submission is complete. This will prevent any further submissions this month. Please be aware that this is equivalent to signing a legal declaration.
       operationId: declareComplete
       tags:
         - Monthly Returns Submission
@@ -200,7 +193,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z[0-9]{4}$
+            pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
         - name: taxYear
@@ -241,7 +234,7 @@ paths:
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         200:
-          description: Submission completed. Validation and reconciliation results will be available after processing is complete.
+          description: Submission completed. Reconciliation results will be available after processing is complete.
           content:
             application/json:
               schema:
@@ -328,7 +321,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z[0-9]{4}$
+            pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
         - name: taxYear
@@ -389,14 +382,14 @@ paths:
                     description: Total number of pages in the result set.
                     example: 2
         401:
-          description: Bad Request
+          description: Unauthorised
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   code:
-                    title: Error Code Types
+                    title: Error Code Type
                     type: string
                     description: Error Code
                     enum:
@@ -417,12 +410,10 @@ paths:
                     description: Types of errors encountered.
                     enum:
                       - RETURN_NOT_FOUND
-                      - RETURN_RESULTS_NOT_READY
                   message:
                     type: string
                     enum:
                       - Return not found
-                      - Return results not ready for month
         500:
           description: Internal Server Error
           content:
@@ -442,11 +433,11 @@ paths:
 
   /monthly/{isaManagerReferenceNumber}/{taxYear}/{month}/results:
     get:
-      summary: Retrieve return validation results
+      summary: Retrieve reconciliation results for the the months return
       description: |
-        Use this endpoint to retrieve validation results for the specified monthly return. 
+        Use this endpoint to retrieve results for the specified monthly return's reconciliation. 
         The API returns results in paginated batches.
-      operationId: getReturnValidationResults
+      operationId: getReconciliationResults
       tags:
         - Monthly Return Results
       security:
@@ -461,7 +452,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z[0-9]{4}$
+            pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
         - name: taxYear
@@ -502,7 +493,7 @@ paths:
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         200:
-          description: Validation results for the specified page of the monthly return.
+          description: Reconciliation results for the specified page of the monthly return.
           content:
             application/json:
               schema:
@@ -530,14 +521,14 @@ paths:
                       $ref: '#/components/schemas/returnResult'
                     description: The return results for the specified page.
         401:
-          description: Bad Request
+          description: Unauthorised
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   code:
-                    title: Error Code Types
+                    title: Error Code Type
                     type: string
                     description: Error Code
                     enum:
@@ -558,14 +549,12 @@ paths:
                     description: Types of errors encountered
                     enum:
                       - RETURN_NOT_FOUND
-                      - RETURN_RESULTS_NOT_READY
                       - PAGE_NOT_FOUND
                   message:
                     type: string
                     enum:
                       - Return not found
-                      - Return results not ready for month
-                      - No page {page} found
+                      - No page {pageNumber} found
         500:
           description: Internal Server Error
           content:
@@ -602,6 +591,7 @@ components:
     acceptHeader:
       name: Accept
       in: header
+      required: true
       schema:
         type: string
         enum: [
@@ -624,11 +614,11 @@ components:
         - firstName
         - lastName
         - dateOfBirth
-        - isaType
-        - reportingATransfer
         - dateOfLastSubscription
         - totalCurrentYearSubscriptionsToDate
         - marketValueOfAccount
+        - amountTransferredIn
+        - amountTransferredOut
       properties:
         accountNumber:
           type: string
@@ -656,20 +646,18 @@ components:
           description: The date of birth of the account holder (YYYY-MM-DD).
           example: 1980-01-01
           pattern: ^\d{4}-\d{2}-\d{2}$
-        isaType:
-          type: string
-          description: The type of ISA account.
-          example: LIFETIME_CASH
-          enum:
-            - CASH
-            - STOCKS_AND_SHARES
-            - INNOVATIVE_FINANCE
-            - LIFETIME_CASH
-            - LIFETIME_STOCKS_AND_SHARES
-        reportingATransfer:
-          type: boolean
-          description: Indicates if the ISA account is a reporting transfer.
-          example: true
+        amountTransferredIn:
+          type: number
+          format: double
+          description: Total value transferred in.
+          example: 3000.00
+          pattern: ^\d+\.\d{2}$
+        amountTransferredOut:
+          type: number
+          format: double
+          description: Total value transferred out.
+          example: 3000.00
+          pattern: ^\d+\.\d{2}$
         dateOfLastSubscription:
           type: string
           format: date
@@ -692,15 +680,17 @@ components:
         title: Investor Details
         type: object
         anyOf:
-          - title: Lifetime ISA - New Subscription
+          - title: Lifetime ISA - Subscription
             allOf:
               - $ref: '#/components/schemas/investorDetailsBase'
               - type: object
                 properties:
                   isaType:
-                    enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
-                  reportingATransfer:
-                    enum: [ false ]
+                    type: string
+                    description: The type of ISA account.
+                    example: LIFETIME
+                    enum:
+                      - LIFETIME
                   dateOfFirstSubscription:
                     type: string
                     format: date
@@ -712,65 +702,25 @@ components:
                     format: double
                     description: The amount of the current subscription that qualifies for a LISA bonus.
                     example: 1000.00
-                    pattern: ^\d+\.\d{2}$
+                    pattern: ^-?\d+\.\d{2}$
                   lisaBonusClaim:
                     type: number
                     format: double
                     description: The amount being claimed as a LISA bonus.
                     example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                required: [ dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim ]
-                not:
-                  required: [ closureDate, accountNumberOfTransferringAccount ]
-          - title: Lifetime ISA - Transfer
-            allOf:
-              - $ref: '#/components/schemas/investorDetailsBase'
-              - type: object
-                properties:
-                  isaType:
-                    enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
-                  reportingATransfer:
-                    enum: [ true ]
-                  accountNumberOfTransferringAccount:
-                    type: string
-                    description: The account number of the transferring ISA account.
-                    example: 87654321
-                  amountTransferred:
-                    type: number
-                    format: double
-                    description: The amount transferred to the ISA account.
-                    example: 5000.00
-                    pattern: ^\d+\.\d{2}$
-                  dateOfFirstSubscription:
-                    type: string
-                    format: date
-                    description: Date of first subscription to the ISA account (YYYY-MM-DD).
-                    example: 2025-04-06
-                    pattern: ^\d{4}-\d{2}-\d{2}$
-                  lisaQualifyingAddition:
-                    type: number
-                    format: double
-                    description: The amount of the current subscription that qualifies for a LISA bonus.
-                    example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                  lisaBonusClaim:
-                    type: number
-                    format: double
-                    description: The amount being claimed as a LISA bonus.
-                    example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                required: [ dateOfFirstSubscription, accountNumberOfTransferringAccount, amountTransferred, lisaQualifyingAddition, lisaBonusClaim ]
-                not:
-                  required: [ closureDate ]
+                    pattern: ^-?\d+\.\d{2}$
+                required: [ isaType, dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim, amountTransferredIn, amountTransferredOut ]
           - title: Lifetime ISA - Closure
             allOf:
               - $ref: '#/components/schemas/investorDetailsBase'
               - type: object
                 properties:
                   isaType:
-                    enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
-                  reportingATransfer:
-                    enum: [ false ]
+                    type: string
+                    description: The type of ISA account.
+                    example: LIFETIME
+                    enum:
+                      - LIFETIME
                   dateOfFirstSubscription:
                     type: string
                     format: date
@@ -798,39 +748,49 @@ components:
                     format: double
                     description: The amount of the current subscription that qualifies for a LISA bonus.
                     example: 1000.00
-                    pattern: ^\d+\.\d{2}$
+                    pattern: ^-?\d+\.\d{2}$
                   lisaBonusClaim:
                     type: number
                     format: double
                     description: The amount being claimed as a LISA bonus.
                     example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim ]
-          - title: Lifetime ISA - Transfer & Closure
+                    pattern: ^-?\d+\.\d{2}$
+                required: [ isaType, dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim ]
+          - title: Standard ISA - Subscription
             allOf:
               - $ref: '#/components/schemas/investorDetailsBase'
               - type: object
                 properties:
                   isaType:
-                    enum: [ LIFETIME_CASH, LIFETIME_STOCKS_AND_SHARES ]
-                  reportingATransfer:
-                    enum: [ true ]
-                  accountNumberOfTransferringAccount:
                     type: string
-                    description: The account number of the transferring ISA account.
-                    example: 87654321
-                  amountTransferred:
-                    type: number
-                    format: double
-                    description: The amount transferred to the ISA account.
-                    example: 5000.00
-                    pattern: ^\d+\.\d{2}$
-                  dateOfFirstSubscription:
+                    description: The type of ISA account.
+                    example: CASH
+                    enum:
+                      - CASH
+                      - STOCK_AND_SHARES
+                      - INNOVATIVE_FINANCE
+                  flexibleIsa:
+                    type: boolean
+                    description: Indicates if the ISA account is flexible.
+                    example: false
+                required: [ isaType, flexibleIsa, amountTransferredIn, amountTransferredOut ]
+          - title: Standard ISA - Closure
+            allOf:
+              - $ref: '#/components/schemas/investorDetailsBase'
+              - type: object
+                properties:
+                  isaType:
                     type: string
-                    format: date
-                    description: Date of first subscription to the ISA account (YYYY-MM-DD).
-                    example: 2025-04-06
-                    pattern: ^\d{4}-\d{2}-\d{2}$
+                    description: The type of ISA account.
+                    example: CASH
+                    enum:
+                      - CASH
+                      - STOCK_AND_SHARES
+                      - INNOVATIVE_FINANCE
+                  flexibleIsa:
+                    type: boolean
+                    description: Indicates if the ISA account is flexible.
+                    example: false
                   closureDate:
                     type: string
                     format: date
@@ -845,63 +805,7 @@ components:
                       - CANCELLED
                       - CLOSED
                       - VOID
-                      - TRANSFERRED_IN_FULL
-                      - ALL_FUNDS_WITHDRAWN
-                  lisaQualifyingAddition:
-                    type: number
-                    format: double
-                    description: The amount of the current subscription that qualifies for a LISA bonus.
-                    example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                  lisaBonusClaim:
-                    type: number
-                    format: double
-                    description: The amount being claimed as a LISA bonus.
-                    example: 1000.00
-                    pattern: ^\d+\.\d{2}$
-                required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim, accountNumberOfTransferringAccount, amountTransferred ]
-          - title: Standard ISA - New Subscription
-            allOf:
-              - $ref: '#/components/schemas/investorDetailsBase'
-              - type: object
-                properties:
-                  isaType:
-                    enum: [ CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE ]
-                  reportingATransfer:
-                    enum: [ false ]
-                  flexibleIsa:
-                    type: boolean
-                    description: Indicates if the ISA account is flexible.
-                    example: false
-                required: [ flexibleIsa ]
-                not:
-                  required: [ closureDate, accountNumberOfTransferringAccount, dateOfFirstSubscription ]
-          - title: Standard ISA - Transfer
-            allOf:
-              - $ref: '#/components/schemas/investorDetailsBase'
-              - type: object
-                properties:
-                  isaType:
-                    enum: [ CASH, STOCKS_AND_SHARES, INNOVATIVE_FINANCE ]
-                  reportingATransfer:
-                    enum: [ true ]
-                  accountNumberOfTransferringAccount:
-                    type: string
-                    description: The account number of the transferring ISA account.
-                    example: 87654321
-                  amountTransferred:
-                    type: number
-                    format: double
-                    description: The amount transferred to the ISA account.
-                    example: 5000.00
-                    pattern: ^\d+\.\d{2}$
-                  flexibleIsa:
-                    type: boolean
-                    description: Indicates if the ISA account is flexible.
-                    example: false
-                required: [ accountNumberOfTransferringAccount, amountTransferred, flexibleIsa ]
-                not:
-                  required: [ closureDate ]
+                required: [ isaType, flexibleIsa, closureDate, reasonForClosure ]
     returnResult:
       type: object
       properties:
@@ -918,6 +822,7 @@ components:
           oneOf:
             - $ref: '#/components/schemas/returnResultOverSubscribed'
             - $ref: '#/components/schemas/returnResultUnableToIdentifyInvestor'
+            - $ref: '#/components/schemas/returnResultFailedEligibility'
     returnResultOverSubscribed:
       type: object
       properties:
@@ -946,3 +851,83 @@ components:
           type: string
           description: The reason for the inability to identify the investor.
           example: The National Insurance number provided does not match any records.
+    returnResultFailedEligibility:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The result of the return submission
+          enum:
+            - INELIGIBLE
+          example: INELIGIBLE
+        message:
+          type: string
+          description: The reason for the state eligibility
+          example: This account holder is too young
+    badSubmissionGeneral:
+      title: Bad Request (General Issue)
+      type: object
+      properties:
+        code:
+          title: Validation Failure Code
+          type: string
+          description: Code indicating the type of error
+          enum:
+            - MISSING_NINO_OR_ACC_NUM
+            - INVALID_NINO_OR_ACC_NUM
+            - INVALID_YEAR
+            - INVALID_MONTH
+            - INVALID_Z_REFERENCE
+            - MALFORMED_JSON
+        message:
+          title: Detailed Message
+          type: string
+          description: Message describing the details of the validation error
+    badSubmissionComplex:
+      title: Bad Request (Field Specific)
+      type: object
+      properties:
+        code:
+          title: Validation Failure
+          type: string
+          description: Code indicating the type of error
+          enum:
+            - VALIDATION_FAILURE
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error
+          example: "One or more models failed validation"
+        errors:
+          title: Errors
+          type: array
+          description: Array of errors outlining issues found in the format of a record. (This will only outline the first issue.)
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/badSubmissionComplexChild'
+    badSubmissionComplexChild:
+      title: Bad Request Item
+      type: object
+      properties:
+        nino:
+          title: National Insurance Number
+          type: string
+          description: National Insurance Number associated with the record failing validation
+        accountNumber:
+          title: Account Number
+          type: string
+          description: Account Number associated with the record failing validation
+        code:
+          title: Validation Failure
+          type: string
+          description: Code indicating the type of error
+          enum:
+            - INVALID_FIELD
+            - MISSING_FIELD
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error
+          example: "Last name field is missing"
+
+
