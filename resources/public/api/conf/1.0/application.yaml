@@ -65,7 +65,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z[0-9]{4}$
+            pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
         - name: taxYear
@@ -120,16 +120,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Type
-                    type: string
-                    description: Error Code
-                    example: INVALID_YEAR
-                  message:
-                    type: string
-                    example: Tax year required
+                oneOf:
+                  - $ref: '#/components/schemas/badSubmissionGeneral'
+                  - $ref: '#/components/schemas/badSubmissionComplex'
         401:
           description: Unauthorised
           content:
@@ -200,7 +193,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z[0-9]{4}$
+            pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
         - name: taxYear
@@ -328,7 +321,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z[0-9]{4}$
+            pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
         - name: taxYear
@@ -459,7 +452,7 @@ paths:
           style: simple
           explode: false
           schema:
-            pattern: ^Z[0-9]{4}$
+            pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
         - name: taxYear
@@ -598,6 +591,7 @@ components:
     acceptHeader:
       name: Accept
       in: header
+      required: true
       schema:
         type: string
         enum: [
@@ -623,6 +617,8 @@ components:
         - dateOfLastSubscription
         - totalCurrentYearSubscriptionsToDate
         - marketValueOfAccount
+        - amountTransferredIn
+        - amountTransferredOut
       properties:
         accountNumber:
           type: string
@@ -714,8 +710,6 @@ components:
                     example: 1000.00
                     pattern: ^-?\d+\.\d{2}$
                 required: [ isaType, dateOfFirstSubscription, lisaQualifyingAddition, lisaBonusClaim, amountTransferredIn, amountTransferredOut ]
-#                not:
-#                  required: [ closureDate, accountNumberOfTransferringAccount ]
           - title: Lifetime ISA - Closure
             allOf:
               - $ref: '#/components/schemas/investorDetailsBase'
@@ -761,7 +755,7 @@ components:
                     description: The amount being claimed as a LISA bonus.
                     example: 1000.00
                     pattern: ^-?\d+\.\d{2}$
-                required: [ dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim ]
+                required: [ isaType, dateOfFirstSubscription, closureDate, reasonForClosure, lisaQualifyingAddition, lisaBonusClaim ]
           - title: Standard ISA - Subscription
             allOf:
               - $ref: '#/components/schemas/investorDetailsBase'
@@ -779,7 +773,7 @@ components:
                     type: boolean
                     description: Indicates if the ISA account is flexible.
                     example: false
-                required: [ flexibleIsa, amountTransferredIn, amountTransferredOut ]
+                required: [ isaType, flexibleIsa, amountTransferredIn, amountTransferredOut ]
           - title: Standard ISA - Closure
             allOf:
               - $ref: '#/components/schemas/investorDetailsBase'
@@ -793,16 +787,6 @@ components:
                       - CASH
                       - STOCK_AND_SHARES
                       - INNOVATIVE_FINANCE
-                  accountNumberOfTransferringAccount:
-                    type: string
-                    description: The account number of the transferring ISA account.
-                    example: 87654321
-                  amountTransferred:
-                    type: number
-                    format: double
-                    description: The amount transferred to the ISA account.
-                    example: 5000.00
-                    pattern: ^\d+\.\d{2}$
                   flexibleIsa:
                     type: boolean
                     description: Indicates if the ISA account is flexible.
@@ -821,7 +805,7 @@ components:
                       - CANCELLED
                       - CLOSED
                       - VOID
-                required: [ accountNumberOfTransferringAccount, amountTransferred, flexibleIsa, closureDate, reasonForClosure ]
+                required: [ isaType, flexibleIsa, closureDate, reasonForClosure ]
     returnResult:
       type: object
       properties:
@@ -880,3 +864,70 @@ components:
           type: string
           description: The reason for the state eligibility
           example: This account holder is too young
+    badSubmissionGeneral:
+      title: Bad Request (General Issue)
+      type: object
+      properties:
+        code:
+          title: Validation Failure Code
+          type: string
+          description: Code indicating the type of error
+          enum:
+            - MISSING_NINO_OR_ACC_NUM
+            - INVALID_NINO_OR_ACC_NUM
+            - INVALID_YEAR
+            - INVALID_MONTH
+            - INVALID_Z_REFERENCE
+            - MALFORMED_JSON
+        message:
+          title: Detailed Message
+          type: string
+          description: Message describing the details of the validation error
+    badSubmissionComplex:
+      title: Bad Request (Field Specific)
+      type: object
+      properties:
+        code:
+          title: Validation Failure
+          type: string
+          description: Code indicating the type of error
+          enum:
+            - VALIDATION_FAILURE
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error
+          example: "One or more models failed validation"
+        errors:
+          title: Errors
+          type: array
+          description: Array of errors outlining issues found in the format of a record. (This will only outline the first issue.)
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/badSubmissionComplexChild'
+    badSubmissionComplexChild:
+      title: Bad Request Item
+      type: object
+      properties:
+        nino:
+          title: National Insurance Number
+          type: string
+          description: National Insurance Number associated with the record failing validation
+        accountNumber:
+          title: Account Number
+          type: string
+          description: Account Number associated with the record failing validation
+        code:
+          title: Validation Failure
+          type: string
+          description: Code indicating the type of error
+          enum:
+            - INVALID_FIELD
+            - MISSING_FIELD
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error
+          example: "Last name field is missing"
+
+
