@@ -22,7 +22,7 @@ import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.submission.isaAccounts
+package uk.gov.hmrc.disareturns.models.isaAccounts
 
 import play.api.libs.json.Format
 import uk.gov.hmrc.disareturns.models.common.JsonUtils

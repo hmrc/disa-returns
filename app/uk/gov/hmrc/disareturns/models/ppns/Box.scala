@@ -14,18 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.ppns.response
+package uk.gov.hmrc.disareturns.models.ppns
 
 import play.api.libs.json.{Json, OFormat}
 
-import java.time.Instant
+case class Box(boxId: String, boxName: String, boxCreator: BoxCreator, applicationId: Option[String] = None, subscriber: Option[Subscriber] = None)
 
-case class Subscriber(
-  subscribedDateTime: Instant,
-  callBackUrl:        String,
-  subscriptionType:   String
-)
-
-object Subscriber {
-  implicit val format: OFormat[Subscriber] = Json.format[Subscriber]
+object Box {
+  implicit val format: OFormat[Box] = Json.format[Box]
 }

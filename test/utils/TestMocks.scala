@@ -17,7 +17,7 @@
 package utils
 
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.{IsaType, ReasonForClosure}
+import uk.gov.hmrc.disareturns.models.isaAccounts.{IsaType, ReasonForClosure}
 
 trait TestMocks {
 

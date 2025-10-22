@@ -21,7 +21,7 @@ import play.api.http.Status.NO_CONTENT
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import javax.inject.{Inject, Singleton}

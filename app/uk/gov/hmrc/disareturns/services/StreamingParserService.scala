@@ -21,7 +21,7 @@ import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaAccount
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.services.validation.DataValidator
 import uk.gov.hmrc.disareturns.services.validation.DataValidator.jsErrorToDomainError
 

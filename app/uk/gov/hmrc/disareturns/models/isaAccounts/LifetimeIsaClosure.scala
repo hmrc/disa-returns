@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.submission.isaAccounts
+package uk.gov.hmrc.disareturns.models.isaAccounts
 
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.{Json, OFormat, Reads, __}
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.IsaType.IsaType
-import uk.gov.hmrc.disareturns.models.submission.isaAccounts.ReasonForClosure.ReasonForClosure
+import IsaType.IsaType
+import ReasonForClosure.ReasonForClosure
 import uk.gov.hmrc.disareturns.utils.JsonImplicits._
 
 import java.time.LocalDate

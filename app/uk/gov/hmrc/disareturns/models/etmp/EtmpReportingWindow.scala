@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.initiate.response
+package uk.gov.hmrc.disareturns.models.etmp
 
 import play.api.libs.json.{Json, OFormat}
-import ResponseAction.ResponseAction
 
-case class SuccessResponse(returnId: String, action: ResponseAction, boxId: String)
+case class EtmpReportingWindow(reportingWindowOpen: Boolean)
 
-object SuccessResponse {
-  implicit val format: OFormat[SuccessResponse] = Json.format[SuccessResponse]
+object EtmpReportingWindow {
+  implicit val format: OFormat[EtmpReportingWindow] = Json.format[EtmpReportingWindow]
 }
