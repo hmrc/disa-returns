@@ -46,7 +46,9 @@ tags:
       After a monthly report is marked complete and the reporting window closes, 
       HMRC will begin a process that reconciles your submission against other ISA managers' submissions. 
       This will involve validation against business rules and checks on each investor's 
-      eligibility and their annual ISA subscription limits.
+      eligibility and their annual ISA subscription limits. 
+      Reconciliation results include accepted records and details of any reconciliation issues. 
+      Results are paginated to support large datasets.
 
       You can check the status of a submitted return and retrieve the reconciliation results when available. 
       Reconciliation results include accepted records and details of any reconciliation issues. 
@@ -431,7 +433,6 @@ paths:
                     example: 2
         401:
           description: Unauthorized
-
           content:
             application/json:
               schema:
@@ -986,4 +987,3 @@ components:
           type: string
           description: Human readable message outlining the error
           example: "Last name field is missing"
-
