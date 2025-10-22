@@ -18,8 +18,8 @@ package uk.gov.hmrc.disareturns.models.isaAccounts
 
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.{Json, OFormat, Reads, __}
-import IsaType.IsaType
-import ReasonForClosure.ReasonForClosure
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType.IsaType
+import uk.gov.hmrc.disareturns.models.isaAccounts.LisaReasonForClosure.LisaReasonForClosure
 import uk.gov.hmrc.disareturns.utils.JsonImplicits._
 
 import java.time.LocalDate
@@ -31,14 +31,15 @@ case class LifetimeIsaClosure(
   middleName:                          Option[String],
   lastName:                            String,
   dateOfBirth:                         LocalDate,
-  isaType:                             IsaType,
-  reportingATransfer:                  Boolean,
+  amountTransferredIn:                 BigDecimal,
+  amountTransferredOut:                BigDecimal,
   dateOfFirstSubscription:             LocalDate,
   dateOfLastSubscription:              LocalDate,
   totalCurrentYearSubscriptionsToDate: BigDecimal,
   marketValueOfAccount:                BigDecimal,
+  isaType:                             IsaType,
   closureDate:                         LocalDate,
-  reasonForClosure:                    ReasonForClosure,
+  reasonForClosure:                    LisaReasonForClosure,
   lisaQualifyingAddition:              BigDecimal,
   lisaBonusClaim:                      BigDecimal
 ) extends IsaAccount
@@ -52,14 +53,15 @@ object LifetimeIsaClosure {
       (__ \ "middleName").readNullable[String] and
       (__ \ "lastName").read[String] and
       (__ \ "dateOfBirth").read[LocalDate] and
-      (__ \ "isaType").read[IsaType] and
-      (__ \ "reportingATransfer").read[Boolean] and
+      (__ \ "amountTransferredIn").read[BigDecimal] and
+      (__ \ "amountTransferredOut").read[BigDecimal] and
       (__ \ "dateOfFirstSubscription").read[LocalDate] and
       (__ \ "dateOfLastSubscription").read[LocalDate] and
       (__ \ "totalCurrentYearSubscriptionsToDate").read[BigDecimal] and
       (__ \ "marketValueOfAccount").read[BigDecimal] and
+      (__ \ "isaType").read[IsaType] and
       (__ \ "closureDate").read[LocalDate] and
-      (__ \ "reasonForClosure").read[ReasonForClosure] and
+      (__ \ "reasonForClosure").read[LisaReasonForClosure] and
       (__ \ "lisaQualifyingAddition").read[BigDecimal] and
       (__ \ "lisaBonusClaim").read[BigDecimal]
   )(LifetimeIsaClosure.apply _)

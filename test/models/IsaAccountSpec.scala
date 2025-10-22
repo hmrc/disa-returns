@@ -30,34 +30,34 @@ class IsaAccountSpec extends BaseUnitSpec {
       result.get       shouldBe a[LifetimeIsaClosure]
     }
 
-    "deserialize LifetimeIsaNewSubscription when reportingATransfer=false and lisaBonusClaim is present" in {
-      val result = lifetimeIsaNewSubscriptionJson.validate[IsaAccount]
+    "deserialize LifetimeIsaSubscription when reportingATransfer=false and lisaBonusClaim is present" in {
+      val result = LifetimeIsaSubscriptionJson.validate[IsaAccount]
       result.isSuccess shouldBe true
-      result.get       shouldBe a[LifetimeIsaNewSubscription]
+      result.get       shouldBe a[LifetimeIsaSubscription]
     }
 
-    "deserialize LifetimeIsaTransfer when reportingATransfer=true and lisaBonusClaim is present and reasonForClosure is not present" in {
-      val result = lifetimeIsaTransferJson.validate[IsaAccount]
+    "deserialize LifetimeIsaSubscription when reportingATransfer=true and lisaBonusClaim is present and reasonForClosure is not present" in {
+      val result = LifetimeIsaSubscriptionJson.validate[IsaAccount]
       result.isSuccess shouldBe true
-      result.get       shouldBe a[LifetimeIsaTransfer]
+      result.get       shouldBe a[LifetimeIsaSubscription]
     }
 
-    "deserialize LifetimeIsaTransferAndClosure when reportingATransfer=true and reasonForClosure is present" in {
-      val result = lifetimeIsaTransferAndClosureJson.validate[IsaAccount]
+    "deserialize LifetimeIsaSubscription when reportingATransfer=true and reasonForClosure is present" in {
+      val result = LifetimeIsaSubscriptionJson.validate[IsaAccount]
       result.isSuccess shouldBe true
-      result.get       shouldBe a[LifetimeIsaTransferAndClosure]
+      result.get       shouldBe a[LifetimeIsaSubscription]
     }
 
-    "deserialize StandardIsaNewSubscription when reportingATransfer=false and flexibleIsa is present" in {
-      val result = standardIsaNewSubscriptionJson.validate[IsaAccount]
+    "deserialize StandardIsaSubscription when reportingATransfer=false and flexibleIsa is present" in {
+      val result = StandardIsaSubscriptionJson.validate[IsaAccount]
       result.isSuccess shouldBe true
-      result.get       shouldBe a[StandardIsaNewSubscription]
+      result.get       shouldBe a[StandardIsaSubscription]
     }
 
     "deserialize StandardIsaTransfer when reportingATransfer=true and flexibleIsa is present and reasonForClosure and lisaBonusClaim are absent" in {
-      val result = standardIsaTransferJson.validate[IsaAccount]
+      val result = standardIsaClosureJson.validate[IsaAccount]
       result.isSuccess shouldBe true
-      result.get       shouldBe a[StandardIsaTransfer]
+      result.get       shouldBe a[StandardIsaClosure]
     }
 
     "fail to deserialize when reportingATransfer=true and no subtype discriminator fields present" in {
@@ -87,34 +87,34 @@ class IsaAccountSpec extends BaseUnitSpec {
       json shouldBe lifetimeIsaClosureJson
     }
 
-    "serialize LifetimeIsaNewSubscription correctly" in {
-      val account = lifetimeIsaNewSubscriptionJson.as[IsaAccount]
+    "serialize LifetimeIsaSubscription correctly" in {
+      val account = LifetimeIsaSubscriptionJson.as[IsaAccount]
       val json    = Json.toJson(account)
-      json shouldBe lifetimeIsaNewSubscriptionJson
+      json shouldBe LifetimeIsaSubscriptionJson
     }
 
     "serialize StandardIsaTransfer correctly" in {
-      val account = standardIsaTransferJson.as[IsaAccount]
+      val account = standardIsaClosureJson.as[IsaAccount]
       val json    = Json.toJson(account)
-      json shouldBe standardIsaTransferJson
+      json shouldBe standardIsaClosureJson
     }
 
-    "serialize LifetimeIsaTransfer correctly" in {
-      val account = lifetimeIsaTransferJson.as[IsaAccount]
+    "serialize LifetimeIsaSubscription correctly" in {
+      val account = LifetimeIsaSubscriptionJson.as[IsaAccount]
       val json    = Json.toJson(account)
-      json shouldBe lifetimeIsaTransferJson
+      json shouldBe LifetimeIsaSubscriptionJson
     }
 
-    "serialize LifetimeIsaTransferAndClosure correctly" in {
-      val account = lifetimeIsaTransferAndClosureJson.as[IsaAccount]
+    "serialize LifetimeIsaSubscription correctly" in {
+      val account = LifetimeIsaSubscriptionJson.as[IsaAccount]
       val json    = Json.toJson(account)
-      json shouldBe lifetimeIsaTransferAndClosureJson
+      json shouldBe LifetimeIsaSubscriptionJson
     }
 
-    "serialize StandardIsaNewSubscription correctly" in {
-      val account = standardIsaNewSubscriptionJson.as[IsaAccount]
+    "serialize StandardIsaSubscription correctly" in {
+      val account = StandardIsaSubscriptionJson.as[IsaAccount]
       val json    = Json.toJson(account)
-      json shouldBe standardIsaNewSubscriptionJson
+      json shouldBe StandardIsaSubscriptionJson
     }
   }
 }

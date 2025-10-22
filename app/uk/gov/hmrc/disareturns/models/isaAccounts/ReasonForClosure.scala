@@ -22,11 +22,9 @@ import uk.gov.hmrc.disareturns.models.common.JsonUtils
 object ReasonForClosure extends Enumeration {
   type ReasonForClosure = Value
 
-  val CANCELLED:           Value = Value("CANCELLED")
-  val CLOSED:              Value = Value("CLOSED")
-  val VOID:                Value = Value("VOID")
-  val TRANSFERRED_IN_FULL: Value = Value("TRANSFERRED_IN_FULL")
-  val ALL_FUNDS_WITHDRAWN: Value = Value("ALL_FUNDS_WITHDRAWN")
+  val CANCELLED: Value = Value("CANCELLED")
+  val CLOSED:    Value = Value("CLOSED")
+  val VOID:      Value = Value("VOID")
 
   implicit val format: Format[ReasonForClosure.Value] = JsonUtils.enumFormat(ReasonForClosure)
 

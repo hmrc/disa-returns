@@ -30,15 +30,16 @@ class DataValidatorSpec extends BaseUnitSpec {
   val validDate:       LocalDate  = LocalDate.parse("2000-01-01")
   val validBigDecimal: BigDecimal = BigDecimal("100.00")
 
-  def baseAccount: LifetimeIsaNewSubscription = LifetimeIsaNewSubscription(
+  def lifetimeIsaSubscriptionAccount: LifetimeIsaSubscription = LifetimeIsaSubscription(
     accountNumber = validAccountNumber,
     nino = validNino,
     firstName = "John",
     middleName = Some("Middle"),
     lastName = "Doe",
     dateOfBirth = validDate,
-    isaType = IsaType.LIFETIME_CASH,
-    reportingATransfer = false,
+    isaType = IsaType.LIFETIME,
+    amountTransferredIn = BigDecimal(250.00),
+    amountTransferredOut = BigDecimal(250.00),
     dateOfFirstSubscription = validDate,
     dateOfLastSubscription = validDate,
     totalCurrentYearSubscriptionsToDate = validBigDecimal,
@@ -70,25 +71,26 @@ class DataValidatorSpec extends BaseUnitSpec {
   }
 
   "validateAccount" should {
-    "pass for valid LifetimeIsaNewSubscription" in {
-      DataValidator.validateAccount(baseAccount) shouldBe None
+    "pass for valid LifetimeIsaSubscription" in {
+      DataValidator.validateAccount(lifetimeIsaSubscriptionAccount) shouldBe None
     }
 
     "fail for invalid nino" in {
-      val invalid = baseAccount.copy(nino = "INVALID")
+      val invalid = lifetimeIsaSubscriptionAccount.copy(nino = "INVALID")
       val result  = DataValidator.validateAccount(invalid)
       result.get.code    shouldBe "INVALID_NINO"
       result.get.message shouldBe "The Nino provided is not formatted correctly"
     }
 
     "fail for 1-decimal totalCurrentYearSubscriptionsToDate" in {
-      val invalid = baseAccount.copy(totalCurrentYearSubscriptionsToDate = BigDecimal("12.5"))
+      val invalid = lifetimeIsaSubscriptionAccount.copy(totalCurrentYearSubscriptionsToDate = BigDecimal("12.5"))
       val result  = DataValidator.validateAccount(invalid)
       result.get.code    shouldBe "INVALID_TOTAL_CURRENT_YEAR_SUBSCRIPTIONS_TO_DATE"
       result.get.message shouldBe "Total current year subscriptions to date is not formatted correctly (e.g. 123.45)"
     }
   }
 
+  //    TODO: check scenario
   "validateIsaAccountUniqueFields" should {
     "validate LifetimeIsaClosure fields" in {
       val account = LifetimeIsaClosure(
@@ -98,14 +100,15 @@ class DataValidatorSpec extends BaseUnitSpec {
         middleName = None,
         lastName = "Smith",
         dateOfBirth = validDate,
-        isaType = IsaType.LIFETIME_CASH,
-        reportingATransfer = false,
+        isaType = IsaType.LIFETIME,
+        amountTransferredIn = BigDecimal(250.00),
+        amountTransferredOut = BigDecimal(250.00),
         dateOfFirstSubscription = validDate,
         dateOfLastSubscription = validDate,
         totalCurrentYearSubscriptionsToDate = validBigDecimal,
         marketValueOfAccount = validBigDecimal,
         closureDate = validDate,
-        reasonForClosure = ReasonForClosure.CLOSED,
+        reasonForClosure = LisaReasonForClosure.CLOSED,
         lisaQualifyingAddition = validBigDecimal,
         lisaBonusClaim = validBigDecimal
       )
@@ -113,7 +116,7 @@ class DataValidatorSpec extends BaseUnitSpec {
     }
 
     "fail if lisaBonusClaim has too many decimals in LifetimeIsaClosure" in {
-      val account = baseAccount.copy(lisaBonusClaim = BigDecimal("100.123"))
+      val account = lifetimeIsaSubscriptionAccount.copy(lisaBonusClaim = BigDecimal("100.123"))
       DataValidator.validateIsaAccountUniqueFields(account) shouldBe Some(
         SecondLevelValidationError(
           validNino,
@@ -124,41 +127,21 @@ class DataValidatorSpec extends BaseUnitSpec {
       )
     }
 
-    "validate StandardIsaTransfer with valid amountTransferred" in {
-      val account = StandardIsaTransfer(
-        accountNumber = validAccountNumber,
-        nino = validNino,
-        firstName = "John",
-        middleName = None,
-        lastName = "Smith",
-        dateOfBirth = validDate,
-        isaType = IsaType.LIFETIME_CASH,
-        reportingATransfer = true,
-        dateOfLastSubscription = validDate,
-        totalCurrentYearSubscriptionsToDate = validBigDecimal,
-        marketValueOfAccount = validBigDecimal,
-        accountNumberOfTransferringAccount = "ZXY987654",
-        amountTransferred = BigDecimal("200.00"),
-        flexibleIsa = false
-      )
-      DataValidator.validateIsaAccountUniqueFields(account) shouldBe None
-    }
-
+//    TODO: check scenario
     "validate StandardIsaTransfer with negative amountTransferred" in {
-      val account = StandardIsaTransfer(
+      val account = StandardIsaSubscription(
         accountNumber = validAccountNumber,
         nino = validNino,
         firstName = "John",
         middleName = None,
         lastName = "Smith",
         dateOfBirth = validDate,
-        isaType = IsaType.LIFETIME_CASH,
-        reportingATransfer = true,
+        isaType = IsaType.LIFETIME,
+        amountTransferredIn = BigDecimal(250.00),
+        amountTransferredOut = BigDecimal(250.00),
         dateOfLastSubscription = validDate,
         totalCurrentYearSubscriptionsToDate = validBigDecimal,
         marketValueOfAccount = validBigDecimal,
-        accountNumberOfTransferringAccount = "ZXY987654",
-        amountTransferred = BigDecimal("-1.00"),
         flexibleIsa = false
       )
       DataValidator.validateIsaAccountUniqueFields(account) shouldBe
@@ -175,11 +158,11 @@ class DataValidatorSpec extends BaseUnitSpec {
 
   "validate" should {
     "validate complete IsaAccount end-to-end" in {
-      DataValidator.validate(baseAccount) shouldBe None
+      DataValidator.validate(lifetimeIsaSubscriptionAccount) shouldBe None
     }
 
     "fail if any top-level validation fails" in {
-      val invalid = baseAccount.copy(accountNumber = "!")
+      val invalid = lifetimeIsaSubscriptionAccount.copy(accountNumber = "!")
       val result  = DataValidator.validate(invalid)
       result shouldBe Some(
         SecondLevelValidationError(validNino, "!", "INVALID_ACCOUNT_NUMBER", "The Account number provided is not formatted correctly")

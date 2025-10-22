@@ -28,7 +28,7 @@ import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.controllers.SubmitReturnsController
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.etmp.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.models.isaAccounts.{IsaType, StandardIsaTransfer}
+import uk.gov.hmrc.disareturns.models.isaAccounts.{IsaType, StandardIsaSubscription}
 import utils.BaseUnitSpec
 
 import java.time.LocalDate
@@ -43,9 +43,9 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
   val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
 
   val ndJsonLine =
-    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
-  val validModel: StandardIsaTransfer = StandardIsaTransfer(
+  val standardIsaSubscription: StandardIsaSubscription = StandardIsaSubscription(
     accountNumber = "STD000001",
     nino = "AB000001C",
     firstName = "First1",
@@ -53,14 +53,14 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
     lastName = "Last1",
     dateOfBirth = LocalDate.parse("1980-01-02"),
     isaType = IsaType.STOCKS_AND_SHARES,
-    reportingATransfer = true,
+    amountTransferredIn = BigDecimal(250.00),
+    amountTransferredOut = BigDecimal(250.00),
     dateOfLastSubscription = LocalDate.parse("2025-06-01"),
     totalCurrentYearSubscriptionsToDate = BigDecimal(2500.00),
     marketValueOfAccount = BigDecimal(10000.00),
-    accountNumberOfTransferringAccount = "OLD000001",
-    amountTransferred = BigDecimal(5000.00),
     flexibleIsa = false
   )
+
   def fakeRequestWithStream(ndJsonString: String = ndJsonLine): Request[Source[ByteString, _]] = FakeRequest()
     .withBody(Source.single(ByteString(ndJsonString + "\n")))
     .withHeaders("X-Client-ID" -> "client-999")
@@ -90,7 +90,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 400 for FirstLevelValidationException - missing accountNumber" in {
       val ndJsonLineError =
-        """{"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+        """{"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
@@ -106,7 +106,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 400 for SecondLevelValidationException - invalid DOB" in {
       val ndJsonLine =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
@@ -148,7 +148,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 400 for SecondLevelValidationException - invalid DOB & firstName - should only return first failure for each model" in {
       val ndJsonLine =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
@@ -190,8 +190,8 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 400 for SecondLevelValidationException - invalid DOB & firstName in two different models - should report both errors" in {
       val ndJsonLine =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}
-          |{"accountNumber":"STD000002","nino":"AB000002C","firstName":"","middleName":"Middle2","lastName":"Last2","dateOfBirth":"1980-01-03","isaType":"CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000002","amountTransferred":5000.00,"flexibleIsa":true}
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}
+          |{"accountNumber":"STD000002","nino":"AB000002C","firstName":"","middleName":"Middle2","lastName":"Last2","dateOfBirth":"1980-01-03","isaType":"CASH","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000002","amountTransferred":5000.00,"flexibleIsa":true}
           |""".stripMargin
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
@@ -247,9 +247,6 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(UnauthorisedErr)))
-      val request = FakeRequest("POST", s"/monthly/$validZRef/init")
-        .withHeaders("X-Client-ID" -> "client-abc")
-        .withBody(validSubmissionJson)
 
       val result = controller.submit(validZRef, validTaxYear, validMonthStr).apply(fakeRequestWithStream())
 

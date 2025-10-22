@@ -17,56 +17,50 @@
 package uk.gov.hmrc.disareturns.models.isaAccounts
 
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{Json, OFormat, Reads, __}
+import play.api.libs.json._
 import IsaType.IsaType
-import ReasonForClosure.ReasonForClosure
+import uk.gov.hmrc.disareturns.models.isaAccounts.LisaReasonForClosure.LisaReasonForClosure
 import uk.gov.hmrc.disareturns.utils.JsonImplicits._
 
 import java.time.LocalDate
 
-case class LifetimeIsaTransferAndClosure(
+case class LifetimeIsaSubscription(
   accountNumber:                       String,
   nino:                                String,
   firstName:                           String,
   middleName:                          Option[String],
   lastName:                            String,
   dateOfBirth:                         LocalDate,
-  isaType:                             IsaType,
-  reportingATransfer:                  Boolean,
+  amountTransferredIn:                 BigDecimal,
+  amountTransferredOut:                BigDecimal,
   dateOfFirstSubscription:             LocalDate,
   dateOfLastSubscription:              LocalDate,
-  closureDate:                         LocalDate,
   totalCurrentYearSubscriptionsToDate: BigDecimal,
   marketValueOfAccount:                BigDecimal,
-  accountNumberOfTransferringAccount:  String,
-  amountTransferred:                   BigDecimal,
-  reasonForClosure:                    ReasonForClosure,
+  isaType:                             IsaType,
   lisaQualifyingAddition:              BigDecimal,
   lisaBonusClaim:                      BigDecimal
 ) extends IsaAccount
 
-object LifetimeIsaTransferAndClosure {
+object LifetimeIsaSubscription {
 
-  implicit val lifetimeIsaTransferAndClosureReads: Reads[LifetimeIsaTransferAndClosure] = (
+  implicit val LifetimeIsaSubscriptionReads: Reads[LifetimeIsaSubscription] = (
     (__ \ "accountNumber").read[String] and
       (__ \ "nino").read[String] and
       (__ \ "firstName").read[String] and
       (__ \ "middleName").readNullable[String] and
       (__ \ "lastName").read[String] and
       (__ \ "dateOfBirth").read[LocalDate] and
-      (__ \ "isaType").read[IsaType] and
-      (__ \ "reportingATransfer").read[Boolean] and
+      (__ \ "amountTransferredIn").read[BigDecimal] and
+      (__ \ "amountTransferredOut").read[BigDecimal] and
       (__ \ "dateOfFirstSubscription").read[LocalDate] and
       (__ \ "dateOfLastSubscription").read[LocalDate] and
-      (__ \ "closureDate").read[LocalDate] and
       (__ \ "totalCurrentYearSubscriptionsToDate").read[BigDecimal] and
       (__ \ "marketValueOfAccount").read[BigDecimal] and
-      (__ \ "accountNumberOfTransferringAccount").read[String] and
-      (__ \ "amountTransferred").read[BigDecimal] and
-      (__ \ "reasonForClosure").read[ReasonForClosure] and
+      (__ \ "isaType").read[IsaType] and
       (__ \ "lisaQualifyingAddition").read[BigDecimal] and
       (__ \ "lisaBonusClaim").read[BigDecimal]
-  )(LifetimeIsaTransferAndClosure.apply _)
+  )(LifetimeIsaSubscription.apply _)
 
-  implicit val format: OFormat[LifetimeIsaTransferAndClosure] = Json.format[LifetimeIsaTransferAndClosure]
+  implicit val format: OFormat[LifetimeIsaSubscription] = Json.format[LifetimeIsaSubscription]
 }

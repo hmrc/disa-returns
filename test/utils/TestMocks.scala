@@ -17,7 +17,7 @@
 package utils
 
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.disareturns.models.isaAccounts.{IsaType, ReasonForClosure}
+import uk.gov.hmrc.disareturns.models.isaAccounts.LisaReasonForClosure
 
 trait TestMocks {
 
@@ -28,27 +28,25 @@ trait TestMocks {
     "middleName"                          -> "middleName",
     "lastName"                            -> "Doe",
     "dateOfBirth"                         -> "1980-01-01",
-    "isaType"                             -> "LIFETIME_CASH",
-    "reportingATransfer"                  -> false,
+    "isaType"                             -> "LIFETIME",
     "dateOfLastSubscription"              -> "2025-01-01",
     "totalCurrentYearSubscriptionsToDate" -> 1000.00,
     "marketValueOfAccount"                -> 5000.00,
     "dateOfFirstSubscription"             -> "2020-01-01",
     "closureDate"                         -> "2025-06-01",
-    "reasonForClosure"                    -> ReasonForClosure.VOID,
+    "reasonForClosure"                    -> LisaReasonForClosure.VOID,
     "lisaQualifyingAddition"              -> 1000.00,
     "lisaBonusClaim"                      -> 1000.00
   )
 
-  def lifetimeIsaNewSubscriptionJson: JsValue = Json.obj(
+  def LifetimeIsaSubscriptionJson: JsValue = Json.obj(
     "accountNumber"                       -> "ACC124",
     "nino"                                -> "AB123456D",
     "firstName"                           -> "Alice",
     "middleName"                          -> "M",
     "lastName"                            -> "Smith",
     "dateOfBirth"                         -> "1990-02-02",
-    "isaType"                             -> "LIFETIME_CASH",
-    "reportingATransfer"                  -> false,
+    "isaType"                             -> "LIFETIME",
     "dateOfFirstSubscription"             -> "2023-01-01",
     "dateOfLastSubscription"              -> "2025-01-01",
     "totalCurrentYearSubscriptionsToDate" -> 500.00,
@@ -57,47 +55,7 @@ trait TestMocks {
     "lisaBonusClaim"                      -> 1000.00
   )
 
-  def lifetimeIsaTransferJson: JsValue = Json.obj(
-    "accountNumber"                       -> "ACC125",
-    "nino"                                -> "AB123456E",
-    "firstName"                           -> "Bob",
-    "middleName"                          -> "middleName",
-    "lastName"                            -> "Brown",
-    "dateOfBirth"                         -> "1975-03-03",
-    "isaType"                             -> "LIFETIME_CASH",
-    "reportingATransfer"                  -> true,
-    "dateOfFirstSubscription"             -> "2018-01-01",
-    "dateOfLastSubscription"              -> "2025-01-01",
-    "totalCurrentYearSubscriptionsToDate" -> 300.00,
-    "marketValueOfAccount"                -> 7000.00,
-    "accountNumberOfTransferringAccount"  -> "TRF00001",
-    "amountTransferred"                   -> 1000.00,
-    "lisaQualifyingAddition"              -> 200.00,
-    "lisaBonusClaim"                      -> 1000.00
-  )
-
-  def lifetimeIsaTransferAndClosureJson: JsValue = Json.obj(
-    "accountNumber"                       -> "ACC126",
-    "nino"                                -> "AB123456F",
-    "firstName"                           -> "Carol",
-    "middleName"                          -> "A",
-    "lastName"                            -> "Johnson",
-    "dateOfBirth"                         -> "1985-04-04",
-    "isaType"                             -> IsaType.LIFETIME_CASH,
-    "reportingATransfer"                  -> true,
-    "dateOfFirstSubscription"             -> "2019-01-01",
-    "dateOfLastSubscription"              -> "2025-01-01",
-    "closureDate"                         -> "2025-07-01",
-    "totalCurrentYearSubscriptionsToDate" -> 400.00,
-    "marketValueOfAccount"                -> 8000.00,
-    "accountNumberOfTransferringAccount"  -> "TRF00002",
-    "amountTransferred"                   -> 2500.00,
-    "reasonForClosure"                    -> ReasonForClosure.VOID,
-    "lisaQualifyingAddition"              -> 300.00,
-    "lisaBonusClaim"                      -> 1000.00
-  )
-
-  def standardIsaNewSubscriptionJson: JsValue = Json.obj(
+  def StandardIsaSubscriptionJson: JsValue = Json.obj(
     "accountNumber"                       -> "ACC127",
     "nino"                                -> "AB123456G",
     "firstName"                           -> "David",
@@ -105,14 +63,13 @@ trait TestMocks {
     "lastName"                            -> "Miller",
     "dateOfBirth"                         -> "1995-05-05",
     "isaType"                             -> "STOCKS_AND_SHARES",
-    "reportingATransfer"                  -> false,
     "dateOfLastSubscription"              -> "2025-01-01",
     "totalCurrentYearSubscriptionsToDate" -> 1000.00,
     "marketValueOfAccount"                -> 6000.00,
     "flexibleIsa"                         -> true
   )
 
-  def standardIsaTransferJson: JsValue = Json.obj(
+  def standardIsaClosureJson: JsValue = Json.obj(
     "accountNumber"                       -> "ACC128",
     "nino"                                -> "AB123456H",
     "firstName"                           -> "Eva",
@@ -120,7 +77,6 @@ trait TestMocks {
     "lastName"                            -> "Davis",
     "dateOfBirth"                         -> "1988-06-06",
     "isaType"                             -> "STOCKS_AND_SHARES",
-    "reportingATransfer"                  -> true,
     "dateOfLastSubscription"              -> "2025-01-01",
     "totalCurrentYearSubscriptionsToDate" -> 1500.00,
     "marketValueOfAccount"                -> 7500.00,

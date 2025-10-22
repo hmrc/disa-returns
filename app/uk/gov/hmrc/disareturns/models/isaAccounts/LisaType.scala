@@ -19,14 +19,11 @@ package uk.gov.hmrc.disareturns.models.isaAccounts
 import play.api.libs.json.Format
 import uk.gov.hmrc.disareturns.models.common.JsonUtils
 
-object IsaType extends Enumeration {
-  type IsaType = Value
+object LisaType extends Enumeration {
+  type LisaType = Value
 
-  val CASH:               Value = Value("CASH")
-  val STOCKS_AND_SHARES:  Value = Value("STOCKS_AND_SHARES")
-  val INNOVATIVE_FINANCE: Value = Value("INNOVATIVE_FINANCE")
   val LIFETIME:           Value = Value("LIFETIME")
 
-  implicit val format: Format[IsaType.Value] = JsonUtils.enumFormat(IsaType)
+  implicit val format: Format[LisaType.Value] = JsonUtils.enumFormat(LisaType)
 
 }

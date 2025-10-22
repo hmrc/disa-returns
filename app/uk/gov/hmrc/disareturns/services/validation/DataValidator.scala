@@ -194,35 +194,32 @@ object DataValidator {
           validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
         )
 
-      case a: LifetimeIsaNewSubscription =>
+      case a: LifetimeIsaSubscription =>
         val ids = AccountIdentifiers(a.nino, a.accountNumber)
         Seq(
           validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
           validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
         )
 
-      case a: LifetimeIsaTransfer =>
+      case a: LifetimeIsaSubscription =>
         val ids = AccountIdentifiers(a.nino, a.accountNumber)
         Seq(
           validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
-          validateTwoDecimal(a.amountTransferred, "amount_transferred", ids),
           validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
         )
 
-      case a: LifetimeIsaTransferAndClosure =>
+      case a: LifetimeIsaSubscription =>
         val ids = AccountIdentifiers(a.nino, a.accountNumber)
         Seq(
           validateTwoDecimal(a.lisaQualifyingAddition, "lisa_qualifying_addition", ids),
-          validateTwoDecimal(a.amountTransferred, "amount_transferred", ids),
           validateTwoDecimal(a.lisaBonusClaim, "lisa_bonus_claim", ids)
         )
 
-      case _: StandardIsaNewSubscription =>
+      case _: StandardIsaSubscription =>
         Seq.empty
 
-      case a: StandardIsaTransfer =>
-        val ids = AccountIdentifiers(a.nino, a.accountNumber)
-        Seq(validateTwoDecimal(a.amountTransferred, "amount_transferred", ids))
+      case a: StandardIsaClosure =>
+        ???
     }
 
     runValidations(validations)

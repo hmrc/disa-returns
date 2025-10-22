@@ -17,7 +17,7 @@
 package uk.gov.hmrc.disareturns.models.isaAccounts
 
 import play.api.libs.json._
-import IsaType.IsaType
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType.{IsaType, LIFETIME}
 
 import java.time.LocalDate
 
@@ -29,7 +29,6 @@ trait IsaAccount {
   def lastName:                            String
   def dateOfBirth:                         LocalDate
   def isaType:                             IsaType
-  def reportingATransfer:                  Boolean
   def dateOfLastSubscription:              LocalDate
   def totalCurrentYearSubscriptionsToDate: BigDecimal
   def marketValueOfAccount:                BigDecimal
@@ -38,62 +37,44 @@ trait IsaAccount {
 object IsaAccount {
 
   implicit val isaAccountReads: Reads[IsaAccount] = Reads { json =>
-    val reportingATransferPath = (__ \ "reportingATransfer").read[Boolean].reads(json)
-    val closureDatePath        = (__ \ "closureDate").read[JsValue].reads(json).asOpt
-    val amountTransferredPath  = (__ \ "amountTransferred").read[JsValue].reads(json).asOpt
-    val isaTypePath            = (__ \ "isaType").read[IsaType].reads(json)
-    val isaTypeOpt             = isaTypePath.asOpt
-    val reasonForClosurePath   = (__ \ "reasonForClosure").read[JsValue].reads(json).asOpt
+    val closureDatePath      = (__ \ "closureDate").read[JsValue].reads(json).asOpt
+    val isaTypePath          = (__ \ "isaType").read[IsaType].reads(json)
+    val isaTypeOpt           = isaTypePath.asOpt
+    val reasonForClosurePath = (__ \ "reasonForClosure").read[JsValue].reads(json).asOpt
 
     def handleIsaTypeError: JsError = isaTypePath match {
       case JsError(errors) => JsError(errors)
       case _               => JsError("Unknown error")
     }
     def isLifetimeIsaType(opt: Option[IsaType]): Boolean = opt match {
-      case Some(IsaType.LIFETIME_CASH | IsaType.LIFETIME_STOCKS_AND_SHARES) => true
-      case _                                                                => false
+      case Some(IsaType.LIFETIME) => true
+      case _                      => false
     }
 
-    reportingATransferPath.flatMap { reportingATransfer =>
-      (reportingATransfer, isaTypeOpt, closureDatePath, amountTransferredPath, reasonForClosurePath) match {
-        case (true, isaTypeOpt, Some(_), Some(_), _) if isLifetimeIsaType(isaTypeOpt) =>
-          json.validate[LifetimeIsaTransferAndClosure]
+    (isaTypeOpt, closureDatePath, reasonForClosurePath) match {
+      case (Some(LIFETIME), Some(_), Some(_)) =>
+        json.validate[LifetimeIsaClosure]
 
-        case (true, isaTypeOpt, _, _, Some(_)) if isLifetimeIsaType(isaTypeOpt) =>
-          json.validate[LifetimeIsaTransferAndClosure]
+      case (Some(LIFETIME), None, None) =>
+        json.validate[LifetimeIsaSubscription]
 
-        case (true, isaTypeOpt, _, _, _) if isLifetimeIsaType(isaTypeOpt) =>
-          json.validate[LifetimeIsaTransfer]
+      case (Some(_), Some(_), Some(_)) =>
+        json.validate[StandardIsaClosure]
 
-        case (true, Some(_), _, _, _) =>
-          json.validate[StandardIsaTransfer]
+      case (Some(_), None, None) =>
+        json.validate[StandardIsaSubscription]
 
-        case (false, isaTypeOpt, Some(_), _, _) if isLifetimeIsaType(isaTypeOpt) =>
-          json.validate[LifetimeIsaClosure]
-
-        case (false, isaTypeOpt, _, _, Some(_)) if isLifetimeIsaType(isaTypeOpt) =>
-          json.validate[LifetimeIsaClosure]
-
-        case (false, isaTypeOpt, _, _, _) if isLifetimeIsaType(isaTypeOpt) =>
-          json.validate[LifetimeIsaNewSubscription]
-
-        case (false, Some(_), _, _, _) =>
-          json.validate[StandardIsaNewSubscription]
-
-        case (_, None, _, _, _) =>
-          handleIsaTypeError
-      }
+      case (_, _, _) =>
+        handleIsaTypeError
     }
   }
 
   implicit val writes: Writes[IsaAccount] = new Writes[IsaAccount] {
     def writes(report: IsaAccount): JsValue = report match {
-      case lns: LifetimeIsaNewSubscription    => Json.toJson(lns)(LifetimeIsaNewSubscription.format)
-      case lt:  LifetimeIsaTransfer           => Json.toJson(lt)(LifetimeIsaTransfer.format)
-      case ltc: LifetimeIsaTransferAndClosure => Json.toJson(ltc)(LifetimeIsaTransferAndClosure.format)
-      case lc:  LifetimeIsaClosure            => Json.toJson(lc)(LifetimeIsaClosure.format)
-      case sns: StandardIsaNewSubscription    => Json.toJson(sns)(StandardIsaNewSubscription.format)
-      case st:  StandardIsaTransfer           => Json.toJson(st)(StandardIsaTransfer.format)
+      case lifetimeIsaSubscription: LifetimeIsaSubscription => Json.toJson(lifetimeIsaSubscription)(LifetimeIsaSubscription.format)
+      case lifetimeIsaClosure:      LifetimeIsaClosure      => Json.toJson(lifetimeIsaClosure)(LifetimeIsaClosure.format)
+      case standardIsaSubscription: StandardIsaSubscription => Json.toJson(standardIsaSubscription)(StandardIsaSubscription.format)
+      case standardIsaClosure:      StandardIsaClosure      => Json.toJson(standardIsaClosure)(StandardIsaClosure.format)
     }
   }
 
