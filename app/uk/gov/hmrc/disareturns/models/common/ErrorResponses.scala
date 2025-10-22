@@ -67,11 +67,6 @@ case object MalformedJsonFailureErr extends ErrorResponse {
   val message = "One of the NDJson lines contains malformed JSON"
 }
 
-case object MismatchErr extends ErrorResponse {
-  val code    = "MISMATCH_EXPECTED_VS_RECEIVED"
-  val message = "Number of records declared in the header does not match the number submitted."
-}
-
 object ErrorResponse {
 
   implicit val returnNotFoundErrReads: Reads[ReturnNotFoundErr] = Json.reads[ReturnNotFoundErr]
@@ -92,8 +87,7 @@ object ErrorResponse {
     UnauthorisedErr.code            -> UnauthorisedErr,
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
-    MalformedJsonFailureErr.code    -> MalformedJsonFailureErr,
-    MismatchErr.code                -> MismatchErr
+    MalformedJsonFailureErr.code    -> MalformedJsonFailureErr
   )
 
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {
@@ -171,16 +165,12 @@ object ValidationFailureResponse {
         FieldValidationError(
           code = mapJsErrorToResponseCode(validationError.message),
           message = validationError.message match {
-            case "error.path.missing"              => "This field is required"
-            case "error.taxYear.not.whole.integer" => "Tax year must be a valid whole number"
-            case "error.taxYear.in.past"           => "Tax year cannot be in the past"
-            case "error.taxYear.not.current"       => "Tax year must be the current tax year"
-            case "error.taxYear.not.integer"       => "Tax year must be a number"
-            case "error.min"                       => "This field must be greater than or equal to 0"
-            case "error.expected.validenumvalue"   => "Invalid month provided"
-            case "error.expected.enumstring"       => "Invalid month provided must be a string"
-            case "error.expected.jsnumber"         => "This field must be greater than or equal to 0"
-            case other                             => other
+            case "error.path.missing"            => "This field is required"
+            case "error.min"                     => "This field must be greater than or equal to 0"
+            case "error.expected.validenumvalue" => "Invalid month provided"
+            case "error.expected.enumstring"     => "Invalid month provided must be a string"
+            case "error.expected.jsnumber"       => "This field must be greater than or equal to 0"
+            case other                           => other
           },
           path = formatFieldPath(path)
         )

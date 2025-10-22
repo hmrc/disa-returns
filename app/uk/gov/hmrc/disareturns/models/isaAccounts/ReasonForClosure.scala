@@ -14,12 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.ppns.response
+package uk.gov.hmrc.disareturns.models.isaAccounts
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.Format
+import uk.gov.hmrc.disareturns.models.common.JsonUtils
 
-case class BoxCreator(clientId: String)
+object ReasonForClosure extends Enumeration {
+  type ReasonForClosure = Value
 
-object BoxCreator {
-  implicit val format: OFormat[BoxCreator] = Json.format[BoxCreator]
+  val CANCELLED:           Value = Value("CANCELLED")
+  val CLOSED:              Value = Value("CLOSED")
+  val VOID:                Value = Value("VOID")
+  val TRANSFERRED_IN_FULL: Value = Value("TRANSFERRED_IN_FULL")
+  val ALL_FUNDS_WITHDRAWN: Value = Value("ALL_FUNDS_WITHDRAWN")
+
+  implicit val format: Format[ReasonForClosure.Value] = JsonUtils.enumFormat(ReasonForClosure)
+
 }

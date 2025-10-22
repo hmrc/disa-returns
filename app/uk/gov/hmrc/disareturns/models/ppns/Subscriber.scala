@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.initiate.response
+package uk.gov.hmrc.disareturns.models.ppns
 
-import play.api.libs.json.Format
-import uk.gov.hmrc.disareturns.models.common.JsonUtils
+import play.api.libs.json.{Json, OFormat}
 
-object ResponseAction extends Enumeration {
-  type ResponseAction = Value
+import java.time.Instant
 
-  val SUBMIT_RETURN_TO_PAGINATED_API:        Value = Value("SUBMIT_RETURN_TO_PAGINATED_API")
-  val NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION: Value = Value("NIL_RETURN_ACCEPTED_NO_FURTHER_ACTION")
+case class Subscriber(
+  subscribedDateTime: Instant,
+  callBackUrl:        String,
+  subscriptionType:   String
+)
 
-  implicit val format: Format[ResponseAction.Value] = JsonUtils.enumFormat(ResponseAction)
-
+object Subscriber {
+  implicit val format: OFormat[Subscriber] = Json.format[Subscriber]
 }

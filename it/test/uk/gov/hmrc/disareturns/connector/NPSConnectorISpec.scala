@@ -38,7 +38,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
         await(connector.submit(testIsaManagerReferenceNumber, Nil).value)
 
       response.status shouldBe NO_CONTENT
-      response.body    shouldBe ""
+      response.body   shouldBe ""
     }
 
     "return Left(UpstreamErrorResponse) when NPS returns an error status (401)" in {
@@ -48,7 +48,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
         await(connector.submit(testIsaManagerReferenceNumber, Nil).value)
 
       err.statusCode shouldBe UNAUTHORIZED
-      err.message     should include("Not authorised")
+      err.message      should include("Not authorised")
     }
 
     "return Left(UpstreamErrorResponse) when the call fails with an unexpected exception" in {
@@ -56,7 +56,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
         await(connector.submit("non-existent", Nil).value)
 
       err.statusCode shouldBe NOT_FOUND
-      err.message     should include("No response could be served as there are no stub mappings in this WireMock instance.")
+      err.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")
     }
   }
 }

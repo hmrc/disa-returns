@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.connectors.response
+package uk.gov.hmrc.disareturns.models.etmp
 
 import play.api.libs.json.{Json, OFormat}
 
-case class EtmpReportingWindow(reportingWindowOpen: Boolean)
+case class EtmpObligations(obligationAlreadyMet: Boolean)
 
-object EtmpReportingWindow {
-  implicit val format: OFormat[EtmpReportingWindow] = Json.format[EtmpReportingWindow]
+object EtmpObligations {
+  implicit val format: OFormat[EtmpObligations] = Json.format[EtmpObligations]
 }

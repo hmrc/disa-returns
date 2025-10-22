@@ -24,9 +24,9 @@ import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
-import uk.gov.hmrc.disareturns.connectors.response.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.controllers.DeclarationController
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ObligationClosed, ReportingWindowClosed}
+import uk.gov.hmrc.disareturns.models.etmp.{EtmpObligations, EtmpReportingWindow}
 import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.http.HttpResponse
 import utils.BaseUnitSpec

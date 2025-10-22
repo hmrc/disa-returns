@@ -41,7 +41,6 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
 import play.api.test.DefaultAwaitTimeout
-import uk.gov.hmrc.disareturns.repositories.ReturnMetadataRepository
 import uk.gov.hmrc.disareturns.utils.WiremockHelper.{wiremockHost, wiremockPort}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -65,17 +64,17 @@ trait BaseIntegrationSpec
 
   def config: Map[String, String] =
     Map(
-      "auditing.enabled"                -> "false",
-      "microservice.services.etmp.host" -> wiremockHost,
-      "microservice.services.etmp.port" -> wiremockPort.toString,
-      "microservice.services.ppns.host" -> wiremockHost,
-      "microservice.services.ppns.port" -> wiremockPort.toString,
-      "microservice.services.auth.host" -> wiremockHost,
-      "microservice.services.auth.port" -> wiremockPort.toString,
-      "microservice.services.nps.host"  -> wiremockHost,
-      "microservice.services.nps.port"  -> wiremockPort.toString,
-      "microservice.services.self.host" -> wiremockHost,
-      "microservice.services.self.port" -> wiremockPort.toString,
+      "auditing.enabled"                  -> "false",
+      "microservice.services.etmp.host"   -> wiremockHost,
+      "microservice.services.etmp.port"   -> wiremockPort.toString,
+      "microservice.services.ppns.host"   -> wiremockHost,
+      "microservice.services.ppns.port"   -> wiremockPort.toString,
+      "microservice.services.auth.host"   -> wiremockHost,
+      "microservice.services.auth.port"   -> wiremockPort.toString,
+      "microservice.services.nps.host"    -> wiremockHost,
+      "microservice.services.nps.port"    -> wiremockPort.toString,
+      "microservice.services.self.host"   -> wiremockHost,
+      "microservice.services.self.port"   -> wiremockPort.toString,
       "urls.returnResultsSummaryLocation" -> "/monthly/{isaManagerReference}/{returnId}/results/summary"
     )
 
@@ -94,9 +93,8 @@ trait BaseIntegrationSpec
     super.beforeEach()
   }
 
-  implicit val mat:                         Materializer                    = app.injector.instanceOf[Materializer]
-  implicit val ws:                          WSClient                        = app.injector.instanceOf[WSClient]
-  implicit val returnMetadataRepository:    ReturnMetadataRepository        = app.injector.instanceOf[ReturnMetadataRepository]
-  implicit val executionContext:            ExecutionContext                = app.injector.instanceOf[ExecutionContext]
+  implicit val mat:              Materializer     = app.injector.instanceOf[Materializer]
+  implicit val ws:               WSClient         = app.injector.instanceOf[WSClient]
+  implicit val executionContext: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
 }
