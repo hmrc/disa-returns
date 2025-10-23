@@ -55,7 +55,7 @@ class SubmitReturnsController @Inject() (
       ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
         case Left(errors) =>
           Future.successful(BadRequest(Json.toJson(errors)))
-        case Right(_) =>
+        case Right((isaManagerReferenceNumber, _, _)) =>
           etmpService
             .validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
             .flatMap {

@@ -50,13 +50,13 @@ class DeclarationController @Inject() (
       ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
         case Left(errors) =>
           Future.successful(BadRequest(Json.toJson(errors)))
-        case Right(_) =>
+        case Right((isaManagerReferenceNumber, _, _)) =>
           val result: EitherT[Future, ErrorResponse, Option[String]] = for {
-            _        <- EitherT(etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber))
-            _        <- etmpService.declaration(isaManagerReferenceNumber)
-            _        <- npsService.notification(isaManagerReferenceNumber)
-            response <- EitherT(ppnsService.getBoxId(request.clientId))
-          } yield response
+            _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber))
+            _             <- etmpService.declaration(isaManagerReferenceNumber)
+            _             <- npsService.notification(isaManagerReferenceNumber)
+            boxIdResponse <- EitherT(ppnsService.getBoxId(request.clientId))
+          } yield boxIdResponse
           result.fold(
             error => HttpHelper.toHttpError(error),
             optBoxId => Ok(Json.toJson(successfulResponse(isaManagerReferenceNumber, taxYear, month, optBoxId)))
