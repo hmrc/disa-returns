@@ -2,28 +2,28 @@ openapi: 3.0.3
 
 info:
   version: 1.0.0
-  title: DISA Returns API
+  title: Manage ISAs API
   description: |
     # Overview
-    Use this API to submit monthly returns of current-year ISA subscription data. 
-    Before you can use the API, you must be approved by HMRC as an ISA provider and enrolled for digital ISA returns. 
-    If you are not yet approved, you can apply for both approval and enrolment through the DISA registration service.
+    Use this API to submit monthly reports of current-year ISA subscription data. 
+    Before you can use the API, you must be approved by HMRC as an ISA manager. 
+    In future, enrolment for digital ISA reporting will also be required.
 
     # Supported use cases
-    - Submit monthly returns of current-year subscription data, including related transfers, withdrawals and corrections.
-    - Check the status of submitted returns to confirm processing or availability of results.
-    - Retrieve reconciliation results to identify accepted records and correct any errors.
+    - Submit monthly reports of current-year subscription data, including transfers and withdrawals.
+    - Check the status of submitted reports to confirm processing.
+    - Retrieve reconciliation results in batches using pagination.
 
     # Integration requirements
     - REST API using JSON over HTTPS.
-    - Each return must cover activity from the 6th of one month to the 5th of the next.
-    - You must submit your monthly return between the 6th and midnight on the 19th.
+    - Each report must cover activity from the 6th of one month to the 5th of the next.
+    - You must submit your monthly report between the 6th and 23:59 on the 19th.
     - Authentication uses the OAuth 2.0 client credentials grant.
-    - All API calls require a unique identifier (Z-Reference) assigned by HMRC to each approved provider.
+    - All API calls require a unique identifier (Z-Reference) assigned by HMRC to each approved ISA manager.
 
     # Support
     If you need help, complete the [support form](https://developer.service.hmrc.gov.uk/developer/support). 
-    The HMRC Software Developers Support Team will reply within 2 working days.
+    HMRC's Software Developers Support Team will reply within two working days.
 
 servers:
   - url: https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return
@@ -32,27 +32,50 @@ servers:
     description: Production
 
 tags:
-  - name: Monthly Returns Submission
+  - name: Submit monthly report
     description: |
-      Submit a complete monthly return for ISA subscription data. Initialise a reporting period, upload account records, 
-      and mark the return as complete to trigger validation and processing by HMRC.
-  - name: Monthly Return Results
+      To submit a monthly report, you must follow a two-step process:
+      1. Submit one or more batches of account records.
+      2. Mark the report as complete after all account records have been submitted.
+      
+      Both steps must be completed in order. 
+      A report is considered submitted only after it has been marked as complete, and it cannot be amended after submission.
+
+  - name: Check report results
     description: |
-      Check the status of a submitted return and retrieve the reconciliation results when available. 
+      After a monthly report is marked complete and the reporting window closes, 
+      HMRC will begin a process that reconciles your submission against other ISA managers' submissions. 
+      This will involve validation against business rules and checks on each investor's eligibility and their annual ISA subscription limits.
+
+      You can check the status of a submitted report and retrieve the reconciliation results when available. 
       Reconciliation results include accepted records and details of any reconciliation issues. 
       Results are paginated to support large datasets.
 
 paths:
   /monthly/{isaManagerReferenceNumber}/{taxYear}/{month}:
     post:
-      summary: Submit a batch of monthly return data
+      summary: Submit monthly report data
       description: |
-        Use this endpoint to submit a batch of account records for the specified 
-        monthly return. The payload size of each request must not exceed 10 MB. 
-        Ensure you have submitted all records for the month before calling the declaration endpoint.
-      operationId: submitMonthlyReturn
+        Use this endpoint to upload a batch of account records. 
+        A batch is a single payload containing multiple records for the specified monthly report. The payload size of each request must not exceed 10 MB. 
+        
+        The API checks whether the reporting window is open and whether a report has already been submitted for the specified tax year and report month. 
+        If either condition is not met, the API returns a `403 Forbidden` response.
+
+        If the request is permitted:
+        - the payload is validated against the expected structure
+        - business validation rules are not applied at this stage
+
+        If structural validation fails, the API returns a `400 Bad Request` response. 
+        For example, a missing National Insurance number or account number will cause the request to fail. 
+        Valid records will be processed only after the report is marked as complete.
+        
+        A successful submission returns a `204 No Content` response. 
+        
+        Submit all data batches before completing the monthly report.
+      operationId: submitMonthlyReport
       tags:
-        - Monthly Returns Submission
+        - Submit monthly report
       security:
         - userRestricted:
             - write:isa-returns
@@ -60,7 +83,7 @@ paths:
         - name: isaManagerReferenceNumber
           in: path
           description: |
-            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA provider. Format: 'Zxxxx'.
+            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
@@ -71,7 +94,7 @@ paths:
         - name: taxYear
           in: path
           description: |
-            Tax year of the return
+            Tax year of the report.
           required: true
           style: simple
           explode: false
@@ -82,7 +105,7 @@ paths:
         - name: month
           in: path
           description: |
-            Month of the return
+            Month of the report.
           required: true
           style: simple
           explode: false
@@ -124,7 +147,7 @@ paths:
                   - $ref: '#/components/schemas/badSubmissionGeneral'
                   - $ref: '#/components/schemas/badSubmissionComplex'
         401:
-          description: Unauthorised
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -175,12 +198,24 @@ paths:
                     example: "Unexpected Error"
   /monthly/{isaManagerReferenceNumber}/{taxYear}/{month}/declaration:
     post:
-      summary: Declare that the submission is complete
+      summary: Declare monthly report as complete
       description: |
-        Use this endpoint to declare that the submission is complete. This will prevent any further submissions this month. Please be aware that this is equivalent to signing a legal declaration.
-      operationId: declareComplete
+        Use this endpoint to confirm that all data has been submitted. 
+        Declaring a monthly report as complete is a legal confirmation that all 
+        account data for the period has been fully and accurately reported to HMRC. 
+        After this step, no further data can be added for that month. 
+        
+        The API checks whether the reporting window is open and whether a report has 
+        already been submitted for the specified tax year and report month. 
+        If either condition is not met, the API returns a `403 Forbidden` response.
+        
+        If the submission completes successfully, the response includes:
+        - a confirmation that the report is complete
+        - a URL to retrieve the results summary after the reporting window closes
+        - a box ID for the Push-Pull Notifications Service (PPNS)
+      operationId: declareMonthlyReportComplete
       tags:
-        - Monthly Returns Submission
+        - Submit monthly report
       security:
         - userRestricted:
             - write:isa-returns
@@ -188,7 +223,7 @@ paths:
         - name: isaManagerReferenceNumber
           in: path
           description: |
-            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA provider. Format: 'Zxxxx'.
+            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
@@ -199,7 +234,7 @@ paths:
         - name: taxYear
           in: path
           description: |
-            Tax year of the return
+            Tax year of the report.
           required: true
           style: simple
           explode: false
@@ -210,7 +245,7 @@ paths:
         - name: month
           in: path
           description: |
-            Month of the return
+            Month of the report.
           required: true
           style: simple
           explode: false
@@ -240,18 +275,18 @@ paths:
               schema:
                 type: object
                 properties:
-                  returnResultsSummaryLocation:
+                  reportResultsSummaryLocation:
                     type: string
                     format: uri
-                    description: Use this URL to retrieve the return results summary after the reporting window closes.
+                    description: Use this URL to retrieve the report results summary once the reporting window closes.
                     example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/monthly/Z1234/2025-26/APR/results/summary'
                   boxId:
                     type: string
                     format: guid
-                    description: Unique identifier of the PPNS box in use for notifications
+                    description: Unique identifier of the PPNS box in use for notifications.
                     example: "1c5b9365-18a6-55a5-99c9-83a091ac7f26"
         401:
-          description: Unauthorised
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -302,13 +337,21 @@ paths:
                     example: "Unexpected Error"
   /monthly/{isaManagerReferenceNumber}/{taxYear}/{month}/results/summary:
     get:
-      summary: Check return results summary status
+      summary: Get report summary
       description: |
-        Use this endpoint to check whether the results summary for the specified return is available. 
-          If it is, the API returns a URL to retrieve the monthly return results.
-      operationId: checkReturnSummaryStatus
+        After you submit a monthly report, HMRC processes the data and generates a results summary, 
+        which provides high-level information about the submission. 
+        You can access a results summary only after the reporting window closes. 
+        Use this endpoint to find out whether the results summary is available for a submitted report.
+        
+        If the request is successful, the response includes:
+        - a URL to retrieve the results summary
+        - pagination details, including total records and total pages
+        
+        If the results summary is not yet available or the report is not found, the API returns a `404 Not Found` response.
+      operationId: getReportSummaryStatus
       tags:
-        - Monthly Return Results
+        - Check report results
       security:
         - userRestricted:
             - read:isa-returns
@@ -316,7 +359,7 @@ paths:
         - name: isaManagerReferenceNumber
           in: path
           description: |
-            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA provider. Format: 'Zxxxx'.
+            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
@@ -327,7 +370,7 @@ paths:
         - name: taxYear
           in: path
           description: |
-            Tax year of the return
+            Tax year of the report.
           required: true
           style: simple
           explode: false
@@ -338,7 +381,7 @@ paths:
         - name: month
           in: path
           description: |
-            Month of the return
+            Month of the report.
           required: true
           style: simple
           explode: false
@@ -362,7 +405,7 @@ paths:
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         200:
-          description: Results are now available for the specified monthly return.
+          description: Results are now available for the specified monthly report.
           content:
             application/json:
               schema:
@@ -371,18 +414,18 @@ paths:
                   returnResultsLocation:
                     type: string
                     format: uri
-                    description: Use this URL to retrieve the results of the specified return.
+                    description: Use this URL to retrieve the results of the specified report.
                     example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/monthly/Z1234/2025-26/APR/results?page=1'
                   totalRecords:
                     type: integer
-                    description: Total number of records in the return results.
+                    description: Total number of records in the report results.
                     example: 10000
                   numberOfPages:
                     type: integer
                     description: Total number of pages in the result set.
                     example: 2
         401:
-          description: Unauthorised
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -433,13 +476,21 @@ paths:
 
   /monthly/{isaManagerReferenceNumber}/{taxYear}/{month}/results:
     get:
-      summary: Retrieve reconciliation results for the the months return
+      summary: Get report reconciliation results
       description: |
-        Use this endpoint to retrieve results for the specified monthly return's reconciliation. 
-        The API returns results in paginated batches.
-      operationId: getReconciliationResults
+        After the results summary is available, use this endpoint to retrieve the reconciliation results for the monthly report. 
+        The API returns reconciliation results in paginated batches. 
+        These show which records were accepted and which were rejected, including error messages where applicable.
+        
+        If the request is successful, the response includes:
+        - pagination information, including page number, total pages, and total records
+        - the reconciliation results for the current page, including record-level identifiers and any reconciliation errors
+        
+        If the reconciliation results are not yet available, or if the specified page or report is not found, 
+        the API returns a `404 Not Found` response.
+      operationId: getReportReconciliationResults
       tags:
-        - Monthly Return Results
+        - Check report results
       security:
         - userRestricted:
             - read:isa-returns
@@ -447,7 +498,7 @@ paths:
         - name: isaManagerReferenceNumber
           in: path
           description: |
-            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA provider. Format: 'Zxxxx'.
+            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
@@ -458,7 +509,7 @@ paths:
         - name: taxYear
           in: path
           description: |
-            Tax year of the return
+            Tax year of the report.
           required: true
           style: simple
           explode: false
@@ -469,7 +520,7 @@ paths:
         - name: month
           in: path
           description: |
-            Month of the return
+            Month of the report.
           required: true
           style: simple
           explode: false
@@ -493,7 +544,7 @@ paths:
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         200:
-          description: Reconciliation results for the specified page of the monthly return.
+          description: Reconciliation results for the specified page of the monthly report.
           content:
             application/json:
               schema:
@@ -509,7 +560,7 @@ paths:
                     example: 8000
                   totalRecords:
                     type: integer
-                    description: Total number of records in the return results.
+                    description: Total number of records in the report results.
                     example: 10000
                   totalNumberOfPages:
                     type: integer
@@ -519,9 +570,9 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/returnResult'
-                    description: The return results for the specified page.
+                    description: The report results for the specified page.
         401:
-          description: Unauthorised
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -546,7 +597,7 @@ paths:
                   code:
                     title: Error Code Types
                     type: string
-                    description: Types of errors encountered
+                    description: Types of errors encountered.
                     enum:
                       - RETURN_NOT_FOUND
                       - PAGE_NOT_FOUND
@@ -626,7 +677,7 @@ components:
           example: 12345678
         nino:
           type: string
-          description: The National Insurance Number of the account holder.
+          description: The National Insurance number of the account holder.
           example: AB123456C
           pattern: ^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$
         firstName:
@@ -815,7 +866,7 @@ components:
           example: 12345678
         nino:
           type: string
-          description: The National Insurance Number of the account holder.
+          description: The National Insurance number of the account holder.
           example: AB123456C
           pattern: ^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$
         issueIdentified:
@@ -828,7 +879,7 @@ components:
       properties:
         code:
           type: string
-          description: The result of the return submission.
+          description: The result of the report submission.
           enum:
             - OVER_SUBSCRIBED
           example: OVER_SUBSCRIBED
@@ -843,7 +894,7 @@ components:
       properties:
         code:
           type: string
-          description: The result of the return submission.
+          description: The result of the report submission.
           enum:
             - UNABLE_TO_IDENTIFY_INVESTOR
           example: UNABLE_TO_IDENTIFY_INVESTOR
@@ -856,13 +907,13 @@ components:
       properties:
         code:
           type: string
-          description: The result of the return submission
+          description: The result of the report submission.
           enum:
             - INELIGIBLE
           example: INELIGIBLE
         message:
           type: string
-          description: The reason for the state eligibility
+          description: The reason for the state eligibility.
           example: This account holder is too young
     badSubmissionGeneral:
       title: Bad Request (General Issue)
@@ -871,7 +922,7 @@ components:
         code:
           title: Validation Failure Code
           type: string
-          description: Code indicating the type of error
+          description: Code indicating the type of error.
           enum:
             - MISSING_NINO_OR_ACC_NUM
             - INVALID_NINO_OR_ACC_NUM
@@ -882,7 +933,7 @@ components:
         message:
           title: Detailed Message
           type: string
-          description: Message describing the details of the validation error
+          description: Message describing the details of the validation error.
     badSubmissionComplex:
       title: Bad Request (Field Specific)
       type: object
@@ -890,13 +941,13 @@ components:
         code:
           title: Validation Failure
           type: string
-          description: Code indicating the type of error
+          description: Code indicating the type of error.
           enum:
             - VALIDATION_FAILURE
         message:
           title: Message
           type: string
-          description: Human readable message outlining the error
+          description: Human-readable message outlining the error.
           example: "One or more models failed validation"
         errors:
           title: Errors
@@ -912,22 +963,22 @@ components:
         nino:
           title: National Insurance Number
           type: string
-          description: National Insurance Number associated with the record failing validation
+          description: National Insurance number associated with the record failing validation.
         accountNumber:
           title: Account Number
           type: string
-          description: Account Number associated with the record failing validation
+          description: Account Number associated with the record failing validation.
         code:
           title: Validation Failure
           type: string
-          description: Code indicating the type of error
+          description: Code indicating the type of error.
           enum:
             - INVALID_FIELD
             - MISSING_FIELD
         message:
           title: Message
           type: string
-          description: Human readable message outlining the error
+          description: Human readable message outlining the error.
           example: "Last name field is missing"
 
 
