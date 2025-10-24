@@ -146,6 +146,7 @@ paths:
                 oneOf:
                   - $ref: '#/components/schemas/badSubmissionGeneral'
                   - $ref: '#/components/schemas/badSubmissionComplex'
+                  - $ref: '#/components/schemas/badRequestParameters'
         401:
           description: Unauthorized
           content:
@@ -285,6 +286,13 @@ paths:
                     format: guid
                     description: Unique identifier of the PPNS box in use for notifications.
                     example: "1c5b9365-18a6-55a5-99c9-83a091ac7f26"
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/badRequestParameters'
         401:
           description: Unauthorized
           content:
@@ -424,6 +432,14 @@ paths:
                     type: integer
                     description: Total number of pages in the result set.
                     example: 2
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/badRequestParameters'
+
         401:
           description: Unauthorized
           content:
@@ -578,6 +594,27 @@ paths:
                     items:
                       $ref: '#/components/schemas/returnResult'
                     description: The report results for the specified page.
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Parameter Failure Code
+                    type: string
+                    description: Code indicating the type of error
+                    enum:
+                      - INVALID_Z_REFERENCE
+                      - INVALID_TAX_YEAR
+                      - INVALID_MONTH
+                      - INVALID_PAGE
+                  message:
+                    title: Description of error
+                    type: string
+                    description: Message describing error detail
+                    example: "Page number A5 is invalid"
         401:
           description: Unauthorized
           content:
@@ -856,7 +893,7 @@ components:
                   reasonForClosure:
                     type: string
                     description: The reason for the closure of the ISA account.
-                    example: ALL_FUNDS_WITHDRAWN
+                    example: VOID
                     enum:
                       - CANCELLED
                       - CLOSED
