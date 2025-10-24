@@ -498,6 +498,8 @@ paths:
         The API returns reconciliation results in paginated batches. 
         These show which records were accepted and which were rejected, including error messages where applicable.
         
+        Optionally, include a page query parameter to request a specific page of results.
+        
         If the request is successful, the response includes:
         - pagination information, including page number, total pages, and total records
         - the reconciliation results for the current page, including record-level identifiers and any reconciliation errors
