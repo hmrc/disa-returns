@@ -935,6 +935,7 @@ components:
             - INVALID_MONTH
             - INVALID_Z_REFERENCE
             - MALFORMED_JSON
+            - EMPTY_PAYLOAD
         message:
           title: Detailed Message
           type: string
