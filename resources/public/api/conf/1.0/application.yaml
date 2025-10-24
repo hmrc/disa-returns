@@ -158,10 +158,10 @@ paths:
                     type: string
                     description: Error Code
                     enum:
-                      - UNAUTHORISED
+                      - UNAUTHORIZED
                   message:
                     type: string
-                    example: Unauthorised
+                    example: Unauthorized
         403:
           description: Forbidden
           content:
@@ -297,10 +297,10 @@ paths:
                     type: string
                     description: Error Code
                     enum:
-                      - UNAUTHORISED
+                      - UNAUTHORIZED
                   message:
                     type: string
-                    example: Unauthorised
+                    example: Unauthorized
         403:
           description: Forbidden
           content:
@@ -436,10 +436,10 @@ paths:
                     type: string
                     description: Error Code
                     enum:
-                      - UNAUTHORISED
+                      - UNAUTHORIZED
                   message:
                     type: string
-                    example: Unauthorised
+                    example: Unauthorized
         404:
           description: Not Found
           content:
@@ -540,6 +540,13 @@ paths:
               - OCT
               - NOV
               - DEC
+        - name: page
+          in: query
+          description: |
+            Page of records in the report to return. Defaults to 0
+          schema:
+            type: number
+            example: 3
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
@@ -583,10 +590,10 @@ paths:
                     type: string
                     description: Error Code
                     enum:
-                      - UNAUTHORISED
+                      - UNAUTHORIZED
                   message:
                     type: string
-                    example: Unauthorised
+                    example: Unauthorized
         404:
           description: Not Found
           content:
@@ -674,7 +681,7 @@ components:
         accountNumber:
           type: string
           description: The account number of the ISA account.
-          example: 12345678
+          example: "12345678"
         nino:
           type: string
           description: The National Insurance number of the account holder.
@@ -787,7 +794,6 @@ components:
                   reasonForClosure:
                     type: string
                     description: The reason for the closure of the ISA account.
-                    example: ALL_FUNDS_WITHDRAWN
                     enum:
                       - CANCELLED
                       - CLOSED
@@ -815,7 +821,6 @@ components:
                   isaType:
                     type: string
                     description: The type of ISA account.
-                    example: CASH
                     enum:
                       - CASH
                       - STOCK_AND_SHARES
@@ -863,7 +868,7 @@ components:
         accountNumber:
           type: string
           description: The account number of the ISA account.
-          example: 12345678
+          example: "12345678"
         nino:
           type: string
           description: The National Insurance number of the account holder.
@@ -975,10 +980,23 @@ components:
           enum:
             - INVALID_FIELD
             - MISSING_FIELD
+            - DUPLICATE_ITEM
         message:
           title: Message
           type: string
           description: Human readable message outlining the error.
           example: "Last name field is missing"
+    badRequestParameters:
+      type: object
+      properties:
+        code:
+          title: Parameter Failure Code
+          type: string
+          description: Code indicating the type of error
+          enum:
+            - INVALID_Z_REFERENCE
+            - INVALID_TAX_YEAR
+            - INVALID_MONTH
+
 
 
