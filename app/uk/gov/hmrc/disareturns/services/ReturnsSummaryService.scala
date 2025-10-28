@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.disareturns.services
 
+import play.api.Logging
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.common.Month.Month
@@ -30,19 +31,25 @@ import scala.concurrent.{ExecutionContext, Future}
 class ReturnsSummaryService @Inject() (
   summaryRepo: MonthlyReturnsSummaryRepository,
   appConfig:   AppConfig
-)(implicit ec: ExecutionContext) {
+)(implicit ec: ExecutionContext)
+    extends Logging {
 
-  def saveReturnsSummary(summary: MonthlyReturnsSummary): Future[Either[ErrorResponse, Unit]] =
+  def saveReturnsSummary(summary: MonthlyReturnsSummary): Future[Either[ErrorResponse, Unit]] = {
+    logger.info(s"Saving return summary for IM ref: [${summary.zRef}]")
+
     summaryRepo
       .upsert(summary)
       .map(_ => Right(()))
       .recover { case e => Left(InternalServerErr(e.getMessage)) }
+  }
 
   def retrieveReturnSummary(
     isaManagerReferenceNumber: String,
     taxYear:                   String,
     month:                     Month
   ): Future[Either[ErrorResponse, ReturnSummaryResults]] = {
+    logger.info(s"Retrieving return summary for IM ref: [$isaManagerReferenceNumber]")
+
     lazy val returnResultsLocation = appConfig.getReturnResultsLocation(isaManagerReferenceNumber, taxYear, month)
     def returnSummaryResults(totalRecords: Int) =
       ReturnSummaryResults(returnResultsLocation, totalRecords, appConfig.getNoOfPagesForReturnResults(totalRecords))
