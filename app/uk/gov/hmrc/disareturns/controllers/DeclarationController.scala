@@ -61,11 +61,11 @@ class DeclarationController @Inject() (
           } yield boxIdResponse
           result.fold(
             error => {
-              logger.error(s"Failed to declare return for IM ref: [$isaManagerReferenceNumber] with error: [$error]")
+              logger.error(s"Failed to declare return for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] with error: [$error]")
               HttpHelper.toHttpError(error)
             },
             optBoxId => {
-              logger.info(s"Declaration of return successful for IM ref: [$isaManagerReferenceNumber]")
+              logger.info(s"Declaration of return successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
               Ok(Json.toJson(successfulResponse(isaManagerReferenceNumber, taxYear, month, optBoxId)))
             }
           )

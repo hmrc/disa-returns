@@ -30,7 +30,7 @@ object ValidationHelper extends Logging {
       Option.unless(Month.isValid(month))(BadRequestErr("Invalid parameter for month"))
     ).flatten
     if (errors.nonEmpty) {
-      logger.warn(s"Failed validation with errors: $errors")
+      logger.warn(s"Failed path parameter validation with errors: [$errors]")
       Left(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", errors))
     } else Right((isaManagerReferenceNumber.toUpperCase, year, Month.withName(month)))
   }

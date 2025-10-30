@@ -48,7 +48,7 @@ class ReturnsSummaryService @Inject() (
     taxYear:                   String,
     month:                     Month
   ): Future[Either[ErrorResponse, ReturnSummaryResults]] = {
-    logger.info(s"Retrieving return summary for IM ref: [$isaManagerReferenceNumber]")
+    logger.info(s"Retrieving return summary for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
 
     lazy val returnResultsLocation = appConfig.getReturnResultsLocation(isaManagerReferenceNumber, taxYear, month)
     def returnSummaryResults(totalRecords: Int) =

@@ -50,13 +50,13 @@ class ReturnsSummaryController @Inject() (
         case Right((isaManagerReferenceNumber, taxYear, month)) =>
           returnsSummaryService.retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month).map {
             case Left(e: InternalServerErr) =>
-              logger.error(s"Failed to retrieve return summary for IM ref: [$isaManagerReferenceNumber] due to error: [$e]")
+              logger.error(s"Failed to retrieve return summary for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] due to error: [$e]")
               InternalServerError(Json.toJson(e))
             case Left(e: ReturnNotFoundErr) =>
               logger.warn(s"Return summary not found for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
               NotFound(Json.toJson(e))
             case Right(summary) =>
-              logger.info(s"Retrieval of return summary successful for IM ref: [$isaManagerReferenceNumber] with summary: [$summary]")
+              logger.info(s"Retrieval of return summary successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
               Ok(Json.toJson(summary))
           }
       }
@@ -71,11 +71,11 @@ class ReturnsSummaryController @Inject() (
 
           case Right((isaManagerReferenceNumber, taxYear, month)) =>
             returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(isaManagerReferenceNumber, taxYear, month, req.totalRecords)).map {
-              case Right(summary) =>
-                logger.info(s"Callback with return summary successful with summary: [$summary]")
+              case Right(_) =>
+                logger.info(s"Callback with return summary successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
                 NoContent
               case Left(e: InternalServerErr) =>
-                logger.error(s"Return summary callback failed for IM ref: [$isaManagerReferenceNumber] due to error: [$e]")
+                logger.error(s"Return summary callback failed for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] due to error: [$e]")
                 InternalServerError(Json.toJson(e))
             }
         }
