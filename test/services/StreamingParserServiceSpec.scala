@@ -26,7 +26,6 @@ import uk.gov.hmrc.disareturns.models.isaAccounts._
 import uk.gov.hmrc.disareturns.services.StreamingParserService
 import utils.BaseUnitSpec
 
-import java.time.LocalDate
 import scala.concurrent.ExecutionContext
 
 class StreamingParserServiceSpec extends BaseUnitSpec {
@@ -35,24 +34,6 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
     implicit val ec:           ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
     implicit val materializer: Materializer     = app.materializer
     val service = new StreamingParserService
-
-    val testLifetimeIsaSubscription: LifetimeIsaSubscription = LifetimeIsaSubscription(
-      accountNumber = "LISA123456",
-      nino = "AB123456C",
-      firstName = "Alice",
-      middleName = Some("Jane"),
-      lastName = "Smith",
-      dateOfBirth = LocalDate.of(1994, 7, 7),
-      isaType = IsaType.CASH,
-      amountTransferredIn = 250.00,
-      amountTransferredOut = 250.00,
-      dateOfFirstSubscription = LocalDate.of(2018, 7, 7),
-      dateOfLastSubscription = LocalDate.of(2022, 7, 7),
-      totalCurrentYearSubscriptionsToDate = 4000,
-      marketValueOfAccount = 25000,
-      lisaQualifyingAddition = 500,
-      lisaBonusClaim = 1000.00
-    )
   }
 
   "processSource" should {

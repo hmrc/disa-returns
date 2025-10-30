@@ -88,17 +88,6 @@ object JsonValidation {
       JsError("error.expected.lifetime.isatype")
   }
 
-//  val standardIsaTypeReads: Reads[IsaType] = Reads[IsaType] {
-//    case JsString(s) if s != IsaType.LIFETIME.toString =>
-//      Try(IsaType.withName(s))
-//        .map(JsSuccess(_))
-//        .getOrElse(JsError("error.expected.standard.isatype"))
-//    case JsString(_) =>
-//      JsError("error.expected.standard.isatype")
-//    case _ =>
-//      JsError("error.expected.standard.isatype")
-//  }
-
   val standardIsaTypeReads: Reads[IsaType] = Reads {
     case JsString(s) =>
       Try(IsaType.withName(s)) match {
