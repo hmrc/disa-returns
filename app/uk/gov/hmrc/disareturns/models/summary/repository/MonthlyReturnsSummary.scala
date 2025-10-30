@@ -16,9 +16,7 @@
 
 package uk.gov.hmrc.disareturns.models.summary.repository
 
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
@@ -34,31 +32,10 @@ case class MonthlyReturnsSummary(
 )
 
 object MonthlyReturnsSummary {
-  implicit val format: OFormat[MonthlyReturnsSummary] = Json.format[MonthlyReturnsSummary]
 
-  val mongoFormat: OFormat[MonthlyReturnsSummary] = {
-    implicit val instantFormat: Format[Instant] = Format(MongoJavatimeFormats.instantReads, MongoJavatimeFormats.instantWrites)
+  implicit val instantFormat: Format[Instant] =
+    Format(MongoJavatimeFormats.instantReads, MongoJavatimeFormats.instantWrites)
 
-    val r: Reads[MonthlyReturnsSummary] = (
-      (__ \ "zRef").read[String] and
-        (__ \ "taxYear").read[String] and
-        (__ \ "month").format[Month.Value] and
-        (__ \ "totalRecords").read[Int] and
-        (__ \ "createdAt").read[Instant] and
-        (__ \ "updatedAt").read[Instant]
-    )(MonthlyReturnsSummary.apply _)
-
-    val w: OWrites[MonthlyReturnsSummary] = OWrites { m =>
-      Json.obj(
-        "zRef"         -> m.zRef,
-        "taxYear"      -> m.taxYear,
-        "month"        -> m.month.toString,
-        "totalRecords" -> m.totalRecords,
-        "createdAt"    -> m.createdAt,
-        "updatedAt"    -> m.updatedAt
-      )
-    }
-
-    OFormat(r, w)
-  }
+  implicit val mongoFormat: OFormat[MonthlyReturnsSummary] =
+    Json.format[MonthlyReturnsSummary]
 }

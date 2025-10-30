@@ -21,7 +21,7 @@ import play.api.libs.json._
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.common.Month
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InvalidIsaManagerRef, InvalidMonth, InvalidTaxYear, Month, MultipleErrorResponse}
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
@@ -36,18 +36,21 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
     await(repo.collection.drop().toFuture())
   }
 
-  private val zRef         = "Z1234"
-  private val taxYear      = "2025-26"
-  private val monthEnum    = Month.SEP
-  private val monthToken   = monthEnum.toString
-  private val totalRecords = 3
+  private val isaManagerRef = "Z1234"
+  private val taxYear       = "2025-26"
+  private val monthEnum     = Month.SEP
+  private val monthToken    = monthEnum.toString
+  private val totalRecords  = 3
+  val invalidZRef           = "Z1111000000000"
+  val invalidTaxYear        = "2025-27"
+  val invalidMonth          = "SEPT"
 
   private val returnsSummaryJson = Json.obj("totalRecords" -> totalRecords)
 
   "POST /callback/monthly/:zRef/:year/:month" should {
 
     "return 204 and persist a MonthlyReturnsSummary document" in {
-      val result = returnsSummaryCallbackRequest(returnsSummaryJson, zRef, taxYear, monthToken)
+      val result = returnsSummaryCallbackRequest(requestBody = returnsSummaryJson)
 
       result.status mustBe NO_CONTENT
       result.body mustBe empty
@@ -56,36 +59,50 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
       stored must have size 1
       val doc = stored.head
-      doc.zRef mustBe zRef
+      doc.zRef mustBe isaManagerRef
       doc.taxYear mustBe taxYear
       doc.month mustBe monthEnum
       doc.totalRecords mustBe totalRecords
     }
 
     "return 400 with aggregated issues when zRef, taxYear and month are all invalid" in {
-      val invalidZRef    = "Z1111000000000"
-      val invalidTaxYear = "2025-27"
-      val invalidMonth   = "SEPT"
 
       val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), invalidZRef, invalidTaxYear, invalidMonth)
 
       res.status mustBe BAD_REQUEST
+      res.json
+        .as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear, InvalidMonth))
+    }
 
-      (res.json \ "code").as[String] mustBe "BAD_REQUEST"
-      (res.json \ "message").as[String] mustBe "Issue(s) with your request"
+    "return 400 with correct error response when an invalid isaManagerReference is provided" in {
+      val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), isaManagerReference = invalidZRef)
 
-      val errors = (res.json \ "errors").as[Seq[JsValue]]
-      errors.map(e => (e \ "message").as[String]) must contain("ISA Manager Reference Number format is invalid")
-      errors.map(e => (e \ "message").as[String]) must contain("Invalid parameter for tax year")
-      errors.map(e => (e \ "message").as[String]) must contain("Invalid parameter for month")
+      res.status mustBe BAD_REQUEST
+      res.json
+        .as[ErrorResponse] shouldBe InvalidIsaManagerRef
+    }
+
+    "return 400 with correct error response when an invalid taxYear is provided" in {
+      val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), taxYear = invalidTaxYear)
+
+      res.status mustBe BAD_REQUEST
+      res.json
+        .as[ErrorResponse] shouldBe InvalidTaxYear
+    }
+
+    "return 400 with correct error response when an invalid month is provided" in {
+      val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), month = invalidMonth)
+
+      res.status mustBe BAD_REQUEST
+      res.json
+        .as[ErrorResponse] shouldBe InvalidMonth
     }
 
     "return 400 when the JSON body is invalid or missing required fields" in {
-      val res1 = returnsSummaryCallbackRequest(Json.obj(), zRef, taxYear, monthToken)
+      val res1 = returnsSummaryCallbackRequest(Json.obj())
       res1.status mustBe BAD_REQUEST
 
-      val res2 = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> "three"), zRef, taxYear, monthToken)
-      res2.status mustBe BAD_REQUEST
+      val res2 = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> "three"))
     }
   }
 
@@ -93,29 +110,25 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
     "return 200 and a ReturnResultsSummary when the summary exists" in {
       await(repo.collection.drop().toFuture())
-      await(repo.collection.insertOne(MonthlyReturnsSummary(zRef, taxYear, monthEnum, totalRecords)).toFuture())
+      await(repo.collection.insertOne(MonthlyReturnsSummary(isaManagerRef, taxYear, monthEnum, totalRecords)).toFuture())
 
       stubAuth()
       val res: WSResponse =
         await(
-          ws.url(s"http://localhost:$port/monthly/$zRef/$taxYear/$monthToken/results/summary")
+          ws.url(s"http://localhost:$port/monthly/$isaManagerRef/$taxYear/$monthToken/results/summary")
             .withFollowRedirects(follow = false)
             .withHttpHeaders(testHeaders: _*)
             .get()
         )
 
       res.status mustBe OK
-      (res.json \ "returnResultsLocation").as[String] mustBe appConfig.getReturnResultsLocation(zRef, taxYear, monthEnum)
+      (res.json \ "returnResultsLocation").as[String] mustBe appConfig.getReturnResultsLocation(isaManagerRef, taxYear, monthEnum)
       (res.json \ "numberOfPages").as[Int] mustBe appConfig.getNoOfPagesForReturnResults(totalRecords)
       (res.json \ "totalRecords").as[Int] mustBe totalRecords
     }
 
     "return 404 when no summary is found" in {
-      val res = retrieveReturnsSummaryRequest(
-        isaManagerReference = zRef,
-        taxYear = taxYear,
-        month = monthToken
-      )
+      val res = retrieveReturnsSummaryRequest()
 
       res.status mustBe NOT_FOUND
       (res.json \ "code").as[String] mustBe "RETURN_NOT_FOUND"
@@ -124,27 +137,21 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
     "return 400 with aggregated issues when zRef, taxYear and month are invalid" in {
       val res = retrieveReturnsSummaryRequest(
-        isaManagerReference = "Z1111000000000",
-        taxYear = "2025-27",
-        month = "SEPT"
+        isaManagerReference = invalidZRef,
+        taxYear = invalidTaxYear,
+        month = invalidMonth
       )
-
       res.status mustBe BAD_REQUEST
-      (res.json \ "code").as[String] mustBe "BAD_REQUEST"
-      (res.json \ "message").as[String] mustBe "Issue(s) with your request"
-
-      val errors = (res.json \ "errors").as[Seq[JsValue]]
-      errors.map(e => (e \ "message").as[String]) must contain("ISA Manager Reference Number format is invalid")
-      errors.map(e => (e \ "message").as[String]) must contain("Invalid parameter for tax year")
-      errors.map(e => (e \ "message").as[String]) must contain("Invalid parameter for month")
+      res.json
+        .as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear, InvalidMonth))
     }
   }
 
   def retrieveReturnsSummaryRequest(
     headers:             Seq[(String, String)] = testHeaders,
-    isaManagerReference: String,
-    taxYear:             String,
-    month:               String
+    isaManagerReference: String = isaManagerRef,
+    taxYear:             String = taxYear,
+    month:               String = monthEnum.toString
   ): WSResponse = {
     stubAuth()
     await(repo.collection.drop().toFuture())
@@ -161,9 +168,9 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
   def returnsSummaryCallbackRequest(
     requestBody:         JsObject,
-    isaManagerReference: String,
-    taxYear:             String,
-    month:               String,
+    isaManagerReference: String = isaManagerRef,
+    taxYear:             String = taxYear,
+    month:               String = monthEnum.toString,
     headers:             Seq[(String, String)] = Seq("Authorization" -> "mock-bearer-token")
   ): WSResponse = {
     await(repo.collection.drop().toFuture())
@@ -177,5 +184,4 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
         .post(requestBody)
     )
   }
-
 }

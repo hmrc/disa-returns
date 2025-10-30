@@ -26,7 +26,6 @@ import uk.gov.hmrc.disareturns.models.isaAccounts._
 import uk.gov.hmrc.disareturns.services.StreamingParserService
 import utils.BaseUnitSpec
 
-import java.time.LocalDate
 import scala.concurrent.ExecutionContext
 
 class StreamingParserServiceSpec extends BaseUnitSpec {
@@ -35,47 +34,25 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
     implicit val ec:           ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
     implicit val materializer: Materializer     = app.materializer
     val service = new StreamingParserService
-
-    val testIsaAccount: LifetimeIsaTransferAndClosure = LifetimeIsaTransferAndClosure(
-      accountNumber = "LISA123456",
-      nino = "AB123456C",
-      firstName = "Alice",
-      middleName = Some("Jane"),
-      lastName = "Smith",
-      dateOfBirth = LocalDate.of(1994, 7, 7),
-      isaType = IsaType.CASH,
-      reportingATransfer = true,
-      dateOfLastSubscription = LocalDate.of(2022, 7, 7),
-      totalCurrentYearSubscriptionsToDate = BigDecimal(4000),
-      marketValueOfAccount = BigDecimal(25000),
-      accountNumberOfTransferringAccount = "OLDLISA789",
-      amountTransferred = BigDecimal(10000),
-      dateOfFirstSubscription = LocalDate.of(2018, 7, 7),
-      closureDate = LocalDate.of(2023, 7, 7),
-      reasonForClosure = ReasonForClosure.VOID,
-      lisaQualifyingAddition = BigDecimal(500),
-      lisaBonusClaim = BigDecimal("1000.00")
-    )
   }
 
   "processSource" should {
 
     "return a Right when input is a valid IsaAccount" in new Setup {
       val validIsaAccountJson: String =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":250.00,"amountTransferredOut":2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}""".stripMargin
 
       val source: Source[ByteString, NotUsed]              = Source.single(ByteString(validIsaAccountJson + "\n"))
       val result: Either[ValidationError, Seq[IsaAccount]] = service.processSource(source).futureValue
-
       result.isRight           shouldBe true
       result.toOption.get.head shouldBe Json.parse(validIsaAccountJson).as[IsaAccount]
     }
 
     "return a Left when IsaAccount fails domain validation with missing first name" in new Setup {
       val invalidIsaAccountJson1: String =
-        """{"accountNumber":"STD000001","nino":"AB000001C","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+        """{"accountNumber":"STD000001","nino":"AB000001C","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","flexibleIsa":false}"""
       val invalidIsaAccountJson2: String =
-        """{"accountNumber":"STD000002","nino":"AB000001C","firstName":"Jeff","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","amountTransferred":5000.00,"flexibleIsa":false}"""
+        """{"accountNumber":"STD000002","nino":"AB000001C","firstName":"Jeff","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000001","flexibleIsa":false}"""
 
       val source: Source[ByteString, NotUsed]              = Source.single(ByteString(invalidIsaAccountJson1 + "\n" + invalidIsaAccountJson2 + "\n"))
       val result: Either[ValidationError, Seq[IsaAccount]] = service.processSource(source).futureValue

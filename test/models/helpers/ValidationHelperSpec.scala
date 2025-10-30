@@ -18,7 +18,8 @@ package models.helpers
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.disareturns.models.common.Month
+import uk.gov.hmrc.disareturns.models.common.Month._
+import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 
 class ValidationHelperSpec extends AnyWordSpec with Matchers {
@@ -32,36 +33,45 @@ class ValidationHelperSpec extends AnyWordSpec with Matchers {
 
     "return Right for valid isaManagerNumber(uppercase), taxYear and month" in {
       val result = ValidationHelper.validateParams("Z1234", "2023-24", "FEB")
-      result shouldBe Right("Z1234", "2023-24", Month.FEB)
+      result shouldBe Right(("Z1234", "2023-24", FEB))
     }
 
-    "return error when ISA Manager Reference Number is invalid" in {
+    "return InvalidIsaManagerRef when ISA Manager Reference Number is invalid" in {
       val result = ValidationHelper.validateParams("Invalid", "2023-24", "JAN")
-      result                                                                                                       shouldBe a[Left[_, _]]
-      result.left.toOption.get.errors.exists(_.message.contains("ISA Manager Reference Number format is invalid")) shouldBe true
+      result shouldBe Left(InvalidIsaManagerRef)
     }
 
-    "return error when tax year is invalid" in {
+    "return InvalidTaxYear when tax year is invalid" in {
       val result = ValidationHelper.validateParams("Z1234", "20-24", "MAY")
-      result                                                                                       shouldBe a[Left[_, _]]
-      result.left.toOption.get.errors.exists(_.message.contains("Invalid parameter for tax year")) shouldBe true
+      result shouldBe Left(InvalidTaxYear)
     }
 
-    "return error when month is invalid" in {
+    "return InvalidMonth when month is invalid" in {
       val result = ValidationHelper.validateParams("Z1234", "2023-24", "13")
-      result                                                                                    shouldBe a[Left[_, _]]
-      result.left.toOption.get.errors.exists(_.message.contains("Invalid parameter for month")) shouldBe true
+      result shouldBe Left(InvalidMonth)
     }
 
-    "return multiple errors when all parameters are invalid" in {
+    "return MultipleErrorResponse when all parameters are invalid" in {
       val result = ValidationHelper.validateParams("1234", "20-24", "13")
-      result                                       shouldBe a[Left[_, _]]
-      result.left.toOption.get.errors.size         shouldBe 3
-      result.left.toOption.get.errors.map(_.message) should contain allOf (
-        "ISA Manager Reference Number format is invalid",
-        "Invalid parameter for tax year",
-        "Invalid parameter for month"
-      )
+
+      result.isLeft shouldBe true
+      val leftValue = result.left.get
+      leftValue shouldBe a[MultipleErrorResponse]
+
+      val multiErrorResponse = leftValue.asInstanceOf[MultipleErrorResponse]
+      multiErrorResponse shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear, InvalidMonth))
+    }
+
+    "return MultipleErrorResponse when two parameters are invalid" in {
+      val result = ValidationHelper.validateParams("Invalid", "20-24", "MAY")
+
+      result.isLeft shouldBe true
+      val leftValue = result.left.get
+
+      leftValue shouldBe a[MultipleErrorResponse]
+      val multiErrorResponse = leftValue.asInstanceOf[MultipleErrorResponse]
+      multiErrorResponse shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear))
+
     }
   }
 }
