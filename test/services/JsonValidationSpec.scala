@@ -20,6 +20,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common._
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType
 import uk.gov.hmrc.disareturns.utils.JsonValidation
 
 import java.time.LocalDate
@@ -199,6 +200,66 @@ class JsonValidationSpec extends AnyWordSpec with Matchers {
       val result = JsonValidation.accountNumberReads.reads(JsString("!@#$%^"))
       result.isError                                           shouldBe true
       result.asInstanceOf[JsError].errors.head._2.head.message shouldBe "INVALID_ACCOUNT_NUMBER"
+    }
+  }
+
+  "JsonValidation.lifetimeIsaTypeReads" should {
+
+    "return JsSuccess when isaType is LIFETIME" in {
+      val json = JsString("LIFETIME")
+      JsonValidation.lifetimeIsaTypeReads.reads(json) shouldBe JsSuccess(IsaType.LIFETIME)
+    }
+
+    "return JsError when isaType is a different valid IsaType" in {
+      val json   = JsString("CASH")
+      val result = JsonValidation.lifetimeIsaTypeReads.reads(json)
+      result.isError shouldBe true
+      result.toString  should include("error.expected.lifetime.isatype")
+    }
+
+    "return JsError when isaType is an unrecognised string" in {
+      val json   = JsString("UNKNOWN_TYPE")
+      val result = JsonValidation.lifetimeIsaTypeReads.reads(json)
+      result.isError shouldBe true
+      result.toString  should include("error.expected.lifetime.isatype")
+    }
+
+    "return JsError when isaType is not a JsString" in {
+      val json   = JsNumber(123)
+      val result = JsonValidation.lifetimeIsaTypeReads.reads(json)
+      result.isError shouldBe true
+      result.toString  should include("error.expected.lifetime.isatype")
+    }
+  }
+
+  "JsonValidation.standardIsaTypeReads" should {
+
+    "return JsSuccess for non-LIFETIME ISA types" in {
+      val validTypes = Seq("CASH", "STOCKS_AND_SHARES", "INNOVATIVE_FINANCE")
+      validTypes.foreach { t =>
+        JsonValidation.standardIsaTypeReads.reads(JsString(t)) shouldBe JsSuccess(IsaType.withName(t))
+      }
+    }
+
+    "return JsError when isaType is LIFETIME" in {
+      val json   = JsString("LIFETIME")
+      val result = JsonValidation.standardIsaTypeReads.reads(json)
+      result.isError shouldBe true
+      result.toString  should include("error.expected.standard.isatype")
+    }
+
+    "return JsError for unrecognised isaType strings" in {
+      val json   = JsString("UNKNOWN_TYPE")
+      val result = JsonValidation.standardIsaTypeReads.reads(json)
+      result.isError shouldBe true
+      result.toString  should include("error.expected.standard.isatype")
+    }
+
+    "return JsError for non-string values" in {
+      val json   = JsNumber(123)
+      val result = JsonValidation.standardIsaTypeReads.reads(json)
+      result.isError shouldBe true
+      result.toString  should include("error.expected.standard.isatype")
     }
   }
 }

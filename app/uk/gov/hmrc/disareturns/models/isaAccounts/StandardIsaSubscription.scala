@@ -41,7 +41,7 @@ case class StandardIsaSubscription(
 
 object StandardIsaSubscription {
 
-  implicit val StandardIsaSubscriptionReads: Reads[StandardIsaSubscription] = (
+  implicit val reads: Reads[StandardIsaSubscription] = (
     (__ \ "accountNumber").read(accountNumberReads) and
       (__ \ "nino").read(ninoReads) and
       (__ \ "firstName").read[String] and
@@ -53,11 +53,11 @@ object StandardIsaSubscription {
       (__ \ "dateOfLastSubscription").read[LocalDate] and
       (__ \ "totalCurrentYearSubscriptionsToDate").read(twoDecimalNumNonNegative) and
       (__ \ "marketValueOfAccount").read(twoDecimalNumNonNegative) and
-      (__ \ "isaType").read[IsaType] and
+      (__ \ "isaType").read(standardIsaTypeReads) and
       (__ \ "flexibleIsa").read[Boolean]
   )(StandardIsaSubscription.apply _)
 
-  implicit val standardIsaSubscriptionWrites: OWrites[StandardIsaSubscription] = (
+  implicit val writes: OWrites[StandardIsaSubscription] = (
     (__ \ "accountNumber").write[String] and
       (__ \ "nino").write[String] and
       (__ \ "firstName").write[String] and

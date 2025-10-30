@@ -18,10 +18,12 @@ package uk.gov.hmrc.disareturns.utils
 
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, NinoOrAccountNumInvalidErr, NinoOrAccountNumMissingErr}
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType
+import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType.IsaType
 
 import java.time.LocalDate
 import scala.math.BigDecimal.RoundingMode
-import scala.util.Try
+import scala.util.{Success, Try}
 import scala.util.matching.Regex
 
 object JsonValidation {
@@ -75,6 +77,35 @@ object JsonValidation {
     case JsString(s) if s.trim.nonEmpty => JsSuccess(s)
     case JsString(_)                    => JsError("error.expected.jsstring")
     case _                              => JsError("error.expected.jsstring")
+  }
+
+  val lifetimeIsaTypeReads: Reads[IsaType] = Reads[IsaType] {
+    case JsString(s) if s == IsaType.LIFETIME.toString =>
+      JsSuccess(IsaType.LIFETIME)
+    case JsString(_) =>
+      JsError("error.expected.lifetime.isatype")
+    case _ =>
+      JsError("error.expected.lifetime.isatype")
+  }
+
+//  val standardIsaTypeReads: Reads[IsaType] = Reads[IsaType] {
+//    case JsString(s) if s != IsaType.LIFETIME.toString =>
+//      Try(IsaType.withName(s))
+//        .map(JsSuccess(_))
+//        .getOrElse(JsError("error.expected.standard.isatype"))
+//    case JsString(_) =>
+//      JsError("error.expected.standard.isatype")
+//    case _ =>
+//      JsError("error.expected.standard.isatype")
+//  }
+
+  val standardIsaTypeReads: Reads[IsaType] = Reads {
+    case JsString(s) =>
+      Try(IsaType.withName(s)) match {
+        case Success(t) if t != IsaType.LIFETIME => JsSuccess(t)
+        case _                                   => JsError("error.expected.standard.isatype")
+      }
+    case _ => JsError("error.expected.standard.isatype")
   }
 
   private val ninoRegex          = "^[A-CEGHJ-PR-TW-Z]{2}\\d{6}[A-D]$".r

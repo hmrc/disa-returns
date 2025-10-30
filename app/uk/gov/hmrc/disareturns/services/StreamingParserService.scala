@@ -33,7 +33,7 @@ import scala.util.{Failure, Success, Try}
 @Singleton
 class StreamingParserService @Inject() (implicit val mat: Materializer) {
 
-  private def process(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] = {
+  private def processStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] = {
     val validated = validatedStream(source)
     validated.prefixAndTail(1).flatMapConcat {
       case (Seq(), _) =>
@@ -91,10 +91,9 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
 
   def processSource(
     source: Source[ByteString, _]
-  ): Future[Either[ValidationError, Seq[IsaAccount]]] = {
-    val validatedStream = process(source)
+  ): Future[Either[ValidationError, Seq[IsaAccount]]] =
     //TODO: .grouped(27000) is not safe for a few reason, 1. loads everything into memory, 2. payload could have more than 27k records in a single request.
-    validatedStream
+    processStream(source)
       .grouped(27000)
       .map { batch =>
         val (errors, validAccounts) = batch.partitionMap(identity)
@@ -114,5 +113,4 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
         }
       }
       .runWith(Sink.head[Either[ValidationError, Seq[IsaAccount]]])
-  }
 }

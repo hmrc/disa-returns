@@ -46,7 +46,7 @@ case class LifetimeIsaClosure(
 
 object LifetimeIsaClosure {
 
-  implicit val lifetimeIsaClosureReads: Reads[LifetimeIsaClosure] = (
+  implicit val reads: Reads[LifetimeIsaClosure] = (
     (__ \ "accountNumber").read(accountNumberReads) and
       (__ \ "nino").read(ninoReads) and
       (__ \ "firstName").read[String] and
@@ -59,14 +59,14 @@ object LifetimeIsaClosure {
       (__ \ "dateOfLastSubscription").read[LocalDate] and
       (__ \ "totalCurrentYearSubscriptionsToDate").read(twoDecimalNumNonNegative) and
       (__ \ "marketValueOfAccount").read(twoDecimalNumNonNegative) and
-      (__ \ "isaType").read[IsaType] and
+      (__ \ "isaType").read(lifetimeIsaTypeReads) and
       (__ \ "closureDate").read[LocalDate] and
       (__ \ "reasonForClosure").read[LisaReasonForClosure] and
       (__ \ "lisaQualifyingAddition").read(twoDecimalNum) and
       (__ \ "lisaBonusClaim").read(twoDecimalNum)
   )(LifetimeIsaClosure.apply _)
 
-  implicit val lifetimeIsaClosureWrites: OWrites[LifetimeIsaClosure] = (
+  implicit val writes: OWrites[LifetimeIsaClosure] = (
     (__ \ "accountNumber").write[String] and
       (__ \ "nino").write[String] and
       (__ \ "firstName").write[String] and

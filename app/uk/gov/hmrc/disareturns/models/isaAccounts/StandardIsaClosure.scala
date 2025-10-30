@@ -44,7 +44,7 @@ case class StandardIsaClosure(
 
 object StandardIsaClosure {
 
-  implicit val standardIsaTransferReads: Reads[StandardIsaClosure] = (
+  implicit val reads: Reads[StandardIsaClosure] = (
     (__ \ "accountNumber").read(accountNumberReads) and
       (__ \ "nino").read(ninoReads) and
       (__ \ "firstName").read[String] and
@@ -56,13 +56,13 @@ object StandardIsaClosure {
       (__ \ "dateOfLastSubscription").read[LocalDate] and
       (__ \ "totalCurrentYearSubscriptionsToDate").read(twoDecimalNumNonNegative) and
       (__ \ "marketValueOfAccount").read(twoDecimalNumNonNegative) and
-      (__ \ "isaType").read[IsaType] and
+      (__ \ "isaType").read(standardIsaTypeReads) and
       (__ \ "closureDate").read[LocalDate] and
       (__ \ "reasonForClosure").read[ReasonForClosure] and
       (__ \ "flexibleIsa").read[Boolean]
   )(StandardIsaClosure.apply _)
 
-  implicit val standardIsaClosureWrites: OWrites[StandardIsaClosure] = (
+  implicit val writes: OWrites[StandardIsaClosure] = (
     (__ \ "accountNumber").write[String] and
       (__ \ "nino").write[String] and
       (__ \ "firstName").write[String] and

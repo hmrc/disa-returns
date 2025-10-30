@@ -43,7 +43,7 @@ case class LifetimeIsaSubscription(
 
 object LifetimeIsaSubscription {
 
-  implicit val lifetimeIsaSubscriptionReads: Reads[LifetimeIsaSubscription] = (
+  implicit val reads: Reads[LifetimeIsaSubscription] = (
     (__ \ "accountNumber").read(accountNumberReads) and
       (__ \ "nino").read(ninoReads) and
       (__ \ "firstName").read[String] and
@@ -56,12 +56,12 @@ object LifetimeIsaSubscription {
       (__ \ "dateOfLastSubscription").read[LocalDate] and
       (__ \ "totalCurrentYearSubscriptionsToDate").read(twoDecimalNumNonNegative) and
       (__ \ "marketValueOfAccount").read(twoDecimalNumNonNegative) and
-      (__ \ "isaType").read[IsaType] and
+      (__ \ "isaType").read(lifetimeIsaTypeReads) and
       (__ \ "lisaQualifyingAddition").read(twoDecimalNum) and
       (__ \ "lisaBonusClaim").read(twoDecimalNum)
   )(LifetimeIsaSubscription.apply _)
 
-  implicit val lifetimeIsaSubscriptionWrites: OWrites[LifetimeIsaSubscription] = (
+  implicit val writes: OWrites[LifetimeIsaSubscription] = (
     (__ \ "accountNumber").write[String] and
       (__ \ "nino").write[String] and
       (__ \ "firstName").write[String] and

@@ -351,13 +351,160 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
     }
 
-    "return 400 with correct error response when request body is missing ISA type" in {
+    "return 400 with correct error response body when request body has an invalid standard ISA type for LifetimeIsaClosure" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidLifetimeIsaClosure =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":-5000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01"}"""
+
+      val result = submitMonthlyReturnRequest(invalidLifetimeIsaClosure)
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_ISA_TYPE",
+            message = "Isa type is not formatted correctly"
+          )
+        )
+      )
+    }
+
+    "return 400 with correct error response body when request body has an invalid standard ISA type for LifetimeIsaSubscription" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidLifetimeIsaSubscription =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"INNOVATIVE_FINANCE","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
+
+      val result = submitMonthlyReturnRequest(invalidLifetimeIsaSubscription)
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_ISA_TYPE",
+            message = "Isa type is not formatted correctly"
+          )
+        )
+      )
+    }
+
+    "return 400 with correct error response body when request body has an invalid lifetime ISA type for StandardIsaSubscription" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidStandardIsaSubscription =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
+
+      val result = submitMonthlyReturnRequest(invalidStandardIsaSubscription)
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_ISA_TYPE",
+            message = "Isa type is not formatted correctly"
+          )
+        )
+      )
+    }
+
+    "return 400 with correct error response body when request body has an invalid lifetime ISA type for StandardIsaClosure" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidStandardIsaClosure =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"LIFETIME","closureDate":"2025-06-01","flexibleIsa":false}"""
+
+      val result = submitMonthlyReturnRequest(invalidStandardIsaClosure)
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_ISA_TYPE",
+            message = "Isa type is not formatted correctly"
+          )
+        )
+      )
+    }
+
+    "return 400 with correct error response body when request body has a missing ISA type for LifetimeIsaClosure" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidLifetimeIsaClosure =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":-5000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01"}"""
+
+      val result = submitMonthlyReturnRequest(invalidLifetimeIsaClosure)
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_ISA_TYPE",
+            message = "Isa type field is missing"
+          )
+        )
+      )
+    }
+
+    "return 400 with correct error response body when request body has a missing ISA type for LifetimeIsaSubscription" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
 
       val result = submitMonthlyReturnRequest(invalidLifetimeIsaSubscription)
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_ISA_TYPE",
+            message = "Isa type field is missing"
+          )
+        )
+      )
+    }
+
+    "return 400 with correct error response body when request body has a missing ISA type for StandardIsaSubscription" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidStandardIsaSubscription =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
+
+      val result = submitMonthlyReturnRequest(invalidStandardIsaSubscription)
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_ISA_TYPE",
+            message = "Isa type field is missing"
+          )
+        )
+      )
+    }
+
+    "return 400 with correct error response body when request body has a missing ISA type for StandardIsaClosure" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidStandardIsaClosure =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"LIFETIME","closureDate":"2025-06-01","flexibleIsa":false}"""
+
+      val result = submitMonthlyReturnRequest(invalidStandardIsaClosure)
 
       result.status shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
