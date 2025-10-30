@@ -43,6 +43,8 @@ trait BaseConnector extends Logging {
         logger.warn(s"[$context] $msg")
         Left(UpstreamErrorResponse(msg, httpResponse.status, httpResponse.status))
       case Right(success) =>
+        val msg = s"Received successful response with status: ${success.status} with body: ${success.body}"
+        logger.info(s"[$context] $msg")
         Right(success)
       case Left(error) =>
         logger.error(s"[$context] ${error.message}")

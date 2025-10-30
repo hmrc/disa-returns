@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
+import play.api.Logging
 import play.api.libs.json.{JsError, JsSuccess, Reads, _}
 import play.api.mvc.Results.BadRequest
 import play.api.mvc.{Request, Result}
@@ -25,7 +26,7 @@ import uk.gov.hmrc.play.bootstrap.controller.WithJsonBody
 import scala.concurrent.Future
 import scala.reflect.ClassTag
 
-trait WithJsonBodyWithBadRequest {
+trait WithJsonBodyWithBadRequest extends Logging {
   self: WithJsonBody =>
 
   override protected def withJsonBody[T](
@@ -40,6 +41,7 @@ trait WithJsonBodyWithBadRequest {
       case JsSuccess(payload, _) => f(payload)
       case JsError(errors) =>
         val validationFailure = ValidationFailureResponse.createFromJsError(JsError(errors))
+        logger.warn(s"Parsing request body failed with error: [$validationFailure]")
         Future.successful(BadRequest(Json.toJson(validationFailure)))
     }
 }
