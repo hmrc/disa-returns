@@ -63,8 +63,23 @@ case object NinoOrAccountNumInvalidErr extends ErrorResponse {
 }
 
 case object MalformedJsonFailureErr extends ErrorResponse {
-  val code    = "MALFORMED JSON"
+  val code    = "MALFORMED_JSON"
   val message = "One of the NDJson lines contains malformed JSON"
+}
+
+case object InvalidIsaManagerRef extends ErrorResponse {
+  val code    = "INVALID_ISA_MANAGER_REFERENCE"
+  val message = "ISA manager reference is not formatted correctly"
+}
+
+case object InvalidTaxYear extends ErrorResponse {
+  val code    = "INVALID_YEAR"
+  val message = "Tax year is not formatted correctly"
+}
+
+case object InvalidMonth extends ErrorResponse {
+  val code    = "INVALID_MONTH"
+  val message = "Month is not formatted correctly"
 }
 
 object ErrorResponse {
@@ -87,7 +102,10 @@ object ErrorResponse {
     UnauthorisedErr.code            -> UnauthorisedErr,
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
-    MalformedJsonFailureErr.code    -> MalformedJsonFailureErr
+    MalformedJsonFailureErr.code    -> MalformedJsonFailureErr,
+    InvalidIsaManagerRef.code       -> InvalidIsaManagerRef,
+    InvalidTaxYear.code             -> InvalidTaxYear,
+    InvalidMonth.code               -> InvalidMonth
   )
 
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {
@@ -98,7 +116,10 @@ object ErrorResponse {
         case "VALIDATION_FAILURE" if (json \ "errors").validate[Seq[SecondLevelValidationError]].isSuccess =>
           json.validate[SecondLevelValidationResponse]
         case "BAD_REQUEST" =>
-          badRequestErrReads.reads(json)
+          (json \ "errors").toOption match {
+            case Some(_) => Json.fromJson[MultipleErrorResponse](json)
+            case None    => Json.fromJson[BadRequestErr](json)
+          }
         case "INTERNAL_SERVER_ERROR" =>
           internalServerErrReads.reads(json)
         case "RETURN_NOT_FOUND" => returnNotFoundErrReads.reads(json)
@@ -142,9 +163,8 @@ object ValidationFailureResponse {
   implicit val format: OFormat[ValidationFailureResponse] = Json.format[ValidationFailureResponse]
 
   private def mapJsErrorToResponseCode(message: String): String = message match {
-    case "error.path.missing"             => "MISSING_FIELD"
-    case m if m.contains("error.taxYear") => "INVALID_YEAR"
-    case _                                => "VALIDATION_ERROR"
+    case "error.path.missing" => "MISSING_FIELD"
+    case _                    => "VALIDATION_ERROR"
   }
 
   private def formatFieldPath(jsPath: JsPath): String = {

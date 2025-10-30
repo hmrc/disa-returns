@@ -53,11 +53,11 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
     lastName = "Last1",
     dateOfBirth = LocalDate.parse("1980-01-02"),
     isaType = IsaType.STOCKS_AND_SHARES,
-    amountTransferredIn = BigDecimal(250.00),
-    amountTransferredOut = BigDecimal(250.00),
+    amountTransferredIn = 250.00,
+    amountTransferredOut = 250.00,
     dateOfLastSubscription = LocalDate.parse("2025-06-01"),
-    totalCurrentYearSubscriptionsToDate = BigDecimal(2500.00),
-    marketValueOfAccount = BigDecimal(10000.00),
+    totalCurrentYearSubscriptionsToDate = 2500.00,
+    marketValueOfAccount = 10000.00,
     flexibleIsa = false
   )
 

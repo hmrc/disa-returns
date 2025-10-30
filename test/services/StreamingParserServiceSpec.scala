@@ -44,14 +44,14 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
       lastName = "Smith",
       dateOfBirth = LocalDate.of(1994, 7, 7),
       isaType = IsaType.CASH,
-      amountTransferredIn = BigDecimal(250.00),
-      amountTransferredOut = BigDecimal(250.00),
+      amountTransferredIn = 250.00,
+      amountTransferredOut = 250.00,
       dateOfFirstSubscription = LocalDate.of(2018, 7, 7),
       dateOfLastSubscription = LocalDate.of(2022, 7, 7),
-      totalCurrentYearSubscriptionsToDate = BigDecimal(4000),
-      marketValueOfAccount = BigDecimal(25000),
-      lisaQualifyingAddition = BigDecimal(500),
-      lisaBonusClaim = BigDecimal("1000.00")
+      totalCurrentYearSubscriptionsToDate = 4000,
+      marketValueOfAccount = 25000,
+      lisaQualifyingAddition = 500,
+      lisaBonusClaim = 1000.00
     )
   }
 
@@ -59,11 +59,10 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
 
     "return a Right when input is a valid IsaAccount" in new Setup {
       val validIsaAccountJson: String =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":250.0O,"amountTransferredOut":250.0O,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}""".stripMargin
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":250.00,"amountTransferredOut":2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}""".stripMargin
 
       val source: Source[ByteString, NotUsed]              = Source.single(ByteString(validIsaAccountJson + "\n"))
       val result: Either[ValidationError, Seq[IsaAccount]] = service.processSource(source).futureValue
-
       result.isRight           shouldBe true
       result.toOption.get.head shouldBe Json.parse(validIsaAccountJson).as[IsaAccount]
     }

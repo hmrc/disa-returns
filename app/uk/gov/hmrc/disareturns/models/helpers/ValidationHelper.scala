@@ -22,14 +22,22 @@ import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 
 object ValidationHelper {
 
-  def validateParams(isaManagerReferenceNumber: String, year: String, month: String): Either[MultipleErrorResponse, (String, String, Month)] = {
-    val errors: Seq[ErrorResponse] = List(
-      Option.unless(IsaRefValidator.isValid(isaManagerReferenceNumber))(BadRequestErr("ISA Manager Reference Number format is invalid")),
-      Option.unless(TaxYearValidator.isValid(year))(BadRequestErr("Invalid parameter for tax year")),
-      Option.unless(Month.isValid(month))(BadRequestErr("Invalid parameter for month"))
-    ).flatten
-    if (errors.nonEmpty) Left(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", errors))
-    else Right((isaManagerReferenceNumber.toUpperCase, year, Month.withName(month)))
-  }
+  def validateParams(
+    isaManagerReferenceNumber: String,
+    year:                      String,
+    month:                     String
+  ): Either[ErrorResponse, (String, String, Month)] = {
 
+    val errors: Seq[ErrorResponse] = Seq(
+      Option.unless(IsaRefValidator.isValid(isaManagerReferenceNumber))(InvalidIsaManagerRef),
+      Option.unless(TaxYearValidator.isValid(year))(InvalidTaxYear),
+      Option.unless(Month.isValid(month))(InvalidMonth)
+    ).flatten
+
+    errors match {
+      case Seq()            => Right((isaManagerReferenceNumber.toUpperCase, year, Month.withName(month)))
+      case Seq(singleError) => Left(singleError)
+      case multipleErrors   => Left(MultipleErrorResponse(code = "BAD_REQUEST", errors = multipleErrors))
+    }
+  }
 }

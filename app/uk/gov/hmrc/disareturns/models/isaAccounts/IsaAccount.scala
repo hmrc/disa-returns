@@ -32,6 +32,8 @@ trait IsaAccount {
   def dateOfLastSubscription:              LocalDate
   def totalCurrentYearSubscriptionsToDate: BigDecimal
   def marketValueOfAccount:                BigDecimal
+  def amountTransferredIn:                 BigDecimal
+  def amountTransferredOut:                BigDecimal
 }
 
 object IsaAccount {
@@ -46,35 +48,29 @@ object IsaAccount {
       case JsError(errors) => JsError(errors)
       case _               => JsError("Unknown error")
     }
-    def isLifetimeIsaType(opt: Option[IsaType]): Boolean = opt match {
-      case Some(IsaType.LIFETIME) => true
-      case _                      => false
-    }
 
     (isaTypeOpt, closureDatePath, reasonForClosurePath) match {
-      case (Some(LIFETIME), Some(_), Some(_)) =>
-        json.validate[LifetimeIsaClosure]
-
       case (Some(LIFETIME), None, None) =>
         json.validate[LifetimeIsaSubscription]
-
-      case (Some(_), Some(_), Some(_)) =>
-        json.validate[StandardIsaClosure]
-
+      case (Some(LIFETIME), _, _) =>
+        json.validate[LifetimeIsaClosure]
       case (Some(_), None, None) =>
         json.validate[StandardIsaSubscription]
-
-      case (_, _, _) =>
+      case (Some(_), _, _) =>
+        json.validate[StandardIsaClosure]
+      case _ =>
         handleIsaTypeError
     }
   }
 
   implicit val writes: Writes[IsaAccount] = new Writes[IsaAccount] {
     def writes(report: IsaAccount): JsValue = report match {
-      case lifetimeIsaSubscription: LifetimeIsaSubscription => Json.toJson(lifetimeIsaSubscription)(LifetimeIsaSubscription.format)
-      case lifetimeIsaClosure:      LifetimeIsaClosure      => Json.toJson(lifetimeIsaClosure)(LifetimeIsaClosure.format)
-      case standardIsaSubscription: StandardIsaSubscription => Json.toJson(standardIsaSubscription)(StandardIsaSubscription.format)
-      case standardIsaClosure:      StandardIsaClosure      => Json.toJson(standardIsaClosure)(StandardIsaClosure.format)
+      case lifetimeIsaSubscription: LifetimeIsaSubscription =>
+        Json.toJson(lifetimeIsaSubscription)(LifetimeIsaSubscription.lifetimeIsaSubscriptionWrites)
+      case lifetimeIsaClosure:      LifetimeIsaClosure => Json.toJson(lifetimeIsaClosure)(LifetimeIsaClosure.lifetimeIsaClosureWrites)
+      case standardIsaSubscription: StandardIsaSubscription =>
+        Json.toJson(standardIsaSubscription)(StandardIsaSubscription.standardIsaSubscriptionWrites)
+      case standardIsaClosure: StandardIsaClosure => Json.toJson(standardIsaClosure)(StandardIsaClosure.standardIsaClosureWrites)
     }
   }
 

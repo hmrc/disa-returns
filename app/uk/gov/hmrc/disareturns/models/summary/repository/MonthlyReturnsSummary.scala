@@ -61,4 +61,6 @@ object MonthlyReturnsSummary {
 
     OFormat(r, w)
   }
+
+  //TODO: are the custom reads/writes required here?
 }

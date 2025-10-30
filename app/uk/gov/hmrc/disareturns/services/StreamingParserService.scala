@@ -22,8 +22,9 @@ import org.apache.pekko.util.ByteString
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
-import uk.gov.hmrc.disareturns.services.validation.DataValidator
-import uk.gov.hmrc.disareturns.services.validation.DataValidator.jsErrorToDomainError
+import uk.gov.hmrc.disareturns.utils.JsonErrorMapper.jsErrorToDomainError
+import uk.gov.hmrc.disareturns.utils.JsonValidation
+import uk.gov.hmrc.disareturns.utils.JsonValidation.findDuplicateFields
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -42,27 +43,13 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
     }
   }
 
-  private def findDuplicateFields(line: String): JsResult[Unit] = {
-    val keys = "\"([^\"]+)\"\\s*:".r.findAllMatchIn(line).map(_.group(1)).toList
-    keys.diff(keys.distinct).headOption match {
-      case Some(dupKey) =>
-        JsError(JsPath \ dupKey, JsonValidationError("error.duplicateField", s"Duplicate field detected: $dupKey"))
-      case None =>
-        JsSuccess(())
-    }
-  }
-
   private def validateSecondLevel(line: String, jsValue: JsValue, nino: String, accountNumber: String): Either[ValidationError, IsaAccount] = {
     val combinedValidation: JsResult[IsaAccount] = findDuplicateFields(line).flatMap { _ =>
       jsValue.validate[IsaAccount]
     }
     combinedValidation match {
       case JsSuccess(account, _) =>
-        DataValidator.validate(account) match {
-          case None      => Right(account)
-          case Some(err) => Left(SecondLevelValidationFailure(Seq(err)))
-        }
-
+        Right(account)
       case JsError(errors) =>
         jsErrorToDomainError(errors, nino, accountNumber).headOption match {
           case Some(error) => Left(SecondLevelValidationFailure(Seq(error)))
@@ -91,7 +78,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
       .map { line =>
         Try(Json.parse(line)) match {
           case Success(jsValue) =>
-            DataValidator.firstLevelValidatorExtractNinoAndAccount(jsValue) match {
+            JsonValidation.firstLevelValidatorExtractNinoAndAccount(jsValue) match {
               case Right((nino, accountNumber)) =>
                 validateSecondLevel(line, jsValue, nino, accountNumber)
               case Left(firstLevelErr) =>
@@ -106,7 +93,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
     source: Source[ByteString, _]
   ): Future[Either[ValidationError, Seq[IsaAccount]]] = {
     val validatedStream = process(source)
-
+    //TODO: .grouped(27000) is not safe for a few reason, 1. loads everything into memory, 2. payload could have more than 27k records in a single request.
     validatedStream
       .grouped(27000)
       .map { batch =>

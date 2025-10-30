@@ -22,7 +22,7 @@ import uk.gov.hmrc.disareturns.models.common.JsonUtils
 object LisaType extends Enumeration {
   type LisaType = Value
 
-  val LIFETIME:           Value = Value("LIFETIME")
+  val LIFETIME: Value = Value("LIFETIME")
 
   implicit val format: Format[LisaType.Value] = JsonUtils.enumFormat(LisaType)
 
