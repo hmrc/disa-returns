@@ -86,8 +86,7 @@ object ErrorResponse {
 
   implicit val returnNotFoundErrReads: Reads[ReturnNotFoundErr] = Json.reads[ReturnNotFoundErr]
 
-  implicit val badRequestErrReads: Reads[BadRequestErr] =
-    (JsPath \ "message").read[String].map(BadRequestErr.apply)
+  implicit val badRequestErrReads: Reads[BadRequestErr] = Json.reads[BadRequestErr]
 
   implicit val internalServerErrReads: Reads[InternalServerErr] =
     (JsPath \ "message")
