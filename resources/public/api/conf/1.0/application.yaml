@@ -1000,9 +1000,6 @@ components:
           type: string
           description: Code indicating the type of error.
           enum:
-            - INVALID_YEAR
-            - INVALID_MONTH
-            - INVALID_Z_REFERENCE
             - MALFORMED_JSON
         message:
           title: Detailed Message
