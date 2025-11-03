@@ -862,7 +862,7 @@ components:
                     description: The type of ISA account.
                     enum:
                       - CASH
-                      - STOCK_AND_SHARES
+                      - STOCKS_AND_SHARES
                       - INNOVATIVE_FINANCE
                   flexibleIsa:
                     type: boolean
@@ -880,7 +880,7 @@ components:
                     example: CASH
                     enum:
                       - CASH
-                      - STOCK_AND_SHARES
+                      - STOCKS_AND_SHARES
                       - INNOVATIVE_FINANCE
                   flexibleIsa:
                     type: boolean
