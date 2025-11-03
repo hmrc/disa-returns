@@ -59,7 +59,6 @@ object JsonErrorMapper {
       val fieldName     = path.toString.stripPrefix("/").split("/").last
       val errorMessages = errors.flatMap(_.messages)
       def fieldExists(error: String): Boolean = errorMessages.exists(_.startsWith(error))
-      println(Console.YELLOW + errors + Console.RESET)
       val (code, message) =
         if (fieldExists("error.path.missing")) buildMissingFieldError(fieldName)
         else if (fieldExists("error.expected")) buildInvalidFieldError(fieldName)
