@@ -19,6 +19,7 @@ package uk.gov.hmrc.disareturns.services
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
+import play.api.Logging
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
@@ -31,7 +32,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class StreamingParserService @Inject() (implicit val mat: Materializer) {
+class StreamingParserService @Inject() (implicit val mat: Materializer) extends Logging {
 
   private def processStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] = {
     val validated = validatedStream(source)
@@ -97,7 +98,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) {
       .grouped(27000)
       .map { batch =>
         val (errors, validAccounts) = batch.partitionMap(identity)
-
+        logger.info(s"Processing the ISA accounts payload validation results")
         if (errors.nonEmpty) {
           val firstLevelErrors  = errors.collect { case FirstLevelValidationFailure(err) => err }
           val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err }.flatten

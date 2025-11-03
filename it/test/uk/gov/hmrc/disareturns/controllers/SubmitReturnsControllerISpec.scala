@@ -141,6 +141,25 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
     }
 
+    "return 400 with correct error response body when request body has invalid accountNumber that doesn't match the regex" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidLifetimeIsaSubscription =
+        """{"accountNumber":"=!","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
+
+      val result = submitMonthlyReturnRequest(invalidLifetimeIsaSubscription)
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "=!",
+            code = "INVALID_ACCOUNT_NUMBER",
+            message = "Account number is not formatted correctly"
+          )
+        )
+      )
+    }
+
     "return 400 with correct error response when request body is missing nino" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
@@ -160,6 +179,25 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val result = submitMonthlyReturnRequest(invalidLifetimeIsaSubscription)
       result.json.as[ErrorResponse] shouldBe NinoOrAccountNumInvalidErr
 
+    }
+
+    "return 400 with correct error response body when request body has invalid nino that doesn't match the regex" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidLifetimeIsaSubscription =
+        """{"accountNumber":"STD000001","nino":"AB","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
+
+      val result = submitMonthlyReturnRequest(invalidLifetimeIsaSubscription)
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB",
+            accountNumber = "STD000001",
+            code = "INVALID_NINO",
+            message = "Nino is not formatted correctly"
+          )
+        )
+      )
     }
 
     "return 400 with correct error response body when request body has invalid first name" in {

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.disareturns.services
 
 import cats.data.EitherT
+import play.api.Logging
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common._
@@ -27,9 +28,10 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionContext) {
+class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionContext) extends Logging {
 
-  def getReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] =
+  def getReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] = {
+    logger.info("Getting reporting window status")
     EitherT {
       connector.getReportingWindowStatus.value.map {
         case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
@@ -42,8 +44,11 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
             )
       }
     }
+  }
 
-  def getObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] =
+  def getObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] = {
+    logger.info(s"Getting obligation status for IM ref: [$isaManagerReferenceNumber]")
+
     EitherT {
       connector.getReturnsObligationStatus(isaManagerReferenceNumber).value.map {
         case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
@@ -56,6 +61,7 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
             )
       }
     }
+  }
 
   def validateEtmpSubmissionEligibility(
     isaManagerReferenceNumber: String
@@ -80,7 +86,9 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
       }
     } yield (reportingWindow, obligations)
 
-  def declaration(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] =
+  def declaration(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
+    logger.info(s"Submitting declaration for IM ref: [$isaManagerReference]")
     connector.sendDeclaration(isaManagerReference).leftMap(mapToErrorResponse)
+  }
 
 }

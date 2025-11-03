@@ -55,6 +55,7 @@ class SubmitReturnsController @Inject() (
       ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
         case Left(errors) =>
           Future.successful(BadRequest(Json.toJson(errors)))
+
         case Right((isaManagerReferenceNumber, _, _)) =>
           etmpService
             .validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
@@ -63,8 +64,15 @@ class SubmitReturnsController @Inject() (
                 streamingParserService.processSource(request.body).flatMap {
                   case Left(error: ValidationError) =>
                     error match {
-                      case FirstLevelValidationFailure(err) => Future.successful(BadRequest(Json.toJson(err)))
+                      case FirstLevelValidationFailure(err) =>
+                        logger.warn(
+                          s"Submission had first level validation error for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] with error: [$error]"
+                        )
+                        Future.successful(BadRequest(Json.toJson(err)))
                       case SecondLevelValidationFailure(errors) =>
+                        logger.warn(
+                          s"Submission had second level validation errors for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] with error: [$error]"
+                        )
                         Future.successful(BadRequest(Json.toJson(SecondLevelValidationResponse(errors = errors))))
                       case err =>
                         logger.error(s"streamingParserService.processSource has failed with the error: $err")
@@ -73,12 +81,27 @@ class SubmitReturnsController @Inject() (
                   case Right(subscriptions: Seq[IsaAccount]) =>
                     npsService.submitIsaAccounts(isaManagerReferenceNumber, subscriptions) map {
                       case Left(error) =>
-                        logger.error(s"Submission of data to NPS has failed with the error: $error")
+                        logger.error(
+                          s"Submission of data to NPS for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
+                        )
                         HttpHelper.toHttpError(error)
-                      case Right(_) => NoContent
+                      case Right(_) =>
+                        logger.info(s"Data submitted successfully for IM ref: [$isaManagerReferenceNumber] for: [$month][$taxYear]")
+                        NoContent
                     }
                 }
               case Left(error: ErrorResponse) =>
+                error match {
+                  case _: InternalServerErr =>
+                    logger.error(
+                      s"Submission eligibility failed for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
+                    )
+                  case _ =>
+                    logger.warn(
+                      s"Submission eligibility failed for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
+                    )
+                }
+
                 Future.successful(HttpHelper.toHttpError(error))
             }
       }

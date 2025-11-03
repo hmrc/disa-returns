@@ -186,7 +186,7 @@ class JsonValidationSpec extends AnyWordSpec with Matchers {
     "return JsError for an invalid NINO" in {
       val result = JsonValidation.ninoReads.reads(JsString("123456"))
       result.isError                                           shouldBe true
-      result.asInstanceOf[JsError].errors.head._2.head.message shouldBe "INVALID_NINO"
+      result.asInstanceOf[JsError].errors.head._2.head.message shouldBe "error.expected"
     }
   }
 
@@ -199,7 +199,7 @@ class JsonValidationSpec extends AnyWordSpec with Matchers {
     "return JsError for an invalid account number" in {
       val result = JsonValidation.accountNumberReads.reads(JsString("!@#$%^"))
       result.isError                                           shouldBe true
-      result.asInstanceOf[JsError].errors.head._2.head.message shouldBe "INVALID_ACCOUNT_NUMBER"
+      result.asInstanceOf[JsError].errors.head._2.head.message shouldBe "error.expected"
     }
   }
 

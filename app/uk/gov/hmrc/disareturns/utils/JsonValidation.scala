@@ -107,7 +107,6 @@ object JsonValidation {
       case _                                 => JsError("error.expected.string")
     }
 
-  val ninoReads:          Reads[String] = stringPattern(ninoRegex, "INVALID_NINO")
-  val accountNumberReads: Reads[String] = stringPattern(accountNumberRegex, "INVALID_ACCOUNT_NUMBER")
-
+  val ninoReads:          Reads[String] = stringPattern(ninoRegex, "error.expected")
+  val accountNumberReads: Reads[String] = stringPattern(accountNumberRegex, "error.expected")
 }

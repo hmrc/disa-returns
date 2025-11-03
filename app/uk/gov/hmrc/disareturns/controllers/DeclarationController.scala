@@ -28,6 +28,7 @@ import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.disareturns.utils.HttpHelper
 import cats.data.EitherT
 import cats.implicits._
+import play.api.Logging
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.declaration.DeclarationSuccessfulResponse
 
@@ -43,7 +44,8 @@ class DeclarationController @Inject() (
   clientIdAction: ClientIdAction,
   config:         AppConfig
 )(implicit ec:    ExecutionContext)
-    extends BackendController(cc) {
+    extends BackendController(cc)
+    with Logging {
 
   def declare(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[AnyContent] =
     (Action andThen authAction andThen clientIdAction).async { implicit request =>
@@ -58,8 +60,14 @@ class DeclarationController @Inject() (
             boxIdResponse <- EitherT(ppnsService.getBoxId(request.clientId))
           } yield boxIdResponse
           result.fold(
-            error => HttpHelper.toHttpError(error),
-            optBoxId => Ok(Json.toJson(successfulResponse(isaManagerReferenceNumber, taxYear, month, optBoxId)))
+            error => {
+              logger.error(s"Failed to declare return for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] with error: [$error]")
+              HttpHelper.toHttpError(error)
+            },
+            optBoxId => {
+              logger.info(s"Declaration of return successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
+              Ok(Json.toJson(successfulResponse(isaManagerReferenceNumber, taxYear, month, optBoxId)))
+            }
           )
       }
     }

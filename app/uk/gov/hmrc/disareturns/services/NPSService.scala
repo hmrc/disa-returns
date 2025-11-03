@@ -17,6 +17,7 @@
 package uk.gov.hmrc.disareturns.services
 
 import cats.data.EitherT
+import play.api.Logging
 import play.api.http.Status.NO_CONTENT
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
@@ -28,14 +29,18 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class NPSService @Inject() (connector: NPSConnector)(implicit ec: ExecutionContext) {
+class NPSService @Inject() (connector: NPSConnector)(implicit ec: ExecutionContext) extends Logging {
 
-  def notification(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] =
+  def notification(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
+    logger.info(s"Sending notification to NPS for IM ref: [$isaManagerReference]")
     connector.sendNotification(isaManagerReference).leftMap(mapToErrorResponse)
+  }
 
   def submitIsaAccounts(isaManagerReferenceNumber: String, isaAccounts: Seq[IsaAccount])(implicit
     hc:                                            HeaderCarrier
-  ): Future[Either[ErrorResponse, Unit]] =
+  ): Future[Either[ErrorResponse, Unit]] = {
+    logger.info(s"Submitting ISA Accounts to NPS for IM ref: [$isaManagerReferenceNumber]")
+
     connector.submit(isaManagerReferenceNumber, isaAccounts).value.map {
       case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
       case Right(response) =>
@@ -44,4 +49,5 @@ class NPSService @Inject() (connector: NPSConnector)(implicit ec: ExecutionConte
           case otherStatus => Left(InternalServerErr(s"Unexpected status $otherStatus was received from NPS submission"))
         }
     }
+  }
 }

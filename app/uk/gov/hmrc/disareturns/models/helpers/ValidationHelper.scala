@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.disareturns.models.helpers
 
+import play.api.Logging
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 
-object ValidationHelper {
+object ValidationHelper extends Logging {
 
   def validateParams(
     isaManagerReferenceNumber: String,
@@ -33,7 +34,9 @@ object ValidationHelper {
       Option.unless(TaxYearValidator.isValid(year))(InvalidTaxYear),
       Option.unless(Month.isValid(month))(InvalidMonth)
     ).flatten
-
+    if (errors.nonEmpty) {
+      logger.warn(s"Failed path parameter validation with errors: [$errors]")
+    }
     errors match {
       case Seq()            => Right((isaManagerReferenceNumber.toUpperCase, year, Month.withName(month)))
       case Seq(singleError) => Left(singleError)

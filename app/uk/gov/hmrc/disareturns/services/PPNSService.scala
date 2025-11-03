@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.disareturns.services
 
+import play.api.Logging
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -24,11 +25,13 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionContext) {
+class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionContext) extends Logging {
 
-  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[ErrorResponse, Option[String]]] =
+  def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[ErrorResponse, Option[String]]] = {
+    logger.info(s"Getting boxId for clientId: [$clientId]")
     connector.getBox(clientId).map {
       case Right(boxOpt) => Right(boxOpt)
       case Left(_)       => Left(InternalServerErr())
     }
+  }
 }
