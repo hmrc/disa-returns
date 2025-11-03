@@ -88,6 +88,16 @@ class JsonValidationSpec extends AnyWordSpec with Matchers {
       JsonValidation.twoDecimalNum.reads(json).isError shouldBe true
     }
 
+    "return JsError for numbers with one decimal place" in {
+      val json = JsNumber(BigDecimal("12.3"))
+      JsonValidation.twoDecimalNum.reads(json).isError shouldBe true
+    }
+
+    "return JsError for numbers with no decimal places" in {
+      val json = JsNumber(BigDecimal("12"))
+      JsonValidation.twoDecimalNum.reads(json).isError shouldBe true
+    }
+
     "return JsError for non-numeric JSON values" in {
       val json = JsString("12.34")
       JsonValidation.twoDecimalNum.reads(json).isError shouldBe true
@@ -108,6 +118,11 @@ class JsonValidationSpec extends AnyWordSpec with Matchers {
 
     "return JsError for numbers with more than two decimal places" in {
       val json = JsNumber(BigDecimal("1.234"))
+      JsonValidation.twoDecimalNumNonNegative.reads(json).isError shouldBe true
+    }
+
+    "return JsError for numbers with no decimal places" in {
+      val json = JsNumber(BigDecimal("1"))
       JsonValidation.twoDecimalNumNonNegative.reads(json).isError shouldBe true
     }
 
