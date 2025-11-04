@@ -17,14 +17,13 @@
 package uk.gov.hmrc.disareturns.models.isaAccounts
 
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
-import play.api.libs.json.{OWrites, Reads, __}
+import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType.IsaType
-import uk.gov.hmrc.disareturns.models.isaAccounts.LisaReasonForClosure.LisaReasonForClosure
 import uk.gov.hmrc.disareturns.utils.JsonValidation._
 
 import java.time.LocalDate
 
-case class LifetimeIsaClosure(
+case class StandardIsaSubscription(
   accountNumber:                       String,
   nino:                                String,
   firstName:                           String,
@@ -33,20 +32,16 @@ case class LifetimeIsaClosure(
   dateOfBirth:                         LocalDate,
   amountTransferredIn:                 BigDecimal,
   amountTransferredOut:                BigDecimal,
-  dateOfFirstSubscription:             LocalDate,
   dateOfLastSubscription:              LocalDate,
   totalCurrentYearSubscriptionsToDate: BigDecimal,
   marketValueOfAccount:                BigDecimal,
   isaType:                             IsaType,
-  closureDate:                         LocalDate,
-  reasonForClosure:                    LisaReasonForClosure,
-  lisaQualifyingAddition:              BigDecimal,
-  lisaBonusClaim:                      BigDecimal
+  flexibleIsa:                         Boolean
 ) extends IsaAccount
 
-object LifetimeIsaClosure {
+object StandardIsaSubscription {
 
-  implicit val reads: Reads[LifetimeIsaClosure] = (
+  implicit val reads: Reads[StandardIsaSubscription] = (
     (__ \ "accountNumber").read(accountNumberReads) and
       (__ \ "nino").read(ninoReads) and
       (__ \ "firstName").read[String] and
@@ -55,18 +50,14 @@ object LifetimeIsaClosure {
       (__ \ "dateOfBirth").read[LocalDate] and
       (__ \ "amountTransferredIn").read(twoDecimalNumNonNegative) and
       (__ \ "amountTransferredOut").read(twoDecimalNumNonNegative) and
-      (__ \ "dateOfFirstSubscription").read[LocalDate] and
       (__ \ "dateOfLastSubscription").read[LocalDate] and
       (__ \ "totalCurrentYearSubscriptionsToDate").read(twoDecimalNumNonNegative) and
       (__ \ "marketValueOfAccount").read(twoDecimalNumNonNegative) and
-      (__ \ "isaType").read(lifetimeIsaTypeReads) and
-      (__ \ "closureDate").read[LocalDate] and
-      (__ \ "reasonForClosure").read[LisaReasonForClosure] and
-      (__ \ "lisaQualifyingAddition").read(twoDecimalNum) and
-      (__ \ "lisaBonusClaim").read(twoDecimalNum)
-  )(LifetimeIsaClosure.apply _)
+      (__ \ "isaType").read(standardIsaTypeReads) and
+      (__ \ "flexibleIsa").read[Boolean]
+  )(StandardIsaSubscription.apply _)
 
-  implicit val writes: OWrites[LifetimeIsaClosure] = (
+  implicit val writes: OWrites[StandardIsaSubscription] = (
     (__ \ "accountNumber").write[String] and
       (__ \ "nino").write[String] and
       (__ \ "firstName").write[String] and
@@ -75,14 +66,10 @@ object LifetimeIsaClosure {
       (__ \ "dateOfBirth").write[LocalDate] and
       (__ \ "amountTransferredIn").write(twoDecimalWrites) and
       (__ \ "amountTransferredOut").write(twoDecimalWrites) and
-      (__ \ "dateOfFirstSubscription").write[LocalDate] and
       (__ \ "dateOfLastSubscription").write[LocalDate] and
       (__ \ "totalCurrentYearSubscriptionsToDate").write(twoDecimalWrites) and
       (__ \ "marketValueOfAccount").write(twoDecimalWrites) and
       (__ \ "isaType").write[IsaType] and
-      (__ \ "closureDate").write[LocalDate] and
-      (__ \ "reasonForClosure").write[LisaReasonForClosure] and
-      (__ \ "lisaQualifyingAddition").write(twoDecimalWrites) and
-      (__ \ "lisaBonusClaim").write(twoDecimalWrites)
-  )(unlift(LifetimeIsaClosure.unapply))
+      (__ \ "flexibleIsa").write[Boolean]
+  )(unlift(StandardIsaSubscription.unapply))
 }

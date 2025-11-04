@@ -61,10 +61,7 @@ class SubmitReturnsController @Inject() (
             .validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
             .flatMap {
               case Right(_) =>
-                val source: Source[ByteString, _] = request.body
-                val validationResults = streamingParserService.processSource(source)
-
-                validationResults.flatMap {
+                streamingParserService.processSource(request.body).flatMap {
                   case Left(error: ValidationError) =>
                     error match {
                       case FirstLevelValidationFailure(err) =>

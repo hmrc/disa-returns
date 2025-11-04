@@ -17,14 +17,13 @@
 package uk.gov.hmrc.disareturns.models.isaAccounts
 
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
-import play.api.libs.json.{OWrites, Reads, __}
+import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType.IsaType
-import uk.gov.hmrc.disareturns.models.isaAccounts.LisaReasonForClosure.LisaReasonForClosure
 import uk.gov.hmrc.disareturns.utils.JsonValidation._
 
 import java.time.LocalDate
 
-case class LifetimeIsaClosure(
+case class LifetimeIsaSubscription(
   accountNumber:                       String,
   nino:                                String,
   firstName:                           String,
@@ -38,15 +37,13 @@ case class LifetimeIsaClosure(
   totalCurrentYearSubscriptionsToDate: BigDecimal,
   marketValueOfAccount:                BigDecimal,
   isaType:                             IsaType,
-  closureDate:                         LocalDate,
-  reasonForClosure:                    LisaReasonForClosure,
   lisaQualifyingAddition:              BigDecimal,
   lisaBonusClaim:                      BigDecimal
 ) extends IsaAccount
 
-object LifetimeIsaClosure {
+object LifetimeIsaSubscription {
 
-  implicit val reads: Reads[LifetimeIsaClosure] = (
+  implicit val reads: Reads[LifetimeIsaSubscription] = (
     (__ \ "accountNumber").read(accountNumberReads) and
       (__ \ "nino").read(ninoReads) and
       (__ \ "firstName").read[String] and
@@ -60,13 +57,11 @@ object LifetimeIsaClosure {
       (__ \ "totalCurrentYearSubscriptionsToDate").read(twoDecimalNumNonNegative) and
       (__ \ "marketValueOfAccount").read(twoDecimalNumNonNegative) and
       (__ \ "isaType").read(lifetimeIsaTypeReads) and
-      (__ \ "closureDate").read[LocalDate] and
-      (__ \ "reasonForClosure").read[LisaReasonForClosure] and
       (__ \ "lisaQualifyingAddition").read(twoDecimalNum) and
       (__ \ "lisaBonusClaim").read(twoDecimalNum)
-  )(LifetimeIsaClosure.apply _)
+  )(LifetimeIsaSubscription.apply _)
 
-  implicit val writes: OWrites[LifetimeIsaClosure] = (
+  implicit val writes: OWrites[LifetimeIsaSubscription] = (
     (__ \ "accountNumber").write[String] and
       (__ \ "nino").write[String] and
       (__ \ "firstName").write[String] and
@@ -80,9 +75,7 @@ object LifetimeIsaClosure {
       (__ \ "totalCurrentYearSubscriptionsToDate").write(twoDecimalWrites) and
       (__ \ "marketValueOfAccount").write(twoDecimalWrites) and
       (__ \ "isaType").write[IsaType] and
-      (__ \ "closureDate").write[LocalDate] and
-      (__ \ "reasonForClosure").write[LisaReasonForClosure] and
       (__ \ "lisaQualifyingAddition").write(twoDecimalWrites) and
       (__ \ "lisaBonusClaim").write(twoDecimalWrites)
-  )(unlift(LifetimeIsaClosure.unapply))
+  )(unlift(LifetimeIsaSubscription.unapply))
 }

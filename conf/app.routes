@@ -1,8 +1,8 @@
 # microservice specific routes
 
-POST /monthly/:isaManagerReferenceNumber/:taxYear/:month/declaration      uk.gov.hmrc.disareturns.controllers.DeclarationController.declare(isaManagerReferenceNumber:String, taxYear: String,month)
-
 POST /monthly/:isaManagerReferenceNumber/:taxYear/:month                  uk.gov.hmrc.disareturns.controllers.SubmitReturnsController.submit(isaManagerReferenceNumber:String, taxYear: String, month: String)
+
+POST /monthly/:isaManagerReferenceNumber/:taxYear/:month/declaration      uk.gov.hmrc.disareturns.controllers.DeclarationController.declare(isaManagerReferenceNumber:String, taxYear: String, month: String)
 
 GET /monthly/:isaManagerReferenceNumber/:taxYear/:month/results/summary   uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.retrieveReturnSummary(isaManagerReferenceNumber:String, taxYear: String, month: String)
 
