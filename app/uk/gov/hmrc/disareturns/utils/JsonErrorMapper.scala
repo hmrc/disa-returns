@@ -54,17 +54,29 @@ object JsonErrorMapper {
     jsErrors:      Seq[(JsPath, Seq[JsonValidationError])],
     nino:          String,
     accountNumber: String
-  ): Seq[SecondLevelValidationError] =
-    jsErrors.map { case (path, errors) =>
-      val fieldName     = path.toString.stripPrefix("/").split("/").last
-      val errorMessages = errors.flatMap(_.messages)
-      def fieldExists(error: String): Boolean = errorMessages.exists(_.startsWith(error))
-      val (code, message) =
-        if (fieldExists("error.path.missing")) buildMissingFieldError(fieldName)
-        else if (fieldExists("error.expected")) buildInvalidFieldError(fieldName)
-        else if (fieldExists("error.duplicateField")) buildDuplicateFieldError(fieldName)
-        else ("UNKNOWN_ERROR", s"Validation failed for field: $fieldName")
+  ): Seq[SecondLevelValidationError] = {
 
-      SecondLevelValidationError(nino, accountNumber, code, message)
+    def determineError(fieldName: String, messages: Seq[String]): (String, String) =
+      messages
+        .collectFirst {
+          case msg if msg.startsWith("error.path.missing")   => buildMissingFieldError(fieldName)
+          case msg if msg.startsWith("error.expected")       => buildInvalidFieldError(fieldName)
+          case msg if msg.startsWith("error.duplicateField") => buildDuplicateFieldError(fieldName)
+        }
+        .getOrElse(("UNKNOWN_ERROR", s"Validation failed for field: $fieldName"))
+
+    jsErrors.map { case (path, errors) =>
+      val fieldName       = path.toString.stripPrefix("/").split("/").last
+      val messages        = errors.flatMap(_.messages)
+      val (code, message) = determineError(fieldName, messages)
+
+      SecondLevelValidationError(
+        code = code,
+        message = message,
+        nino = nino,
+        accountNumber = accountNumber
+      )
     }
+  }
+
 }
