@@ -29,6 +29,12 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
   val testIsaManagerReference = "Z1234"
   val testTaxYear             = "2026-27"
 
+  override val testHeaders: Seq[(String, String)] = Seq(
+    "X-Client-ID"   -> testClientId,
+    "Authorization" -> "mock-bearer-token",
+    "Content-Type"  -> "application/x-ndjson"
+  )
+
   val validLifetimeIsaSubscription =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":-5000.00,"lisaBonusClaim":5000.00}"""
   val validLifetimeIsaClosure =
@@ -179,6 +185,25 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val result = submitMonthlyReturnRequest(invalidLifetimeIsaSubscription)
       result.json.as[ErrorResponse] shouldBe NinoOrAccountNumInvalidErr
 
+    }
+
+    "return 400 with correct single error response body when request body has multiple validation errors but only displays one - invalid first & last name" in {
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val invalidLifetimeIsaSubscription =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
+
+      val result = submitMonthlyReturnRequest(invalidLifetimeIsaSubscription)
+      result.json.as[ErrorResponse] shouldBe SecondLevelValidationResponse(
+        errors = Seq(
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_FIRST_NAME",
+            message = "First name is not formatted correctly"
+          )
+        )
+      )
     }
 
     "return 400 with correct error response body when request body has invalid nino that doesn't match the regex" in {
@@ -1195,6 +1220,32 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
     }
 
+    "return 400 with correct error response when first NDJSON line has second-level field validation error & second NDJSON line has invalid nino (first level validation) error" in {
+      val invalidStandardIsaClosure1 =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":123,"middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
+      val invalidStandardIsaClosure2 =
+        """{"accountNumber":"STD000002","nino":233,"firstName":"First1","middleName":null, "lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
+
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val result = submitMonthlyReturnRequest(invalidStandardIsaClosure1 + "\n" + invalidStandardIsaClosure2 + "\n")
+      result.status                 shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe NinoOrAccountNumInvalidErr
+    }
+
+    "return 400 with correct error response when first NDJSON line has second-level field validation error & second NDJSON line has missing nino (first level validation) error" in {
+      val invalidStandardIsaClosure1 =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":123,"middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
+      val invalidStandardIsaClosure2 =
+        """{"accountNumber":"STD000002","firstName":"First1","middleName":null, "lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
+
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val result = submitMonthlyReturnRequest(invalidStandardIsaClosure1 + "\n" + invalidStandardIsaClosure2 + "\n")
+      result.status                 shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe NinoOrAccountNumMissingErr
+    }
+
     "return 400 with correct error response when duplicate nino fields are provided in a single IsaAccount" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
@@ -1227,6 +1278,33 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       result.status                 shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
     }
+
+    //TODO: This currently returns duplicate field error, should return MalformedJsonFailureErr. This should pass after bug fixed in DFI-????
+//    "return 400 with correct error response when payload NDJSON lines are not separated by a newline delimiter " in {
+//
+//      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+//      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+//      val result = submitMonthlyReturnRequest(validStandardIsaClosure + validStandardIsaSubscription)
+//      result.status                 shouldBe BAD_REQUEST
+//      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
+//    }
+    //TODO: This currently returns 500 InternalServerError, should return BadRequest. This should pass after bug fixed in DFI-????
+//    "return 400 with correct error response when NDJSON payload does not end with a newline delimiter " in {
+//      stubAuth()
+//      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+//      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+//      val result = await(
+//        ws.url(
+//            s"http://localhost:$port/monthly/$testIsaManagerReference/$testTaxYear/JAN"
+//          ).withFollowRedirects(follow = false)
+//          .withHttpHeaders(
+//            testHeaders: _*
+//          )
+//          .post(validLifetimeIsaClosure)
+//      )
+//      result.status                 shouldBe BAD_REQUEST
+//      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
+//    }
 
     "return 400 with correct error response body when NDJSON payload is empty" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
@@ -1276,7 +1354,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
       result.status                 shouldBe FORBIDDEN
-      result.json.as[ErrorResponse] shouldBe MultipleErrorResponse(errors = Seq(ReportingWindowClosed, ObligationClosed))
+      result.json.as[ErrorResponse] shouldBe MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ReportingWindowClosed, ObligationClosed))
     }
 
     "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from ETMP" in {
@@ -1320,12 +1398,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       (result.json \ "message").as[String] shouldBe "Unexpected status 201 was received from NPS submission"
     }
   }
-
-  override val testHeaders: Seq[(String, String)] = Seq(
-    "X-Client-ID"   -> testClientId,
-    "Authorization" -> "mock-bearer-token",
-    "Content-Type"  -> "application/x-ndjson"
-  )
 
   def submitMonthlyReturnRequest(
     requestBody:         String,

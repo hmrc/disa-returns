@@ -143,7 +143,7 @@ object ErrorResponse {
 }
 
 case class MultipleErrorResponse(
-  code:    String = "FORBIDDEN",
+  code:    String,
   message: String = "Multiple issues found regarding your submission",
   errors:  Seq[ErrorResponse]
 ) extends ErrorResponse

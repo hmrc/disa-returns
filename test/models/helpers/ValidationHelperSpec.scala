@@ -53,25 +53,13 @@ class ValidationHelperSpec extends AnyWordSpec with Matchers {
 
     "return MultipleErrorResponse when all parameters are invalid" in {
       val result = ValidationHelper.validateParams("1234", "20-24", "13")
-
-      result.isLeft shouldBe true
-      val leftValue = result.left.get
-      leftValue shouldBe a[MultipleErrorResponse]
-
-      val multiErrorResponse = leftValue.asInstanceOf[MultipleErrorResponse]
-      multiErrorResponse shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear, InvalidMonth))
+      result.left.get shouldBe
+        MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear, InvalidMonth))
     }
 
     "return MultipleErrorResponse when two parameters are invalid" in {
       val result = ValidationHelper.validateParams("Invalid", "20-24", "MAY")
-
-      result.isLeft shouldBe true
-      val leftValue = result.left.get
-
-      leftValue shouldBe a[MultipleErrorResponse]
-      val multiErrorResponse = leftValue.asInstanceOf[MultipleErrorResponse]
-      multiErrorResponse shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear))
-
+      result.left.get shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear))
     }
   }
 }

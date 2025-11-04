@@ -87,7 +87,7 @@ class ErrorResponseSpec extends BaseUnitSpec {
     }
 
     "serialize a MultipleErrorResponse" in {
-      val multipleError = MultipleErrorResponse(errors = Seq(ObligationClosed))
+      val multipleError = MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ObligationClosed))
       val json          = Json.toJson(multipleError: ErrorResponse)
 
       (json \ "code").as[String] shouldBe "FORBIDDEN"

@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.disareturns.services
 
+import com.fasterxml.jackson.core.{JsonFactory, JsonParser}
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
@@ -27,6 +29,7 @@ import uk.gov.hmrc.disareturns.utils.JsonErrorMapper.jsErrorToDomainError
 import uk.gov.hmrc.disareturns.utils.JsonValidation
 import uk.gov.hmrc.disareturns.utils.JsonValidation.findDuplicateFields
 
+import java.io.StringReader
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
