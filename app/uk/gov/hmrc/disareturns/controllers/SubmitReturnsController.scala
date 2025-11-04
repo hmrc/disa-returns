@@ -56,7 +56,7 @@ class SubmitReturnsController @Inject() (
         case Left(errors) =>
           Future.successful(BadRequest(Json.toJson(errors)))
 
-        case Right((isaManagerReferenceNumber, _, _)) =>
+        case Right((isaManagerReferenceNumber, _, _, _)) =>
           etmpService
             .validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
             .flatMap {

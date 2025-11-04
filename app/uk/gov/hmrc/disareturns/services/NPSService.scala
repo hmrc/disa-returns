@@ -18,18 +18,21 @@ package uk.gov.hmrc.disareturns.services
 
 import cats.data.EitherT
 import play.api.Logging
-import play.api.http.Status.NO_CONTENT
+import play.api.http.Status.{NO_CONTENT, OK}
+import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
+import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReportPageNotFoundErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
+import uk.gov.hmrc.disareturns.models.returnResults.{ReconciliationReportPage, ReconciliationReportResponse, ReturnResults}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class NPSService @Inject() (connector: NPSConnector)(implicit ec: ExecutionContext) extends Logging {
+class NPSService @Inject()(connector: NPSConnector, config: AppConfig)(implicit ec: ExecutionContext) extends Logging {
 
   def notification(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
     logger.info(s"Sending notification to NPS for IM ref: [$isaManagerReference]")
@@ -48,6 +51,38 @@ class NPSService @Inject() (connector: NPSConnector)(implicit ec: ExecutionConte
           case NO_CONTENT  => Right(())
           case otherStatus => Left(InternalServerErr(s"Unexpected status $otherStatus was received from NPS submission"))
         }
+    }
+  }
+
+  def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: Month, pageIndex: Int)(implicit hc: HeaderCarrier): Future[Either[ErrorResponse, ReconciliationReportPage]] = {
+
+    def getPage(report: ReconciliationReportResponse, pageIndex: Int): Either[ErrorResponse, ReconciliationReportPage] = {
+      val totalNoOfPages = config.getNoOfPagesForReturnResults(report.returnResults.size)
+      val totalRecords = report.returnResults.size
+      val pageSize = config.returnResultsRecordsPerPage
+      val startOfPage = pageIndex * pageSize
+
+      val onePageOfResults =
+        if (startOfPage >= totalRecords || totalRecords == 0) Seq.empty[ReturnResults]
+        else report.returnResults.slice(startOfPage, math.min(startOfPage + pageSize, totalRecords))
+
+      if (onePageOfResults.isEmpty) Left(ReportPageNotFoundErr(pageIndex))
+      else Right(ReconciliationReportPage(pageIndex, onePageOfResults.size, totalRecords, totalNoOfPages, onePageOfResults))
+    }
+
+    logger.info(s"Retrieving reconciliation report from NPS for IM ref: [$isaManagerReferenceNumber] with month/taxYear: [$month] [$taxYear]")
+
+    connector.retrieveReconciliationReport(isaManagerReferenceNumber, taxYear, month).value.map {
+      case Left(upstreamError) => Left(
+        if (upstreamError.statusCode == 404) ReturnNotFoundErr("Return not found")
+        else mapToErrorResponse(upstreamError))
+      case Right(response) => response.status match {
+        case OK  => response.json.validate[ReconciliationReportResponse].fold(
+          _ => Left(InternalServerErr()),
+          reportResponse => getPage(reportResponse, pageIndex)
+        )
+        case otherStatus => Left(InternalServerErr(s"Unexpected status $otherStatus was received from NPS report retrieval"))
+      }
     }
   }
 }

@@ -41,7 +41,7 @@ class AppConfig @Inject() (config: ServicesConfig) {
 
   lazy val returnSummaryExpiryInDays: Int = config.getInt("returnSummaryExpiryInDays")
 
-  private lazy val returnResultsRecordsPerPage: Int = config.getInt("returnResultsRecordsPerPage")
+  lazy val returnResultsRecordsPerPage: Int = config.getInt("returnResultsRecordsPerPage")
 
   def getNoOfPagesForReturnResults(noOfRecords: Int): Int = math.ceil(noOfRecords.toDouble / returnResultsRecordsPerPage).toInt
 }

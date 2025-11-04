@@ -23,16 +23,17 @@ import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 
 object ValidationHelper extends Logging {
 
-  def validateParams(isaManagerReferenceNumber: String, year: String, month: String): Either[MultipleErrorResponse, (String, String, Month)] = {
+  def validateParams(isaManagerReferenceNumber: String, year: String, month: String, pageIndex: Option[Int] = None): Either[MultipleErrorResponse, (String, String, Month, Option[Int])] = {
     val errors: Seq[ErrorResponse] = List(
       Option.unless(IsaRefValidator.isValid(isaManagerReferenceNumber))(BadRequestErr("ISA Manager Reference Number format is invalid")),
       Option.unless(TaxYearValidator.isValid(year))(BadRequestErr("Invalid parameter for tax year")),
-      Option.unless(Month.isValid(month))(BadRequestErr("Invalid parameter for month"))
+      Option.unless(Month.isValid(month))(BadRequestErr("Invalid parameter for month")),
+      Option.unless(pageIndex.fold(true)(_ >= 0))(InvalidPageErr)
     ).flatten
     if (errors.nonEmpty) {
-      logger.warn(s"Failed path parameter validation with errors: [$errors]")
+      logger.warn(s"Failed path or query string parameter validation with errors: [$errors]")
       Left(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", errors))
-    } else Right((isaManagerReferenceNumber.toUpperCase, year, Month.withName(month)))
+    } else Right((isaManagerReferenceNumber.toUpperCase, year, Month.withName(month), pageIndex))
   }
 
 }

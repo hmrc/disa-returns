@@ -42,6 +42,11 @@ case class ReturnNotFoundErr(message: String) extends ErrorResponse {
   val code = "RETURN_NOT_FOUND"
 }
 
+case class ReportPageNotFoundErr(pageIndex: Int) extends ErrorResponse {
+  val code = "PAGE_NOT_FOUND"
+  val message = s"No page $pageIndex found"
+}
+
 case object ObligationClosed extends ErrorResponse {
   val code    = "OBLIGATION_CLOSED"
   val message = "Obligation closed"
@@ -67,9 +72,15 @@ case object MalformedJsonFailureErr extends ErrorResponse {
   val message = "One of the NDJson lines contains malformed JSON"
 }
 
+case object InvalidPageErr extends ErrorResponse {
+  val code    = "INVALID_PAGE"
+  val message = "Invalid page index parameter provided"
+}
+
 object ErrorResponse {
 
   implicit val returnNotFoundErrReads: Reads[ReturnNotFoundErr] = Json.reads[ReturnNotFoundErr]
+  implicit val reportPageNotFoundErrReads: Reads[ReportPageNotFoundErr] = Json.reads[ReportPageNotFoundErr]
 
   implicit val badRequestErrReads: Reads[BadRequestErr] =
     (JsPath \ "message").read[String].map(BadRequestErr.apply)
@@ -87,7 +98,8 @@ object ErrorResponse {
     UnauthorisedErr.code            -> UnauthorisedErr,
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
-    MalformedJsonFailureErr.code    -> MalformedJsonFailureErr
+    MalformedJsonFailureErr.code    -> MalformedJsonFailureErr,
+    InvalidPageErr.code               -> InvalidPageErr
   )
 
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {
@@ -102,6 +114,7 @@ object ErrorResponse {
         case "INTERNAL_SERVER_ERROR" =>
           internalServerErrReads.reads(json)
         case "RETURN_NOT_FOUND" => returnNotFoundErrReads.reads(json)
+        case "PAGE_NOT_FOUND" => reportPageNotFoundErrReads.reads(json)
         case code if singletons.contains(code) =>
           JsSuccess(singletons(code))
         case other =>
