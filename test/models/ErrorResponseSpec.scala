@@ -50,7 +50,8 @@ class ErrorResponseSpec extends BaseUnitSpec {
         "code"    -> "FORBIDDEN",
         "message" -> "Multiple issues found regarding your submission",
         "errors" -> Json.arr(
-          Json.obj("code" -> ObligationClosed.code, "message" -> ObligationClosed.message)
+          Json.obj("code" -> ObligationClosed.code, "message"      -> ObligationClosed.message),
+          Json.obj("code" -> ReportingWindowClosed.code, "message" -> ReportingWindowClosed.message)
         )
       )
 
@@ -61,6 +62,7 @@ class ErrorResponseSpec extends BaseUnitSpec {
       multipleError                                                 shouldBe a[MultipleErrorResponse]
       multipleError.code                                            shouldBe "FORBIDDEN"
       multipleError.asInstanceOf[MultipleErrorResponse].errors.head shouldBe ObligationClosed
+      multipleError.asInstanceOf[MultipleErrorResponse].errors(1)   shouldBe ReportingWindowClosed
     }
 
     "fail to deserialize unknown error codes" in {
@@ -85,7 +87,7 @@ class ErrorResponseSpec extends BaseUnitSpec {
     }
 
     "serialize a MultipleErrorResponse" in {
-      val multipleError = MultipleErrorResponse(errors = Seq(ObligationClosed))
+      val multipleError = MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ObligationClosed))
       val json          = Json.toJson(multipleError: ErrorResponse)
 
       (json \ "code").as[String] shouldBe "FORBIDDEN"

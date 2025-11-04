@@ -81,7 +81,7 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
         errors match {
           case Nil                => Right(())
           case singleError :: Nil => Left(singleError)
-          case multipleErrors     => Left(MultipleErrorResponse(errors = multipleErrors))
+          case multipleErrors     => Left(MultipleErrorResponse(code = "FORBIDDEN", errors = multipleErrors))
         }
       }
     } yield (reportingWindow, obligations)

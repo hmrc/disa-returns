@@ -88,4 +88,5 @@ trait CommonStubs {
     "X-Client-ID"   -> testClientId,
     "Authorization" -> "mock-bearer-token"
   )
+
 }

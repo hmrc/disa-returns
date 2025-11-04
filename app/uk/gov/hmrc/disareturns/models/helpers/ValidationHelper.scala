@@ -28,17 +28,21 @@ object ValidationHelper extends Logging {
     year:                      String,
     month:                     String,
     pageIndex:                 Option[Int] = None
-  ): Either[MultipleErrorResponse, (String, String, Month, Option[Int])] = {
-    val errors: Seq[ErrorResponse] = List(
-      Option.unless(IsaRefValidator.isValid(isaManagerReferenceNumber))(BadRequestErr("ISA Manager Reference Number format is invalid")),
-      Option.unless(TaxYearValidator.isValid(year))(BadRequestErr("Invalid parameter for tax year")),
-      Option.unless(Month.isValid(month))(BadRequestErr("Invalid parameter for month")),
+  ): Either[ErrorResponse, (String, String, Month, Option[Int])] = {
+
+    val errors: Seq[ErrorResponse] = Seq(
+      Option.unless(IsaRefValidator.isValid(isaManagerReferenceNumber))(InvalidIsaManagerRef),
+      Option.unless(TaxYearValidator.isValid(year))(InvalidTaxYear),
+      Option.unless(Month.isValid(month))(InvalidMonth),
       Option.unless(pageIndex.fold(true)(_ >= 0))(InvalidPageErr)
     ).flatten
     if (errors.nonEmpty) {
       logger.warn(s"Failed path or query string parameter validation with errors: [$errors]")
-      Left(MultipleErrorResponse("BAD_REQUEST", "Issue(s) with your request", errors))
-    } else Right((isaManagerReferenceNumber.toUpperCase, year, Month.withName(month), pageIndex))
+    }
+    errors match {
+      case Seq()            => Right((isaManagerReferenceNumber.toUpperCase, year, Month.withName(month), pageIndex))
+      case Seq(singleError) => Left(singleError)
+      case multipleErrors   => Left(MultipleErrorResponse(code = "BAD_REQUEST", errors = multipleErrors))
+    }
   }
-
 }
