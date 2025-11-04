@@ -135,6 +135,15 @@ paths:
               type: array
               items:
                 $ref: '#/components/schemas/investorDetails'
+            examples:
+              lifetimeIsaSubscription:
+                $ref: '#/components/examples/lifetimeIsaSubscription'
+              lifetimeIsaClosure:
+                $ref: '#/components/examples/lifetimeIsaClosure'
+              standardIsaSubscription:
+                $ref: '#/components/examples/standardIsaSubscription'
+              standardIsaClosure:
+                $ref: '#/components/examples/standardIsaClosure'
       responses:
         204:
           description: Submission accepted. No content returned.
@@ -1037,6 +1046,77 @@ components:
             - INVALID_Z_REFERENCE
             - INVALID_TAX_YEAR
             - INVALID_MONTH
-
+  examples:
+    lifetimeIsaSubscription:
+      summary: Lifetime ISA Subscription
+      value:
+        accountNumber: STD000001
+        nino: AB000001C
+        firstName: First
+        middleName: Middle
+        lastName: Last
+        dateOfBirth: "1980-01-02"
+        isaType: LIFETIME
+        amountTransferredIn: 500.00
+        amountTransferredOut: 200.00
+        dateOfFirstSubscription: "2025-04-06"
+        dateOfLastSubscription: "2025-04-06"
+        totalCurrentYearSubscriptionsToDate: 2500.00
+        marketValueOfAccount: 15000.00
+        lisaQualifyingAddition: 1000.00
+        lisaBonusClaim: 1000.00
+    lifetimeIsaClosure:
+      summary: Lifetime ISA Closure
+      value:
+        accountNumber: STD000001
+        nino: AB000001C
+        firstName: First
+        middleName: Middle
+        lastName: Last
+        dateOfBirth: "1980-01-02"
+        isaType: LIFETIME
+        amountTransferredIn: 200.00
+        amountTransferredOut: 100.00
+        dateOfFirstSubscription: "2025-04-06"
+        dateOfLastSubscription: "2025-04-06"
+        totalCurrentYearSubscriptionsToDate: 500.00
+        marketValueOfAccount: 1000.00
+        lisaQualifyingAddition: -100.00
+        lisaBonusClaim: -100.00
+        reasonForClosure: CANCELLED
+        closureDate: "2025-04-06"
+    standardIsaSubscription:
+      summary: Standard ISA Subscription
+      value:
+        accountNumber: STD000001
+        nino: AB000001C
+        firstName: First
+        middleName: Middle
+        lastName: Last
+        dateOfBirth: "1980-01-02"
+        isaType: STOCKS_AND_SHARES
+        amountTransferredIn: 500.00
+        amountTransferredOut: 200.00
+        dateOfLastSubscription: "2025-04-06"
+        totalCurrentYearSubscriptionsToDate: 500.00
+        marketValueOfAccount: 1000.00
+        flexibleIsa: false
+    standardIsaClosure:
+      summary: Standard ISA Closure
+      value:
+        accountNumber: STD000001
+        nino: AB000001C
+        firstName: First
+        middleName: Middle
+        lastName: Last
+        dateOfBirth: "1980-01-02"
+        isaType: STOCKS_AND_SHARES
+        amountTransferredIn: 900.00
+        amountTransferredOut: 500.00
+        dateOfLastSubscription: "2025-04-06"
+        totalCurrentYearSubscriptionsToDate: 1500.00
+        marketValueOfAccount: 10000.00
+        reasonForClosure: CANCELLED
+        flexibleIsa: false
 
 
