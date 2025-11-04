@@ -39,7 +39,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = initiateRequest(validLifetimeIsaNewSubscription)
       result.status shouldBe NO_CONTENT
@@ -51,7 +51,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = initiateRequest(validLifetimeIsaClosure)
       result.status shouldBe NO_CONTENT
@@ -63,7 +63,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = initiateRequest(validLifetimeIsaTransfer)
       result.status shouldBe NO_CONTENT
@@ -74,7 +74,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME_CASH","reportingATransfer":true,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00, "accountNumberOfTransferringAccount": "123456","dateOfFirstSubscription":"2025-06-01","amountTransferred":10001.00, "lisaQualifyingAddition":10000.00, "lisaBonusClaim":10000.00, "closureDate":"2025-06-01", "reasonForClosure":"CANCELLED"}"""
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = initiateRequest(validLifetimeIsaTransferAndClosure)
       result.status shouldBe NO_CONTENT
@@ -86,7 +86,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = initiateRequest(validStandardIsaNewSubscription)
       result.status shouldBe NO_CONTENT
@@ -98,7 +98,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = initiateRequest(validStandardIsaTransfer)
       result.status shouldBe NO_CONTENT

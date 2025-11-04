@@ -19,12 +19,12 @@ package uk.gov.hmrc.disareturns.models.returnResults
 import play.api.libs.json.{Json, OFormat}
 
 case class ReconciliationReportPage(
-  currentPage: Int,
-  recordsInPage: Int,
-  totalRecords: Int,
+  currentPage:        Int,
+  recordsInPage:      Int,
+  totalRecords:       Int,
   totalNumberOfPages: Int,
-  returnResults: Seq[ReturnResults]
-                               )
+  returnResults:      Seq[ReturnResults]
+)
 
 object ReconciliationReportPage {
   implicit val format: OFormat[ReconciliationReportPage] = Json.format[ReconciliationReportPage]

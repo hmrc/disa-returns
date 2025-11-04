@@ -54,7 +54,9 @@ class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(im
     )
   }
 
-  def retrieveReconciliationReport(isaManagerReferenceNumber: String, taxYear: String, month: Month)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+  def retrieveReconciliationReport(isaManagerReferenceNumber: String, taxYear: String, month: Month)(implicit
+    hc:                                                       HeaderCarrier
+  ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.npsBaseUrl}/monthly/$isaManagerReferenceNumber/$taxYear/${month.toString}/results"
     read(
       httpClient

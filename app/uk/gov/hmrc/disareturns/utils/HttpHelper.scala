@@ -23,11 +23,11 @@ import uk.gov.hmrc.disareturns.models.common._
 
 object HttpHelper {
   def toHttpError(error: ErrorResponse): Result = error match {
-    case _: ReturnNotFoundErr => NotFound(Json.toJson(error))
+    case _: ReturnNotFoundErr     => NotFound(Json.toJson(error))
     case _: ReportPageNotFoundErr => NotFound(Json.toJson(error))
-    case _: InternalServerErr => InternalServerError(Json.toJson(error))
+    case _: InternalServerErr     => InternalServerError(Json.toJson(error))
     case UnauthorisedErr => Unauthorized(Json.toJson(error))
-    case InvalidPageErr => BadRequest(Json.toJson(error))
-    case _           => Forbidden(Json.toJson(error))
+    case InvalidPageErr  => BadRequest(Json.toJson(error))
+    case _               => Forbidden(Json.toJson(error))
   }
 }

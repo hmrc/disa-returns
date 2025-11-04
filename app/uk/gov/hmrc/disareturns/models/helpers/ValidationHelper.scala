@@ -23,7 +23,12 @@ import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 
 object ValidationHelper extends Logging {
 
-  def validateParams(isaManagerReferenceNumber: String, year: String, month: String, pageIndex: Option[Int] = None): Either[MultipleErrorResponse, (String, String, Month, Option[Int])] = {
+  def validateParams(
+    isaManagerReferenceNumber: String,
+    year:                      String,
+    month:                     String,
+    pageIndex:                 Option[Int] = None
+  ): Either[MultipleErrorResponse, (String, String, Month, Option[Int])] = {
     val errors: Seq[ErrorResponse] = List(
       Option.unless(IsaRefValidator.isValid(isaManagerReferenceNumber))(BadRequestErr("ISA Manager Reference Number format is invalid")),
       Option.unless(TaxYearValidator.isValid(year))(BadRequestErr("Invalid parameter for tax year")),

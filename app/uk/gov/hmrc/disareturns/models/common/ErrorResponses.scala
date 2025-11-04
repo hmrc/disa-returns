@@ -43,7 +43,7 @@ case class ReturnNotFoundErr(message: String) extends ErrorResponse {
 }
 
 case class ReportPageNotFoundErr(pageIndex: Int) extends ErrorResponse {
-  val code = "PAGE_NOT_FOUND"
+  val code    = "PAGE_NOT_FOUND"
   val message = s"No page $pageIndex found"
 }
 
@@ -79,7 +79,7 @@ case object InvalidPageErr extends ErrorResponse {
 
 object ErrorResponse {
 
-  implicit val returnNotFoundErrReads: Reads[ReturnNotFoundErr] = Json.reads[ReturnNotFoundErr]
+  implicit val returnNotFoundErrReads:     Reads[ReturnNotFoundErr]     = Json.reads[ReturnNotFoundErr]
   implicit val reportPageNotFoundErrReads: Reads[ReportPageNotFoundErr] = Json.reads[ReportPageNotFoundErr]
 
   implicit val badRequestErrReads: Reads[BadRequestErr] =
@@ -99,7 +99,7 @@ object ErrorResponse {
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
     MalformedJsonFailureErr.code    -> MalformedJsonFailureErr,
-    InvalidPageErr.code               -> InvalidPageErr
+    InvalidPageErr.code             -> InvalidPageErr
   )
 
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {
@@ -114,7 +114,7 @@ object ErrorResponse {
         case "INTERNAL_SERVER_ERROR" =>
           internalServerErrReads.reads(json)
         case "RETURN_NOT_FOUND" => returnNotFoundErrReads.reads(json)
-        case "PAGE_NOT_FOUND" => reportPageNotFoundErrReads.reads(json)
+        case "PAGE_NOT_FOUND"   => reportPageNotFoundErrReads.reads(json)
         case code if singletons.contains(code) =>
           JsSuccess(singletons(code))
         case other =>

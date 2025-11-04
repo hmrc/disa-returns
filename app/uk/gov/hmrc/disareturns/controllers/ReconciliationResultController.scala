@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
-
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
@@ -31,10 +30,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ReconciliationResultController @Inject() (
-  cc: ControllerComponents,
-  npsService:     NPSService,
-  authAction:     AuthAction
-                                    )(implicit ec:    ExecutionContext) extends BackendController(cc) with Logging {
+  cc:          ControllerComponents,
+  npsService:  NPSService,
+  authAction:  AuthAction
+)(implicit ec: ExecutionContext)
+    extends BackendController(cc)
+    with Logging {
 
   def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: String, page: Int): Action[AnyContent] =
     (Action andThen authAction).async { implicit request =>
@@ -44,7 +45,7 @@ class ReconciliationResultController @Inject() (
         case Right((isaManagerReferenceNumber, taxYear, month, _)) =>
           npsService.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, page).map {
             case Left(errorResponse) => HttpHelper.toHttpError(errorResponse)
-            case Right(reportPage) => Ok(Json.toJson(reportPage))
+            case Right(reportPage)   => Ok(Json.toJson(reportPage))
           }
       }
     }

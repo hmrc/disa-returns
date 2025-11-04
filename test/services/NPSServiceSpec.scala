@@ -29,7 +29,7 @@ import scala.concurrent.Future
 
 class NPSServiceSpec extends BaseUnitSpec {
 
-  val service = new NPSService(mockNPSConnector)
+  val service = new NPSService(mockNPSConnector, mockAppConfig)
 
   val isaManagerReference = "Z1234"
 

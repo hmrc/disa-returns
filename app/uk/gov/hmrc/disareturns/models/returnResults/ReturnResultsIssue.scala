@@ -23,14 +23,14 @@ sealed trait ReturnResultsIssue {
 }
 
 case class IssueWithMessage(
-                                   code: String,
-                                   message: String
-                                 ) extends ReturnResultsIssue
+  code:    String,
+  message: String
+) extends ReturnResultsIssue
 
 case class IssueOverSubscribed(
-                                          code: String,
-                                          overSubscribedAmount: BigDecimal
-                                        ) extends ReturnResultsIssue
+  code:                 String,
+  overSubscribedAmount: BigDecimal
+) extends ReturnResultsIssue
 
 object ReturnResultsIssue {
   implicit val messageFormat: OFormat[IssueWithMessage] =
@@ -48,7 +48,7 @@ object ReturnResultsIssue {
 
     override def writes(issue: ReturnResultsIssue): JsValue = issue match {
       case overSubscribed: IssueOverSubscribed => overSubscribedFormat.writes(overSubscribed)
-      case message: IssueWithMessage               => messageFormat.writes(message)
+      case message:        IssueWithMessage    => messageFormat.writes(message)
     }
   }
 }

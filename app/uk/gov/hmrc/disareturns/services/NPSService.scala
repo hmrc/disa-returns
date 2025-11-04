@@ -32,7 +32,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class NPSService @Inject()(connector: NPSConnector, config: AppConfig)(implicit ec: ExecutionContext) extends Logging {
+class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit ec: ExecutionContext) extends Logging {
 
   def notification(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
     logger.info(s"Sending notification to NPS for IM ref: [$isaManagerReference]")
@@ -54,13 +54,15 @@ class NPSService @Inject()(connector: NPSConnector, config: AppConfig)(implicit 
     }
   }
 
-  def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: Month, pageIndex: Int)(implicit hc: HeaderCarrier): Future[Either[ErrorResponse, ReconciliationReportPage]] = {
+  def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: Month, pageIndex: Int)(implicit
+    hc:                                                           HeaderCarrier
+  ): Future[Either[ErrorResponse, ReconciliationReportPage]] = {
 
     def getPage(report: ReconciliationReportResponse, pageIndex: Int): Either[ErrorResponse, ReconciliationReportPage] = {
       val totalNoOfPages = config.getNoOfPagesForReturnResults(report.returnResults.size)
-      val totalRecords = report.returnResults.size
-      val pageSize = config.returnResultsRecordsPerPage
-      val startOfPage = pageIndex * pageSize
+      val totalRecords   = report.returnResults.size
+      val pageSize       = config.returnResultsRecordsPerPage
+      val startOfPage    = pageIndex * pageSize
 
       val onePageOfResults =
         if (startOfPage >= totalRecords || totalRecords == 0) Seq.empty[ReturnResults]
@@ -73,16 +75,20 @@ class NPSService @Inject()(connector: NPSConnector, config: AppConfig)(implicit 
     logger.info(s"Retrieving reconciliation report from NPS for IM ref: [$isaManagerReferenceNumber] with month/taxYear: [$month] [$taxYear]")
 
     connector.retrieveReconciliationReport(isaManagerReferenceNumber, taxYear, month).value.map {
-      case Left(upstreamError) => Left(
-        if (upstreamError.statusCode == 404) ReturnNotFoundErr("Return not found")
-        else mapToErrorResponse(upstreamError))
-      case Right(response) => response.status match {
-        case OK  => response.json.validate[ReconciliationReportResponse].fold(
-          _ => Left(InternalServerErr()),
-          reportResponse => getPage(reportResponse, pageIndex)
+      case Left(upstreamError) =>
+        Left(
+          if (upstreamError.statusCode == 404) ReturnNotFoundErr("Return not found")
+          else mapToErrorResponse(upstreamError)
         )
-        case otherStatus => Left(InternalServerErr(s"Unexpected status $otherStatus was received from NPS report retrieval"))
-      }
+      case Right(response) =>
+        response.status match {
+          case OK =>
+            try getPage(response.json.as[ReconciliationReportResponse], pageIndex)
+            catch {
+              case e: Throwable => Left(InternalServerErr(e.getMessage))
+            }
+          case otherStatus => Left(InternalServerErr(s"Unexpected status $otherStatus was received from NPS report retrieval"))
+        }
     }
   }
 }
