@@ -177,19 +177,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Type
-                    type: string
-                    description: Error Code
-                    enum:
-                      - FORBIDDEN
-                      - REPORTING_WINDOW_CLOSED
-                      - OBLIGATION_CLOSED
-                  message:
-                    type: string
-                    example: Forbidden
+                oneOf:
+                  - $ref: '#/components/schemas/forbiddenSingleError'
+                  - $ref: '#/components/schemas/forbiddenMultipleErrors'
         500:
           description: Internal Server Error
           content:
@@ -323,19 +313,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Type
-                    type: string
-                    description: Error Code
-                    enum:
-                      - FORBIDDEN
-                      - REPORTING_WINDOW_CLOSED
-                      - OBLIGATION_CLOSED
-                  message:
-                    type: string
-                    example: Forbidden
+                oneOf:
+                  - $ref: '#/components/schemas/forbiddenSingleError'
+                  - $ref: '#/components/schemas/forbiddenMultipleErrors'
         500:
           description: Internal Server Error
           content:
@@ -1029,7 +1009,7 @@ components:
           enum:
             - INVALID_FIELD
             - MISSING_FIELD
-            - DUPLICATE_ITEM
+            - DUPLICATE_FIELD
         message:
           title: Message
           type: string
@@ -1046,6 +1026,78 @@ components:
             - INVALID_Z_REFERENCE
             - INVALID_TAX_YEAR
             - INVALID_MONTH
+    forbiddenSingleError:
+      title: Forbidden (Single Error)
+      type: object
+      properties:
+        code:
+          title: Error Code Type
+          type: string
+          enum:
+            - REPORTING_WINDOW_CLOSED
+            - OBLIGATION_CLOSED
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Reporting window has been closed"
+    forbiddenMultipleErrors:
+      title: Forbidden (Multiple Errors)
+      type: object
+      properties:
+        code:
+          title: Error Code Type
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - FORBIDDEN
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Multiple issues found regarding your submission"
+        errors:
+          title: Errors
+          type: array
+          description: Array of errors outlining issues found regarding your submission
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/obligationClosed'
+              - $ref: '#/components/schemas/reportingWindowClosed'
+          example:
+            - code: OBLIGATION_CLOSED
+              message: Obligation closed
+            - code: REPORTING_WINDOW_CLOSED
+              message: Reporting window has been closed
+    obligationClosed:
+      title: Obligation Closed
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - OBLIGATION_CLOSED
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error.
+          example: "Obligation Closed"
+    reportingWindowClosed:
+      title: Reporting Window Closed
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - REPORTING_WINDOW_CLOSED
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error.
+          example: "Reporting window has been closed"
+
   examples:
     lifetimeIsaSubscription:
       summary: Lifetime ISA Subscription
