@@ -18,7 +18,8 @@ package uk.gov.hmrc.disareturns.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, stubFor, urlEqualTo}
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
-import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR, NOT_FOUND, OK, UNAUTHORIZED}
+import play.api.http.Status._
+import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.common.Month
@@ -33,43 +34,35 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
     private val monthToken = monthEnum.toString
     private val page = 0
 
-    private val npsReportJson = """
-                              |{
-                              | "totalRecords": 3,
-                              | "returnResults": [
-                              |   {
-                              |     "accountNumber": "123",
-                              |     "nino": "ABC123",
-                              |     "issueIdentified": {
-                              |       "code": "OVER_SUBSCRIBED",
-                              |       "overSubscribedAmount": 1823.76
-                              |     }
-                              |   },
-                              |   {
-                              |     "accountNumber": "123",
-                              |     "nino": "ABC123",
-                              |     "issueIdentified": {
-                              |       "code": "FAILED_ELIGIBILITY",
-                              |       "message": "Failed Eligibility"
-                              |     }
-                              |   },
-                              |   {
-                              |     "accountNumber": "123",
-                              |     "nino": "ABC123",
-                              |     "issueIdentified": {
-                              |       "code": "UNABLE_TO_IDENTIFY_INVESTOR",
-                              |       "message": "Unable to Identify Investor"
-                              |     }
-                              |   }
-                              | ]
-                              |}
-        """.stripMargin
-
     "GET /monthly/:zRef/:year/:month/results/summary" should {
 
       "return 200 and the first page of the reconciliation report" in {
+        val npsReportJson = """
+                                      |{
+                                      | "totalRecords": 3,
+                                      | "returnResults": [
+                                      |   {
+                                      |     "accountNumber": "123",
+                                      |     "nino": "ABC123",
+                                      |     "issueIdentified": {
+                                      |       "code": "OVER_SUBSCRIBED",
+                                      |       "overSubscribedAmount": 1823.76
+                                      |     }
+                                      |   },
+                                      |   {
+                                      |     "accountNumber": "123",
+                                      |     "nino": "ABC123",
+                                      |     "issueIdentified": {
+                                      |       "code": "FAILED_ELIGIBILITY",
+                                      |       "message": "Failed Eligibility"
+                                      |     }
+                                      |   }
+                                      | ]
+                                      |}
+        """.stripMargin
+
         stubAuth()
-        stubNPSReportRetrieval(200, npsReportJson)
+        stubNPSReportRetrieval(200, npsReportJson, 0, 2)
 
         val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page)
 
@@ -100,42 +93,17 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
         )
       }
 
-      "return 200 and the final page of the reconciliation report" in {
+      "return 400 and an error message when paramater validation fails" in {
         stubAuth()
-        stubNPSReportRetrieval(200, npsReportJson)
-
-        val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page + 1)
-
-        res.status mustBe OK
-        res.json.as[ReconciliationReportPage] mustBe ReconciliationReportPage(
-          page + 1,
-          1,
-          3,
-          2,
-          Seq(
-            ReturnResults(
-              "123",
-              "ABC123",
-              IssueWithMessage(
-                "UNABLE_TO_IDENTIFY_INVESTOR",
-                "Unable to Identify Investor"
-              )
-            )
-          )
-        )
-      }
-
-      "return 400 and an error message" in {
-        stubAuth()
-        stubNPSReportRetrieval(200, npsReportJson)
+        stubNPSReportRetrieval(200, "", 0, 0)
 
         val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, -1)
 
         res.status mustBe BAD_REQUEST
-        (res.json \ "message" ).as[String] mustBe "Issue(s) with your request"
+        (res.json \ "message" ).as[String] mustBe "Invalid page index parameter provided"
       }
 
-      "return 401 and an error message" in {
+      "return 401 and an error message when authorization fails" in {
         stubAuthFail()
 
         val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page)
@@ -146,19 +114,19 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
 
       "return 404 when a page is not found" in {
         stubAuth()
-        stubNPSReportRetrieval(200, npsReportJson)
+        stubNPSReportRetrieval(404, Json.obj("code" -> "PAGE_NOT_FOUND", "message" -> "PAGE_NOT_FOUND").toString, 0, 2)
 
-        val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page + 2)
+        val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page)
 
         res.status mustBe NOT_FOUND
-        (res.json \ "message" ).as[String] mustBe s"No page ${page + 2} found"
+        (res.json \ "message" ).as[String] mustBe s"No page $page found"
       }
 
       "return 404 when a report is not found" in {
         stubAuth()
-        stubNPSReportRetrieval(404, "")
+        stubNPSReportRetrieval(404, """{"message":"REPORT_NOT_FOUND", "responseCode":404}""", 0, 2)
 
-        val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page + 2)
+        val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page)
 
         res.status mustBe NOT_FOUND
         (res.json \ "message" ).as[String] mustBe s"Return not found"
@@ -166,20 +134,22 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
 
       "return 500 when NPS sends invalid JSON" in {
         stubAuth()
-        stubNPSReportRetrieval(200, "not good json")
+        stubNPSReportRetrieval(200, "not good json", 0, 2)
 
-        val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page + 2)
+        val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page)
 
         res.status mustBe INTERNAL_SERVER_ERROR
+        (res.json \ "message" ).as[String] must startWith("Unrecognized token")
       }
 
       "return 500 when NPS sends an unexpected status" in {
         stubAuth()
-        stubNPSReportRetrieval(204, npsReportJson)
+        stubNPSReportRetrieval(204, "", 0, 2)
 
-        val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page + 2)
+        val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page)
 
         res.status mustBe INTERNAL_SERVER_ERROR
+        (res.json \ "message" ).as[String] mustBe "Unexpected status 204 was received from NPS report retrieval"
       }
     }
 
@@ -198,9 +168,9 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
       )
     }
 
-    def stubNPSReportRetrieval(status: Int, body: String): Unit =
+    def stubNPSReportRetrieval(status: Int, body: String, skip: Int, take: Int): Unit =
       stubFor(
-        get(urlEqualTo(s"/monthly/$isaManagerRef/$taxYear/$monthToken/results"))
+        get(urlEqualTo(s"/monthly/$isaManagerRef/$taxYear/$monthToken/results?skip=$skip&take=$take"))
           .willReturn(aResponse().withStatus(status).withBody(body))
       )
 }

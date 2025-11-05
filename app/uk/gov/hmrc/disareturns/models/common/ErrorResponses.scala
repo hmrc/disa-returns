@@ -96,7 +96,7 @@ object ErrorResponse {
 
   implicit val returnNotFoundErrReads:     Reads[ReturnNotFoundErr]     = Json.reads[ReturnNotFoundErr]
   implicit val reportPageNotFoundErrReads: Reads[ReportPageNotFoundErr] = Json.reads[ReportPageNotFoundErr]
-  implicit val badRequestErrReads: Reads[BadRequestErr] = Json.reads[BadRequestErr]
+  implicit val badRequestErrReads:         Reads[BadRequestErr]         = Json.reads[BadRequestErr]
 
   implicit val internalServerErrReads: Reads[InternalServerErr] =
     (JsPath \ "message")

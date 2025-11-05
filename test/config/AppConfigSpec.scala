@@ -52,6 +52,10 @@ class AppConfigSpec extends BaseUnitSpec {
       appConfig.returnSummaryExpiryInDays mustBe 30
     }
 
+    "read the returnResultsRecordsPerPage correctly" in {
+      appConfig.returnResultsRecordsPerPage mustBe 10
+    }
+
     "calculate the number of pages for return results correctly" in {
       val pages = appConfig.getNoOfPagesForReturnResults(25)
       pages mustBe 3

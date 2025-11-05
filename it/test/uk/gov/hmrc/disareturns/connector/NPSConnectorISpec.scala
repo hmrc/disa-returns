@@ -28,26 +28,12 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
   private val isaManagerReferenceNumber = "Z1234"
   private val taxYear = "2026-27"
   private val month = Month.JAN
-  private val reconciliationReport = """
-                                       |{
-                                       | "totalRecords": 12,
-                                       | "returnResults": {
-                                       |   "accountNumber": 123,
-                                       |   "nino": ABC123,
-                                       |   "issueIdentified": {
-                                       |     "code": "OVER_SUBSCRIBED",
-                                       |     "amount": 1823.76
-                                       |   }
-                                       | }
-                                       |}
-        """.stripMargin
-
-  private val submitUrl                     = s"/nps/submit/$isaManagerReferenceNumber"
-  private val reportRetrievalUrl = s"/monthly/$isaManagerReferenceNumber/$taxYear/${month.toString}/results"
 
   private val connector: NPSConnector = app.injector.instanceOf[NPSConnector]
 
   "NPSConnector.submit" should {
+
+    val submitUrl                     = s"/nps/submit/$isaManagerReferenceNumber"
 
     "return Right(HttpResponse) when NPS returns 204 NO_CONTENT" in {
       stubPost(submitUrl, NO_CONTENT, "")
@@ -78,13 +64,30 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
     }
   }
 
-  "NPSConnector.retrieveReconciliationReport" should {
+  "NPSConnector.retrieveReconciliationReportPage" should {
+
+    val skip = 0
+    val take = 2
+    val reportRetrievalUrl = s"/monthly/$isaManagerReferenceNumber/$taxYear/${month.toString}/results?skip=$skip&take=$take"
+    val reconciliationReport = """
+                                         |{
+                                         | "totalRecords": 12,
+                                         | "returnResults": {
+                                         |   "accountNumber": 123,
+                                         |   "nino": ABC123,
+                                         |   "issueIdentified": {
+                                         |     "code": "OVER_SUBSCRIBED",
+                                         |     "amount": 1823.76
+                                         |   }
+                                         | }
+                                         |}
+        """.stripMargin
 
     "return Right(HttpResponse) when NPS returns 200 OK" in {
       stubGet(reportRetrievalUrl, OK, reconciliationReport)
 
       val Right(response) =
-        await(connector.retrieveReconciliationReport(isaManagerReferenceNumber, taxYear, month).value)
+        await(connector.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, skip, take).value)
 
       response.status shouldBe OK
       response.body shouldBe reconciliationReport
@@ -94,7 +97,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
       stubGet(reportRetrievalUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
 
       val Left(err) =
-        await(connector.retrieveReconciliationReport(isaManagerReferenceNumber, taxYear, month).value)
+        await(connector.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, skip, take).value)
 
       err.statusCode shouldBe UNAUTHORIZED
       err.message      should include("Not authorised")
@@ -102,7 +105,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
 
     "return Left(UpstreamErrorResponse) when the call fails with an unexpected exception" in {
       val Left(err) =
-        await(connector.retrieveReconciliationReport("non-existent", "nope", month).value)
+        await(connector.retrieveReconciliationReportPage("non-existent", "nope", month, skip, take).value)
 
       err.statusCode shouldBe NOT_FOUND
       err.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")

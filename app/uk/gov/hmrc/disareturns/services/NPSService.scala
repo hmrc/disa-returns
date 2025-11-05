@@ -25,7 +25,7 @@ import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReportPageNotFoundErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
-import uk.gov.hmrc.disareturns.models.returnResults.{ReconciliationReportPage, ReconciliationReportResponse, ReturnResults}
+import uk.gov.hmrc.disareturns.models.returnResults.{ReconciliationReportPage, ReconciliationReportResponse}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
@@ -58,32 +58,35 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
     hc:                                                           HeaderCarrier
   ): Future[Either[ErrorResponse, ReconciliationReportPage]] = {
 
-    def getPage(report: ReconciliationReportResponse, pageIndex: Int): Either[ErrorResponse, ReconciliationReportPage] = {
-      val totalNoOfPages = config.getNoOfPagesForReturnResults(report.returnResults.size)
-      val totalRecords   = report.returnResults.size
-      val pageSize       = config.returnResultsRecordsPerPage
-      val startOfPage    = pageIndex * pageSize
+    def convertResponseToPage(response: ReconciliationReportResponse): Either[ErrorResponse, ReconciliationReportPage] = {
+      val totalRecords      = response.totalRecords
+      val totalNoOfPages    = config.getNoOfPagesForReturnResults(totalRecords)
+      val recordsInThisPage = response.returnResults.size
 
-      val onePageOfResults =
-        if (startOfPage >= totalRecords || totalRecords == 0) Seq.empty[ReturnResults]
-        else report.returnResults.slice(startOfPage, math.min(startOfPage + pageSize, totalRecords))
-
-      if (onePageOfResults.isEmpty) Left(ReportPageNotFoundErr(pageIndex))
-      else Right(ReconciliationReportPage(pageIndex, onePageOfResults.size, totalRecords, totalNoOfPages, onePageOfResults))
+      if (response.returnResults.isEmpty) Left(ReportPageNotFoundErr(pageIndex))
+      else Right(ReconciliationReportPage(pageIndex, recordsInThisPage, totalRecords, totalNoOfPages, response.returnResults))
     }
 
-    logger.info(s"Retrieving reconciliation report from NPS for IM ref: [$isaManagerReferenceNumber] with month/taxYear: [$month] [$taxYear]")
+    logger.info(
+      s"Retrieving reconciliation report page: [$pageIndex] from NPS for IM ref: [$isaManagerReferenceNumber] with month/taxYear: [$month] [$taxYear]"
+    )
 
-    connector.retrieveReconciliationReport(isaManagerReferenceNumber, taxYear, month).value.map {
+    val take = config.returnResultsRecordsPerPage
+    val skip = pageIndex * take
+
+    connector.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, skip, take).value.map {
       case Left(upstreamError) =>
         Left(
-          if (upstreamError.statusCode == 404) ReturnNotFoundErr("Return not found")
-          else mapToErrorResponse(upstreamError)
+          upstreamError.message match {
+            case message if message.contains("REPORT_NOT_FOUND") => ReturnNotFoundErr("Return not found")
+            case message if message.contains("PAGE_NOT_FOUND")   => ReportPageNotFoundErr(pageIndex)
+            case _                                               => mapToErrorResponse(upstreamError)
+          }
         )
       case Right(response) =>
         response.status match {
           case OK =>
-            try getPage(response.json.as[ReconciliationReportResponse], pageIndex)
+            try convertResponseToPage(response.json.as[ReconciliationReportResponse])
             catch {
               case e: Throwable => Left(InternalServerErr(e.getMessage))
             }
