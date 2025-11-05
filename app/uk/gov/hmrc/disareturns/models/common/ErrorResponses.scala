@@ -81,6 +81,10 @@ case object InvalidMonth extends ErrorResponse {
   val code    = "INVALID_MONTH"
   val message = "Month is not formatted correctly"
 }
+case object EmptyPayload extends ErrorResponse {
+  val code    = "EMPTY_PAYLOAD"
+  val message = "NDJSON payload is empty. Please ensure the request body contains a valid NDJSON payload before resubmitting."
+}
 
 object ErrorResponse {
 
@@ -104,7 +108,8 @@ object ErrorResponse {
     MalformedJsonFailureErr.code    -> MalformedJsonFailureErr,
     InvalidIsaManagerRef.code       -> InvalidIsaManagerRef,
     InvalidTaxYear.code             -> InvalidTaxYear,
-    InvalidMonth.code               -> InvalidMonth
+    InvalidMonth.code               -> InvalidMonth,
+    EmptyPayload.code               -> EmptyPayload
   )
 
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {
