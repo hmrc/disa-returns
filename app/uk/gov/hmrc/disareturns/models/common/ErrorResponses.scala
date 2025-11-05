@@ -42,9 +42,12 @@ case class ReturnNotFoundErr(message: String) extends ErrorResponse {
   val code = "RETURN_NOT_FOUND"
 }
 
-case class ReportPageNotFoundErr(pageIndex: Int) extends ErrorResponse {
-  val code    = "PAGE_NOT_FOUND"
-  val message = s"No page $pageIndex found"
+case class ReportPageNotFoundErr private (message: String) extends ErrorResponse {
+  val code = "PAGE_NOT_FOUND"
+}
+
+object ReportPageNotFoundErr {
+  def apply(pageIndex: Int): ReportPageNotFoundErr = ReportPageNotFoundErr(s"No page $pageIndex found")
 }
 
 case object ObligationClosed extends ErrorResponse {
@@ -130,14 +133,11 @@ object ErrorResponse {
             case Some(_) => Json.fromJson[MultipleErrorResponse](json)
             case None    => Json.fromJson[BadRequestErr](json)
           }
-        case "INTERNAL_SERVER_ERROR" =>
-          internalServerErrReads.reads(json)
-        case "RETURN_NOT_FOUND" => returnNotFoundErrReads.reads(json)
-        case "PAGE_NOT_FOUND"   => reportPageNotFoundErrReads.reads(json)
-        case code if singletons.contains(code) =>
-          JsSuccess(singletons(code))
-        case other =>
-          JsError(s"Unknown error code: $other")
+        case "INTERNAL_SERVER_ERROR"           => internalServerErrReads.reads(json)
+        case "RETURN_NOT_FOUND"                => returnNotFoundErrReads.reads(json)
+        case "PAGE_NOT_FOUND"                  => reportPageNotFoundErrReads.reads(json)
+        case code if singletons.contains(code) => JsSuccess(singletons(code))
+        case other                             => JsError(s"Unknown error code: $other")
       }
 
     override def writes(errorResponse: ErrorResponse): JsValue = errorResponse match {
@@ -145,6 +145,7 @@ object ErrorResponse {
         Json.toJson(m)(MultipleErrorResponse.format)
       case v: FieldValidationError =>
         Json.obj("code" -> v.code, "message" -> v.message, "path" -> v.path)
+      case r:     ReportPageNotFoundErr => Json.obj("code" -> r.code, "message" -> r.message)
       case error: ErrorResponse =>
         Json.obj("code" -> error.code, "message" -> error.message)
     }

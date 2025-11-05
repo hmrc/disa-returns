@@ -51,8 +51,19 @@ class ReturnsSummaryService @Inject() (
     logger.info(s"Retrieving return summary for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
 
     lazy val returnResultsLocation = appConfig.getReturnResultsLocation(isaManagerReferenceNumber, taxYear, month)
-    def returnSummaryResults(totalRecords: Int) =
-      ReturnSummaryResults(returnResultsLocation, totalRecords, appConfig.getNoOfPagesForReturnResults(totalRecords))
+
+    def returnSummaryResults(totalRecords: Int) = {
+      val numberOfPages = appConfig
+        .getNoOfPagesForReturnResults(totalRecords)
+        .fold {
+          logger.error(
+            s"Invalid number of total records [$totalRecords] received from upstream for IM Ref: [$isaManagerReferenceNumber] for [$taxYear] [$month]"
+          )
+          0
+        }(identity)
+
+      ReturnSummaryResults(returnResultsLocation, totalRecords, numberOfPages)
+    }
 
     summaryRepo
       .retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month)

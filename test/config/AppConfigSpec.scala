@@ -57,8 +57,20 @@ class AppConfigSpec extends BaseUnitSpec {
     }
 
     "calculate the number of pages for return results correctly" in {
-      val pages = appConfig.getNoOfPagesForReturnResults(25)
-      pages mustBe 3
+      val pages1 = appConfig.getNoOfPagesForReturnResults(25)
+      pages1 mustBe Some(3)
+
+      val pages2 = appConfig.getNoOfPagesForReturnResults(0)
+      pages2 mustBe Some(0)
+
+      val pages3 = appConfig.getNoOfPagesForReturnResults(10)
+      pages3 mustBe Some(1)
+
+      val pages4 = appConfig.getNoOfPagesForReturnResults(1)
+      pages4 mustBe Some(1)
+
+      val pages5 = appConfig.getNoOfPagesForReturnResults(-10)
+      pages5 mustBe None
     }
   }
 }

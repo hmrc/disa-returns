@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.disareturns.config
 
+import play.api.Logging
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
+class AppConfig @Inject() (config: ServicesConfig) extends Logging {
 
   lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
   lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")
@@ -43,5 +44,7 @@ class AppConfig @Inject() (config: ServicesConfig) {
 
   lazy val returnResultsRecordsPerPage: Int = config.getInt("returnResultsRecordsPerPage")
 
-  def getNoOfPagesForReturnResults(noOfRecords: Int): Int = math.ceil(noOfRecords.toDouble / returnResultsRecordsPerPage).toInt
+  def getNoOfPagesForReturnResults(noOfRecords: Int): Option[Int] =
+    if (noOfRecords >= 0) Some(math.ceil(noOfRecords.toDouble / returnResultsRecordsPerPage).toInt)
+    else None
 }

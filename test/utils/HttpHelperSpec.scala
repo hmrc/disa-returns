@@ -18,6 +18,7 @@ package utils
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.models.common._
@@ -35,7 +36,6 @@ class HttpHelperSpec extends AnyWordSpec with Matchers {
       val json = contentAsJson(Future.successful(result))
       (json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
       (json \ "message").as[String] shouldBe "There has been an issue processing your request"
-
     }
 
     "return Unauthorized (401) for Unauthorised" in {
@@ -54,5 +54,28 @@ class HttpHelperSpec extends AnyWordSpec with Matchers {
       (json \ "message").as[String] shouldBe "Obligation closed"
     }
 
+    "return NotFound (404) for ReturnNotFoundErr" in {
+      val err    = ReturnNotFoundErr("")
+      val result = HttpHelper.toHttpError(err)
+
+      result.header.status                     shouldBe NOT_FOUND
+      contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
+    }
+
+    "return NotFound (404) for ReportPageNotFoundErr" in {
+      val err    = ReportPageNotFoundErr(1)
+      val result = HttpHelper.toHttpError(err)
+
+      result.header.status                     shouldBe NOT_FOUND
+      contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
+    }
+
+    "return BadRequest (400) for InvalidPageErr" in {
+      val err    = InvalidPageErr
+      val result = HttpHelper.toHttpError(err)
+
+      result.header.status                     shouldBe BAD_REQUEST
+      contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
+    }
   }
 }

@@ -123,7 +123,7 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
       res.status mustBe OK
       (res.json \ "returnResultsLocation").as[String] mustBe appConfig.getReturnResultsLocation(isaManagerRef, taxYear, monthEnum)
-      (res.json \ "numberOfPages").as[Int] mustBe appConfig.getNoOfPagesForReturnResults(totalRecords)
+      (res.json \ "numberOfPages").as[Int] mustBe appConfig.getNoOfPagesForReturnResults(totalRecords).get
       (res.json \ "totalRecords").as[Int] mustBe totalRecords
     }
 

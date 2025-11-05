@@ -34,7 +34,6 @@ import scala.concurrent.Future
 
 class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
-  private val config = mock[AppConfig]
   override lazy val app: Application =
     app(bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository), bind[AppConfig].toInstance(mockAppConfig))
   private val service = app.injector.instanceOf[ReturnsSummaryService]
@@ -48,7 +47,7 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
     "return a ReturnSummaryResults object when a matching summary is found" in {
       val returnSummaryResults = MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, 1)
       when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
-      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(1)
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(Some(1))
       when(mockAppConfig.getReturnResultsLocation(any, any, any)).thenReturn("results")
 
       val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
