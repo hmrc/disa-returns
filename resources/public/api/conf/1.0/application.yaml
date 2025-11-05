@@ -156,6 +156,7 @@ paths:
                   - $ref: '#/components/schemas/badSubmissionGeneral'
                   - $ref: '#/components/schemas/badSubmissionComplex'
                   - $ref: '#/components/schemas/badRequestParameters'
+                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -292,6 +293,7 @@ paths:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/badRequestParameters'
+                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -428,7 +430,7 @@ paths:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/badRequestParameters'
-
+                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -1097,7 +1099,62 @@ components:
           type: string
           description: Human readable message outlining the error.
           example: "Reporting window has been closed"
-
+    badRequestParametersMultipleErrors:
+      title: Bad Request Parameters (Multiple Errors)
+      type: object
+      properties:
+        code:
+          title: Error Code Type
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - BAD_REQUEST
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Multiple issues found regarding your submission"
+        errors:
+          title: Errors
+          type: array
+          description: Array of errors outlining issues found regarding your submission
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/invalidTaxYear'
+              - $ref: '#/components/schemas/invalidMonth'
+          example:
+            - code: INVALID_TAX_YEAR
+              message: Invalid tax year provided
+            - code: INVALID_MONTH
+              message: Invalid month provided
+    invalidTaxYear:
+      title: Invalid Tax Year
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - INVALID_TAX_YEAR
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error.
+          example: "Invalid tax year provided"
+    invalidMonth:
+      title: Invalid Month
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - INVALID_MONTH
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error.
+          example: "Invalid month provided"
   examples:
     lifetimeIsaSubscription:
       summary: Lifetime ISA Subscription
