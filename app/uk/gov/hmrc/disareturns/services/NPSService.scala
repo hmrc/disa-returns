@@ -78,10 +78,9 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
       s"Retrieving reconciliation report page: [$pageIndex] from NPS for IM ref: [$isaManagerReferenceNumber] with month/taxYear: [$month] [$taxYear]"
     )
 
-    val take = config.returnResultsRecordsPerPage
-    val skip = pageIndex * take
+    val pageSize = config.returnResultsRecordsPerPage
 
-    connector.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, skip, take).value.map {
+    connector.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, pageIndex, pageSize).value.map {
       case Left(upstreamError) =>
         Left(
           upstreamError.message match {

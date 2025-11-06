@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.disareturns.config
 
-import play.api.Logging
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class AppConfig @Inject() (config: ServicesConfig) extends Logging {
+class AppConfig @Inject() (config: ServicesConfig) {
 
   lazy val etmpBaseUrl: String = config.baseUrl(serviceName = "etmp")
   lazy val ppnsBaseUrl: String = config.baseUrl(serviceName = "ppns")

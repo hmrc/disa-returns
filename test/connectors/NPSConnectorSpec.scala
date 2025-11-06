@@ -42,7 +42,8 @@ class NPSConnectorSpec extends BaseUnitSpec {
     when(mockAppConfig.npsBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.post(url"$testUrl/nps/declaration/$testIsaRef")).thenReturn(mockRequestBuilder)
     when(mockHttpClient.post(url"$testUrl/nps/submit/$validZRef")).thenReturn(mockRequestBuilder)
-    when(mockHttpClient.get(url"$testUrl/monthly/$validZRef/$validTaxYear/$validMonthStr/results?skip=0&take=2")).thenReturn(mockRequestBuilder)
+    when(mockHttpClient.get(url"$testUrl/monthly/$validZRef/$validTaxYear/$validMonthStr/results?pageIndex=0&pageSize=2"))
+      .thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
   }
 

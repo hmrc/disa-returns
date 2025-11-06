@@ -168,9 +168,9 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
       )
     }
 
-    def stubNPSReportRetrieval(status: Int, body: String, skip: Int, take: Int): Unit =
+    def stubNPSReportRetrieval(status: Int, body: String, pageIndex: Int, pageSize: Int): Unit =
       stubFor(
-        get(urlEqualTo(s"/monthly/$isaManagerRef/$taxYear/$monthToken/results?skip=$skip&take=$take"))
+        get(urlEqualTo(s"/monthly/$isaManagerRef/$taxYear/$monthToken/results?pageIndex=$pageIndex&pageSize=$pageSize"))
           .willReturn(aResponse().withStatus(status).withBody(body))
       )
 }
