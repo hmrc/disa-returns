@@ -20,6 +20,8 @@ import play.api.Logging
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
+import cats.data.ValidatedNel
+import cats.syntax.all._
 
 import scala.util.Try
 
@@ -32,40 +34,35 @@ object ValidationHelper extends Logging {
     pageIndex:                 Option[String] = None
   ): Either[ErrorResponse, (String, String, Month, Option[Int])] = {
 
-    val imRefValidation: Either[ErrorResponse, String] =
-      Either.cond(IsaRefValidator.isValid(isaManagerReferenceNumber), isaManagerReferenceNumber.toUpperCase, InvalidIsaManagerRef)
+    val imRefValidated: ValidatedNel[ErrorResponse, String] =
+      if (IsaRefValidator.isValid(isaManagerReferenceNumber)) isaManagerReferenceNumber.toUpperCase.validNel
+      else InvalidIsaManagerRef.invalidNel
 
-    val taxYearValidation: Either[ErrorResponse, String] =
-      Either.cond(TaxYearValidator.isValid(year), year, InvalidTaxYear)
+    val yearValidated: ValidatedNel[ErrorResponse, String] =
+      if (TaxYearValidator.isValid(year)) year.validNel
+      else InvalidTaxYear.invalidNel
 
-    val monthValidation: Either[ErrorResponse, Month] =
-      Either.cond(Month.isValid(month), Month.withName(month), InvalidMonth)
+    val monthValidated: ValidatedNel[ErrorResponse, Month] =
+      if (Month.isValid(month)) Month.withName(month).validNel
+      else InvalidMonth.invalidNel
 
-    val pageValidation: Either[ErrorResponse, Option[Int]] = pageIndex match {
-      case None => Right(None)
-      case Some(value) =>
-        Try(value.toInt).toOption
-          .filter(_ >= 0)
-          .map(p => Some(p))
-          .toRight(InvalidPageErr)
-    }
+    val pageValidated: ValidatedNel[ErrorResponse, Option[Int]] =
+      pageIndex match {
+        case None => None.validNel
+        case Some(value) =>
+          Try(value.toInt).toOption
+            .filter(_ >= 0)
+            .map(Some)
+            .toValidNel(InvalidPageErr)
+      }
 
-    val errors =
-      List(imRefValidation.left.toOption, taxYearValidation.left.toOption, monthValidation.left.toOption, pageValidation.left.toOption).flatten
+    val combined = (imRefValidated, yearValidated, monthValidated, pageValidated).mapN((im, yr, mo, pg) => (im, yr, mo, pg))
 
-    if (errors.nonEmpty) {
-      logger.warn(s"Failed path or query string parameter validation with errors: [$errors]")
-    }
-    errors match {
-      case Nil =>
-        for {
-          imRef   <- imRefValidation
-          taxYear <- taxYearValidation
-          month   <- monthValidation
-          page    <- pageValidation
-        } yield (imRef, taxYear, month, page)
-      case Seq(singleError) => Left(singleError)
-      case multipleErrors   => Left(MultipleErrorResponse(code = "BAD_REQUEST", errors = multipleErrors))
+    combined.toEither.leftMap { nonEmptyList =>
+      val errs = nonEmptyList.toList
+      logger.warn(s"Failed path or query string parameter validation with errors: [$errs]")
+      if (errs.size == 1) errs.head
+      else MultipleErrorResponse(code = "BAD_REQUEST", errors = errs)
     }
   }
 }
