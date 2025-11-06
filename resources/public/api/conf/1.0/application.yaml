@@ -2,7 +2,7 @@ openapi: 3.0.3
 
 info:
   version: 1.0.0
-  title: ISA Reporting API
+  title: ISA Returns API
   description: |
     # Overview
     Use this API to submit monthly reports of current-year ISA subscription data. 
@@ -286,7 +286,7 @@ paths:
               properties:
                 nilReturn:
                   type: boolean
-                  description: If true, this will count as a declaration that there was nothing to submit for the period, alongside the general declaration. This will replace any other submission for the data.
+                  description: If true, this indicates that there is no data to report for the period. It acts as a declaration alongside the general declaration. Submitting a nil return will override any other data submitted for the same period.
               required: [ nilReturn ]
       responses:
         200:
@@ -1075,7 +1075,7 @@ components:
         message:
           title: Parameter Failure Message
           type: string
-          description: Message describing the error in more detail
+          description: Message describing the error in more detail.
           example: Invalid parameter for month
   examples:
     lifetimeIsaSubscription:
