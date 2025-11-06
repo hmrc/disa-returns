@@ -37,12 +37,12 @@ class ReconciliationResultController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: String, page: Int): Action[AnyContent] =
+  def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: String, page: String): Action[AnyContent] =
     (Action andThen authAction).async { implicit request =>
       ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month, Some(page)) match {
         case Left(errors) =>
           Future.successful(BadRequest(Json.toJson(errors)))
-        case Right((isaManagerReferenceNumber, taxYear, month, _)) =>
+        case Right((isaManagerReferenceNumber, taxYear, month, Some(page))) =>
           npsService.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, page).map {
             case Left(errorResponse) => HttpHelper.toHttpError(errorResponse)
             case Right(reportPage)   => Ok(Json.toJson(reportPage))

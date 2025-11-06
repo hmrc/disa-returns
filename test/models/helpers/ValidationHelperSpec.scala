@@ -37,7 +37,7 @@ class ValidationHelperSpec extends AnyWordSpec with Matchers {
     }
 
     "return Right for valid isaManagerNumber(uppercase), taxYear, month and page" in {
-      val result = ValidationHelper.validateParams("Z1234", "2023-24", "FEB", Some(1))
+      val result = ValidationHelper.validateParams("Z1234", "2023-24", "FEB", Some("1"))
       result shouldBe Right(("Z1234", "2023-24", FEB, Some(1)))
     }
 
@@ -57,12 +57,12 @@ class ValidationHelperSpec extends AnyWordSpec with Matchers {
     }
 
     "return InvalidPageErr when page is invalid" in {
-      val result = ValidationHelper.validateParams("Z1234", "2023-24", "SEP", Some(-1))
+      val result = ValidationHelper.validateParams("Z1234", "2023-24", "SEP", Some("-1"))
       result shouldBe Left(InvalidPageErr)
     }
 
     "return MultipleErrorResponse when all parameters are invalid" in {
-      val result = ValidationHelper.validateParams("1234", "20-24", "13", Some(-12))
+      val result = ValidationHelper.validateParams("1234", "20-24", "13", Some("-12"))
       result.left.get shouldBe
         MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear, InvalidMonth, InvalidPageErr))
     }

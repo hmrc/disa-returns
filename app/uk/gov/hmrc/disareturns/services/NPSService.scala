@@ -94,7 +94,7 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
           case OK =>
             try convertResponseToPage(response.json.as[ReconciliationReportResponse])
             catch {
-              case e: Throwable => Left(InternalServerErr(e.getMessage))
+              case _: Throwable => Left(InternalServerErr())
             }
           case otherStatus => Left(InternalServerErr(s"Unexpected status $otherStatus was received from NPS report retrieval"))
         }

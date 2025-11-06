@@ -246,7 +246,7 @@ class NPSServiceSpec extends BaseUnitSpec {
         service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
 
       result                  shouldBe a[Left[InternalServerErr, ReconciliationReportPage]]
-      result.swap.value.message should include("Unrecognized token")
+      result.swap.value.message shouldBe InternalServerErr().message
     }
   }
 }

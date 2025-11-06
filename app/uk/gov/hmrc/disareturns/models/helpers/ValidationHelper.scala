@@ -21,26 +21,49 @@ import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 
+import scala.util.Try
+
 object ValidationHelper extends Logging {
 
   def validateParams(
     isaManagerReferenceNumber: String,
     year:                      String,
     month:                     String,
-    pageIndex:                 Option[Int] = None
+    pageIndex:                 Option[String] = None
   ): Either[ErrorResponse, (String, String, Month, Option[Int])] = {
 
-    val errors: Seq[ErrorResponse] = Seq(
-      Option.unless(IsaRefValidator.isValid(isaManagerReferenceNumber))(InvalidIsaManagerRef),
-      Option.unless(TaxYearValidator.isValid(year))(InvalidTaxYear),
-      Option.unless(Month.isValid(month))(InvalidMonth),
-      Option.unless(pageIndex.fold(true)(_ >= 0))(InvalidPageErr)
-    ).flatten
+    val imRefValidation: Either[ErrorResponse, String] =
+      Either.cond(IsaRefValidator.isValid(isaManagerReferenceNumber), isaManagerReferenceNumber.toUpperCase, InvalidIsaManagerRef)
+
+    val taxYearValidation: Either[ErrorResponse, String] =
+      Either.cond(TaxYearValidator.isValid(year), year, InvalidTaxYear)
+
+    val monthValidation: Either[ErrorResponse, Month] =
+      Either.cond(Month.isValid(month), Month.withName(month), InvalidMonth)
+
+    val pageValidation: Either[ErrorResponse, Option[Int]] = pageIndex match {
+      case None => Right(None)
+      case Some(value) =>
+        Try(value.toInt).toOption
+          .filter(_ >= 0)
+          .map(p => Some(p))
+          .toRight(InvalidPageErr)
+    }
+
+    val errors =
+      List(imRefValidation.left.toOption, taxYearValidation.left.toOption, monthValidation.left.toOption, pageValidation.left.toOption).flatten
+
     if (errors.nonEmpty) {
       logger.warn(s"Failed path or query string parameter validation with errors: [$errors]")
     }
     errors match {
-      case Seq()            => Right((isaManagerReferenceNumber.toUpperCase, year, Month.withName(month), pageIndex))
+      case Nil =>
+        for {
+          imRef   <- imRefValidation
+          taxYear <- taxYearValidation
+          month   <- monthValidation
+          page    <- pageValidation
+        } yield (imRef, taxYear, month, page)
       case Seq(singleError) => Left(singleError)
       case multipleErrors   => Left(MultipleErrorResponse(code = "BAD_REQUEST", errors = multipleErrors))
     }

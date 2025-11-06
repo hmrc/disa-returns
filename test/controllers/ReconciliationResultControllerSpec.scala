@@ -36,9 +36,9 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
 
   private val controller = app.injector.instanceOf[ReconciliationResultController]
 
-  private val validPageIndex = 0
+  private val validPageIndex = "0"
   private val reconciliationReportPage = ReconciliationReportPage(
-    validPageIndex,
+    validPageIndex.toInt,
     2,
     3,
     2,
@@ -67,7 +67,7 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
 
-      val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonthStr, -1).apply(req)
+      val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonthStr, "-1").apply(req)
 
       status(res) mustBe BAD_REQUEST
       contentAsJson(res).as[ErrorResponse] shouldBe InvalidPageErr
@@ -78,7 +78,7 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
 
-      val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, "month", -1).apply(req)
+      val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, "month", "-1").apply(req)
 
       status(res) mustBe BAD_REQUEST
       contentAsJson(res) shouldBe Json.toJson(MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidMonth, InvalidPageErr)))
