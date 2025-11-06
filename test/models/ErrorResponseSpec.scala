@@ -45,6 +45,17 @@ class ErrorResponseSpec extends BaseUnitSpec {
       result shouldBe JsSuccess(UnauthorisedErr)
     }
 
+    "deserialize a emptyPayload error" in {
+      val json = Json.obj(
+        "code"    -> EmptyPayload.code,
+        "message" -> EmptyPayload.message
+      )
+
+      val result = Json.fromJson[ErrorResponse](json)
+
+      result shouldBe JsSuccess(EmptyPayload)
+    }
+
     "deserialize a MultipleErrorResponse with code FORBIDDEN" in {
       val json = Json.obj(
         "code"    -> "FORBIDDEN",
