@@ -21,7 +21,7 @@ import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import play.api.http.Status.{NO_CONTENT, OK}
 import play.api.libs.json.Json
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReportPageNotFoundErr, ReturnNotFoundErr, UnauthorisedErr}
+import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.models.returnResults.{IssueWithMessage, ReconciliationReportPage, ReconciliationReportResponse, ReturnResults}
 import uk.gov.hmrc.disareturns.services.NPSService
@@ -188,7 +188,7 @@ class NPSServiceSpec extends BaseUnitSpec {
       result shouldBe Left(ReportPageNotFoundErr(pageIndex))
     }
 
-    "return 'return not found' error when upstream returns report not found" in {
+    "return 'report not found' error when upstream returns report not found" in {
       val errorResponse = UpstreamErrorResponse("REPORT_NOT_FOUND", 404)
 
       when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
@@ -201,7 +201,7 @@ class NPSServiceSpec extends BaseUnitSpec {
       val result: Either[ErrorResponse, ReconciliationReportPage] =
         service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
 
-      result shouldBe Left(ReturnNotFoundErr("Return not found"))
+      result shouldBe Left(ReportNotFoundErr)
     }
 
     "return internal server error when unexpected status comes through" in {
@@ -245,7 +245,7 @@ class NPSServiceSpec extends BaseUnitSpec {
       val result: Either[ErrorResponse, ReconciliationReportPage] =
         service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
 
-      result                  shouldBe a[Left[InternalServerErr, ReconciliationReportPage]]
+      result                    shouldBe a[Left[InternalServerErr, ReconciliationReportPage]]
       result.swap.value.message shouldBe InternalServerErr().message
     }
   }

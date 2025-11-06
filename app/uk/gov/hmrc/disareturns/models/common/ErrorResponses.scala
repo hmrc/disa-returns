@@ -42,6 +42,11 @@ case class ReturnNotFoundErr(message: String) extends ErrorResponse {
   val code = "RETURN_NOT_FOUND"
 }
 
+case object ReportNotFoundErr extends ErrorResponse {
+  val code    = "REPORT_NOT_FOUND"
+  val message = "Report not found"
+}
+
 case class ReportPageNotFoundErr private (message: String) extends ErrorResponse {
   val code = "PAGE_NOT_FOUND"
 }

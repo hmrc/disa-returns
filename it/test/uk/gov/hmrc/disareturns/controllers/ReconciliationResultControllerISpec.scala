@@ -129,7 +129,7 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
         val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page)
 
         res.status mustBe NOT_FOUND
-        (res.json \ "message" ).as[String] mustBe s"Return not found"
+        (res.json \ "message" ).as[String] mustBe s"Report not found"
       }
 
       "return 500 when NPS sends invalid JSON" in {
@@ -139,7 +139,7 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
         val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page)
 
         res.status mustBe INTERNAL_SERVER_ERROR
-        (res.json \ "message" ).as[String] must startWith("Unrecognized token")
+        (res.json \ "message" ).as[String] mustBe "There has been an issue processing your request"
       }
 
       "return 500 when NPS sends an unexpected status" in {

@@ -23,7 +23,7 @@ import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReportPageNotFoundErr, ReturnNotFoundErr}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReportNotFoundErr, ReportPageNotFoundErr}
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.models.returnResults.{ReconciliationReportPage, ReconciliationReportResponse}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -84,7 +84,7 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
       case Left(upstreamError) =>
         Left(
           upstreamError.message match {
-            case message if message.contains("REPORT_NOT_FOUND") => ReturnNotFoundErr("Return not found")
+            case message if message.contains("REPORT_NOT_FOUND") => ReportNotFoundErr
             case message if message.contains("PAGE_NOT_FOUND")   => ReportPageNotFoundErr(pageIndex)
             case _                                               => mapToErrorResponse(upstreamError)
           }
