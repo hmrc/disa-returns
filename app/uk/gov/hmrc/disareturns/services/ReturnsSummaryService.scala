@@ -18,6 +18,7 @@ package uk.gov.hmrc.disareturns.services
 
 import play.api.Logging
 import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.controllers.routes
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
@@ -50,7 +51,8 @@ class ReturnsSummaryService @Inject() (
   ): Future[Either[ErrorResponse, ReturnSummaryResults]] = {
     logger.info(s"Retrieving return summary for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
 
-    lazy val returnResultsLocation = appConfig.getReturnResultsLocation(isaManagerReferenceNumber, taxYear, month)
+    lazy val returnResultsLocation =
+      s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month.toString).url}"
 
     def returnSummaryResults(totalRecords: Int) = {
       val numberOfPages = appConfig

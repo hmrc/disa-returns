@@ -48,14 +48,14 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
       val returnSummaryResults = MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, 1)
       when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(Some(1))
-      when(mockAppConfig.getReturnResultsLocation(any, any, any)).thenReturn("results")
+      when(mockAppConfig.selfHost).thenReturn("localhost")
 
       val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
 
       verify(mockAppConfig).getNoOfPagesForReturnResults(any)
 
       result mustBe Right(
-        ReturnSummaryResults("results", 1, 1)
+        ReturnSummaryResults("localhost/monthly/Z1234/2026-27/SEP/results", 1, 1)
       )
     }
 
