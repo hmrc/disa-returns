@@ -312,7 +312,6 @@ paths:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/badRequestParameters'
                   - $ref: '#/components/schemas/badSubmissionGeneralDeclaration'
         401:
           description: Unauthorized
