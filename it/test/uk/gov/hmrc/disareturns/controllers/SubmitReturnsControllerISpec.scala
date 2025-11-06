@@ -1313,7 +1313,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val result = submitMonthlyReturnRequest(requestBody = "")
 
       result.status                 shouldBe BAD_REQUEST
-      result.json.as[ErrorResponse] shouldBe BadRequestErr("NDJSON payload is empty.")
+      result.json.as[ErrorResponse] shouldBe EmptyPayload
     }
   }
 

@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import com.fasterxml.jackson.core.{JsonFactory, JsonParser}
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
@@ -29,7 +27,6 @@ import uk.gov.hmrc.disareturns.utils.JsonErrorMapper.jsErrorToDomainError
 import uk.gov.hmrc.disareturns.utils.JsonValidation
 import uk.gov.hmrc.disareturns.utils.JsonValidation.findDuplicateFields
 
-import java.io.StringReader
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
@@ -41,7 +38,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) extends 
     val validated = validatedStream(source)
     validated.prefixAndTail(1).flatMapConcat {
       case (Seq(), _) =>
-        Source.single(Left(FirstLevelValidationFailure(BadRequestErr("NDJSON payload is empty."): ErrorResponse)))
+        Source.single(Left(FirstLevelValidationFailure(EmptyPayload)))
       case (Seq(first), tail) =>
         tail.prepend(Source.single(first))
     }
@@ -55,22 +52,8 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) extends 
       case JsSuccess(account, _) =>
         Right(account)
       case JsError(errors) =>
-        jsErrorToDomainError(errors, nino, accountNumber).headOption match {
-          case Some(error) => Left(SecondLevelValidationFailure(Seq(error)))
-          case None =>
-            Left(
-              SecondLevelValidationFailure(
-                Seq(
-                  SecondLevelValidationError(
-                    nino,
-                    accountNumber,
-                    "UNKNOWN_VALIDATION",
-                    "Unknown validation error"
-                  )
-                )
-              )
-            )
-        }
+        val domainErrors = jsErrorToDomainError(errors, nino, accountNumber).headOption.toSeq
+        Left(SecondLevelValidationFailure(domainErrors))
     }
   }
 
