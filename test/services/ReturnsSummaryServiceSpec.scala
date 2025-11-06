@@ -67,6 +67,16 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
       result mustBe Left(ReturnNotFoundErr("No return found for Z1234 for SEP 2026-27"))
     }
 
+    "return a InternalServerErr when NPS sends back an invalid number of records" in {
+      val returnSummaryResults = MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, -1)
+      when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(None)
+
+      val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
+
+      result mustBe Left(InternalServerErr())
+    }
+
     "return a InternalServerErr when something goes wrong on the server" in {
       when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.failed(new Exception("fubar")))
 

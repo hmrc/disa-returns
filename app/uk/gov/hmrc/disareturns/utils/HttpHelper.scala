@@ -26,9 +26,11 @@ object HttpHelper {
     case _: ReturnNotFoundErr     => NotFound(Json.toJson(error))
     case _: ReportPageNotFoundErr => NotFound(Json.toJson(error))
     case _: InternalServerErr     => InternalServerError(Json.toJson(error))
-    case ReportNotFoundErr => NotFound(Json.toJson(error))
-    case UnauthorisedErr   => Unauthorized(Json.toJson(error))
-    case InvalidPageErr    => BadRequest(Json.toJson(error))
-    case _                 => Forbidden(Json.toJson(error))
+    case ReportNotFoundErr                        => NotFound(Json.toJson(error))
+    case UnauthorisedErr                          => Unauthorized(Json.toJson(error))
+    case InvalidPageErr                           => BadRequest(Json.toJson(error))
+    case ObligationClosed                         => Forbidden(Json.toJson(error))
+    case ReportingWindowClosed                    => Forbidden(Json.toJson(error))
+    case MultipleErrorResponse("FORBIDDEN", _, _) => Forbidden(Json.toJson(error))
   }
 }

@@ -229,7 +229,7 @@ class NPSServiceSpec extends BaseUnitSpec {
       val result: Either[ErrorResponse, ReconciliationReportPage] =
         service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
 
-      result shouldBe Left(InternalServerErr("Unexpected status 204 was received from NPS report retrieval"))
+      result shouldBe Left(InternalServerErr())
     }
 
     "return internal server error when response has invalid json" in {

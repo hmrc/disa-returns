@@ -149,7 +149,7 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
         val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, page)
 
         res.status mustBe INTERNAL_SERVER_ERROR
-        (res.json \ "message" ).as[String] mustBe "Unexpected status 204 was received from NPS report retrieval"
+        (res.json \ "message" ).as[String] mustBe "There has been an issue processing your request"
       }
     }
 

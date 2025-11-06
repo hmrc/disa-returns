@@ -44,8 +44,14 @@ class ReconciliationResultController @Inject() (
           Future.successful(BadRequest(Json.toJson(errors)))
         case Right((isaManagerReferenceNumber, taxYear, month, Some(page))) =>
           npsService.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, page).map {
-            case Left(errorResponse) => HttpHelper.toHttpError(errorResponse)
-            case Right(reportPage)   => Ok(Json.toJson(reportPage))
+            case Left(errorResponse) =>
+              logger.error(
+                s"Failed to retrieve report page [$page] for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] with error: [$errorResponse]"
+              )
+              HttpHelper.toHttpError(errorResponse)
+            case Right(reportPage) =>
+              logger.info(s"Retrieval of report page [$page] successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
+              Ok(Json.toJson(reportPage))
           }
       }
     }

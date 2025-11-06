@@ -62,6 +62,14 @@ class HttpHelperSpec extends AnyWordSpec with Matchers {
       contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
     }
 
+    "return NotFound (404) for ReportNotFoundErr" in {
+      val err    = ReportNotFoundErr
+      val result = HttpHelper.toHttpError(err)
+
+      result.header.status                     shouldBe NOT_FOUND
+      contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
+    }
+
     "return NotFound (404) for ReportPageNotFoundErr" in {
       val err    = ReportPageNotFoundErr(1)
       val result = HttpHelper.toHttpError(err)
@@ -75,6 +83,30 @@ class HttpHelperSpec extends AnyWordSpec with Matchers {
       val result = HttpHelper.toHttpError(err)
 
       result.header.status                     shouldBe BAD_REQUEST
+      contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
+    }
+
+    "return Forbidden (403) for ObligationClosed" in {
+      val err    = ObligationClosed
+      val result = HttpHelper.toHttpError(err)
+
+      result.header.status                     shouldBe FORBIDDEN
+      contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
+    }
+
+    "return Forbidden (403) for ReportingWindowClosed" in {
+      val err    = ReportingWindowClosed
+      val result = HttpHelper.toHttpError(err)
+
+      result.header.status                     shouldBe FORBIDDEN
+      contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
+    }
+
+    "return Forbidden (403) for MultipleErrorResponse with code FORBIDDEN" in {
+      val err    = MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ObligationClosed, ReportingWindowClosed))
+      val result = HttpHelper.toHttpError(err)
+
+      result.header.status                     shouldBe FORBIDDEN
       contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
     }
   }

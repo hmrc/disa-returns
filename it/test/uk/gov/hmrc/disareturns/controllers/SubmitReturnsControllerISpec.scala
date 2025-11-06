@@ -1353,6 +1353,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), isaManagerRef = testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
+
       result.status                 shouldBe FORBIDDEN
       result.json.as[ErrorResponse] shouldBe MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ReportingWindowClosed, ObligationClosed))
     }

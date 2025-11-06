@@ -54,23 +54,23 @@ class ReturnsSummaryService @Inject() (
     lazy val returnResultsLocation =
       s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month.toString).url}"
 
-    def returnSummaryResults(totalRecords: Int) = {
-      val numberOfPages = appConfig
-        .getNoOfPagesForReturnResults(totalRecords)
-        .fold {
-          logger.error(
-            s"Invalid number of total records [$totalRecords] received from upstream for IM Ref: [$isaManagerReferenceNumber] for [$taxYear] [$month]"
-          )
-          0
-        }(identity)
+    def returnSummaryResults(totalRecords: Int): Either[ErrorResponse, ReturnSummaryResults] = {
+      val numberOfPages = appConfig.getNoOfPagesForReturnResults(totalRecords)
 
-      ReturnSummaryResults(returnResultsLocation, totalRecords, numberOfPages)
+      numberOfPages.fold[Either[ErrorResponse, ReturnSummaryResults]] {
+        logger.error(
+          s"Invalid number of total records [$totalRecords] received from upstream for IM Ref: [$isaManagerReferenceNumber] for [$taxYear] [$month]"
+        )
+        Left(InternalServerErr())
+      } { numberOfPages =>
+        Right(ReturnSummaryResults(returnResultsLocation, totalRecords, numberOfPages))
+      }
     }
 
     summaryRepo
       .retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month)
       .map {
-        case Some(summary) => Right(returnSummaryResults(summary.totalRecords))
+        case Some(summary) => returnSummaryResults(summary.totalRecords)
         case _             => Left(ReturnNotFoundErr(s"No return found for $isaManagerReferenceNumber for ${month.toString} $taxYear"))
       }
       .recover { case e => Left(InternalServerErr(e.getMessage)) }

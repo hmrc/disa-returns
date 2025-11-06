@@ -64,7 +64,7 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
         .getNoOfPagesForReturnResults(totalRecords)
         .fold {
           logger.error(
-            s"Invalid number of total records [$totalRecords] received from upstream for IM Ref: [$isaManagerReferenceNumber] for [$taxYear] [$month]"
+            s"Invalid number of total records: [$totalRecords] received from upstream for IM Ref: [$isaManagerReferenceNumber] for [$taxYear] [$month]"
           )
           0
         }(identity)
@@ -94,9 +94,17 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
           case OK =>
             try convertResponseToPage(response.json.as[ReconciliationReportResponse])
             catch {
-              case _: Throwable => Left(InternalServerErr())
+              case e: Throwable =>
+                logger.error(
+                  s"Caught exception with message: [${e.getMessage}] when parsing response from NPS for IM ref: [$isaManagerReferenceNumber] with month/taxYear: [$month] [$taxYear]"
+                )
+                Left(InternalServerErr())
             }
-          case otherStatus => Left(InternalServerErr(s"Unexpected status $otherStatus was received from NPS report retrieval"))
+          case otherStatus =>
+            logger.error(
+              s"Unexpected status: [$otherStatus] was received from NPS report retrieval for IM ref: [$isaManagerReferenceNumber] with month/taxYear: [$month] [$taxYear]"
+            )
+            Left(InternalServerErr())
         }
     }
   }
