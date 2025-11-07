@@ -1,6 +1,6 @@
 {
   "api": {
-    "name": "DISA Returns",
+    "name": "ISA Returns",
     "description": "API providing ISA managers the ability to submit their returns.",
     "context": "obligations/declaration/isa/return",
     "categories": ["OTHER", "LIFETIME_ISA"],
