@@ -10,7 +10,7 @@ info:
     In future, enrolment for digital ISA reporting will also be required.
 
     # Supported use cases
-    - Submit monthly reports of current-year subscription data, including transfers and withdrawals.
+    - Submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals.
     - Check the status of submitted reports to confirm processing.
     - Retrieve reconciliation results in batches using pagination.
 
@@ -45,7 +45,8 @@ tags:
     description: |
       After a monthly report is marked complete and the reporting window closes, 
       HMRC will begin a process that reconciles your submission against other ISA managers' submissions. 
-      This will involve validation against business rules and checks on each investor's eligibility and their annual ISA subscription limits.
+      This will involve validation against business rules and checks on each investor's eligibility 
+      and their annual ISA subscription limits.
 
       You can check the status of a submitted report and retrieve the reconciliation results when available. 
       Reconciliation results include accepted records and details of any reconciliation issues. 
@@ -57,9 +58,11 @@ paths:
       summary: Submit monthly report data
       description: |
         Use this endpoint to upload a batch of account records. 
-        A batch is a single payload containing multiple records for the specified monthly report. The payload size of each request must not exceed 10 MB. 
+        A batch is a single payload containing multiple records for the specified monthly report. 
+        The payload size of each request must not exceed 10 MB. 
         
-        The API checks whether the reporting window is open and whether a report has already been submitted for the specified tax year and report month. 
+        The API checks whether the reporting window is open and whether a report has already 
+        been submitted for the specified tax year and report month. 
         If either condition is not met, the API returns a `403 Forbidden` response.
 
         If the request is permitted:
@@ -211,8 +214,11 @@ paths:
       summary: Declare monthly report as complete
       description: |
         Use this endpoint to confirm that all data has been submitted. 
-        Declaring a monthly report as complete is a legal confirmation that all 
-        account data for the period has been fully and accurately reported to HMRC. 
+        
+        Declaring a report as complete is a legal confirmation that your 
+        monthly reporting obligations are met. It confirms that all 
+        required data has been filed by the deadline, but it is not an 
+        attestation that the submitted data is correct. 
         After this step, no further data can be added for that month. 
         
         The API checks whether the reporting window is open and whether a report has 
