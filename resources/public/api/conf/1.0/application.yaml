@@ -2,7 +2,7 @@ openapi: 3.0.3
 
 info:
   version: 1.0.0
-  title: Manage ISAs API
+  title: ISA Returns API
   description: |
     # Overview
     Use this API to submit monthly reports of current-year ISA subscription data. 
@@ -277,6 +277,17 @@ paths:
               - DEC
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nilReturn:
+                  type: boolean
+                  description: If true, this indicates that there is no data to report for the period. It acts as a declaration alongside the general declaration. Submitting a nil return will override any other data submitted for the same period.
+              required: [ nilReturn ]
       responses:
         200:
           description: Submission completed. Reconciliation results will be available after processing is complete.
@@ -301,7 +312,7 @@ paths:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/badRequestParameters'
+                  - $ref: '#/components/schemas/badSubmissionGeneralDeclaration'
         401:
           description: Unauthorized
           content:
@@ -654,12 +665,12 @@ paths:
                     type: string
                     description: Types of errors encountered.
                     enum:
-                      - RETURN_NOT_FOUND
+                      - REPORT_NOT_FOUND
                       - PAGE_NOT_FOUND
                   message:
                     type: string
                     enum:
-                      - Return not found
+                      - Report not found
                       - No page {pageNumber} found
         500:
           description: Internal Server Error
@@ -988,6 +999,20 @@ components:
           title: Detailed Message
           type: string
           description: Message describing the details of the validation error.
+    badSubmissionGeneralDeclaration:
+      title: Bad Request (General Issue)
+      type: object
+      properties:
+        code:
+          title: Validation Failure Code
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - MALFORMED_JSON
+        message:
+          title: Detailed Message
+          type: string
+          description: Message describing the details of the validation error.
     badSubmissionComplex:
       title: Bad Request (Field Specific)
       type: object
@@ -1036,6 +1061,7 @@ components:
           description: Human readable message outlining the error.
           example: "Last name field is missing"
     badRequestParameters:
+      title: Bad Request (Parameters)
       type: object
       properties:
         code:
@@ -1046,6 +1072,11 @@ components:
             - INVALID_Z_REFERENCE
             - INVALID_TAX_YEAR
             - INVALID_MONTH
+        message:
+          title: Parameter Failure Message
+          type: string
+          description: Message describing the error in more detail.
+          example: Invalid parameter for month
   examples:
     lifetimeIsaSubscription:
       summary: Lifetime ISA Subscription
