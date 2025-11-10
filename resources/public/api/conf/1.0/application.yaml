@@ -135,7 +135,7 @@ paths:
         content:
           application/x-ndjson:
             schema:
-              type: array
+              type: object
               items:
                 $ref: '#/components/schemas/investorDetails'
             examples:
