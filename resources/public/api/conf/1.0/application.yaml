@@ -159,6 +159,7 @@ paths:
                   - $ref: '#/components/schemas/badSubmissionGeneral'
                   - $ref: '#/components/schemas/badSubmissionComplex'
                   - $ref: '#/components/schemas/badRequestParameters'
+                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -180,19 +181,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Type
-                    type: string
-                    description: Error Code
-                    enum:
-                      - FORBIDDEN
-                      - REPORTING_WINDOW_CLOSED
-                      - OBLIGATION_CLOSED
-                  message:
-                    type: string
-                    example: Forbidden
+                oneOf:
+                  - $ref: '#/components/schemas/forbiddenSingleError'
+                  - $ref: '#/components/schemas/forbiddenMultipleErrors'
         500:
           description: Internal Server Error
           content:
@@ -319,6 +310,7 @@ paths:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/badSubmissionGeneralDeclaration'
+                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -340,19 +332,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Type
-                    type: string
-                    description: Error Code
-                    enum:
-                      - FORBIDDEN
-                      - REPORTING_WINDOW_CLOSED
-                      - OBLIGATION_CLOSED
-                  message:
-                    type: string
-                    example: Forbidden
+                oneOf:
+                  - $ref: '#/components/schemas/forbiddenSingleError'
+                  - $ref: '#/components/schemas/forbiddenMultipleErrors'
         500:
           description: Internal Server Error
           content:
@@ -465,7 +447,7 @@ paths:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/badRequestParameters'
-
+                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -1060,7 +1042,7 @@ components:
           enum:
             - INVALID_FIELD
             - MISSING_FIELD
-            - DUPLICATE_ITEM
+            - DUPLICATE_FIELD
         message:
           title: Message
           type: string
@@ -1083,6 +1065,133 @@ components:
           type: string
           description: Message describing the error in more detail.
           example: Invalid parameter for month
+    forbiddenSingleError:
+      title: Forbidden (Single Error)
+      type: object
+      properties:
+        code:
+          title: Error Code Type
+          type: string
+          enum:
+            - REPORTING_WINDOW_CLOSED
+            - OBLIGATION_CLOSED
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Reporting window has been closed"
+    forbiddenMultipleErrors:
+      title: Forbidden (Multiple Errors)
+      type: object
+      properties:
+        code:
+          title: Error Code Type
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - FORBIDDEN
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Multiple issues found regarding your submission"
+        errors:
+          title: Errors
+          type: array
+          description: Array of errors outlining issues found regarding your submission
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/obligationClosed'
+              - $ref: '#/components/schemas/reportingWindowClosed'
+          example:
+            - code: OBLIGATION_CLOSED
+              message: Obligation closed
+            - code: REPORTING_WINDOW_CLOSED
+              message: Reporting window has been closed
+    obligationClosed:
+      title: Obligation Closed
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - OBLIGATION_CLOSED
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error.
+          example: "Obligation Closed"
+    reportingWindowClosed:
+      title: Reporting Window Closed
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - REPORTING_WINDOW_CLOSED
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error.
+          example: "Reporting window has been closed"
+    badRequestParametersMultipleErrors:
+      title: Bad Request Parameters (Multiple Errors)
+      type: object
+      properties:
+        code:
+          title: Error Code Type
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - BAD_REQUEST
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Multiple issues found regarding your submission"
+        errors:
+          title: Errors
+          type: array
+          description: Array of errors outlining issues found regarding your submission
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/invalidTaxYear'
+              - $ref: '#/components/schemas/invalidMonth'
+          example:
+            - code: INVALID_TAX_YEAR
+              message: Invalid tax year provided
+            - code: INVALID_MONTH
+              message: Invalid month provided
+    invalidTaxYear:
+      title: Invalid Tax Year
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - INVALID_TAX_YEAR
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error.
+          example: "Invalid tax year provided"
+    invalidMonth:
+      title: Invalid Month
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - INVALID_MONTH
+        message:
+          title: Message
+          type: string
+          description: Human readable message outlining the error.
+          example: "Invalid month provided"
   examples:
     lifetimeIsaSubscription:
       summary: Lifetime ISA Subscription
