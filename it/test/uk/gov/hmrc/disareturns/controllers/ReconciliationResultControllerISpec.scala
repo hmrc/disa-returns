@@ -34,7 +34,7 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
     private val monthToken = monthEnum.toString
     private val page = 0
 
-    "GET /monthly/:zRef/:year/:month/results/summary" should {
+    "GET /monthly/:isaManagerReferenceNumber/:taxYear/:month/results/summary" should {
 
       "return 200 and the first page of the reconciliation report" in {
         val npsReportJson = """
@@ -93,9 +93,8 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
         )
       }
 
-      "return 400 and an error message when paramater validation fails" in {
+      "return 400 and an error message when parameter validation fails" in {
         stubAuth()
-        stubNPSReportRetrieval(200, "", 0, 0)
 
         val res: WSResponse = retrieveReconciliationReportPageRequest(isaManagerRef, taxYear, monthToken, -1)
 
