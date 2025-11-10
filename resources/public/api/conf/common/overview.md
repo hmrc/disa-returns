@@ -1,5 +1,7 @@
 Use this API to submit monthly reports of current-year ISA subscription data.
 
+During the Alpha phase, only the API schema is available for evaluation and planning purposes. The sandbox environment and executable endpoints are not yet available.
+
 Before you can use the API, you must be approved by HMRC as an ISA manager. In future, enrolment for digital ISA reporting will also be required.
 
 The API supports digital ISA reporting by enabling secure, standardised and frequent digital reporting. This helps HMRC detect errors quickly and improve oversight during the tax year.
@@ -38,9 +40,9 @@ Once your Developer Hub account and software application are set up:
 2. Return to this API landing page.
 3. Go to the Endpoints section and select 'Request access'.
 4. Fill in the request form with:
-   - your organisation name (as listed on the ISA manager register)
-   - the API name: ISA Returns
-   - the ID linked to your Developer Hub software application
+    - your organisation name (as listed on the ISA manager register)
+    - the API name: ISA Returns
+    - the ID linked to your Developer Hub software application
 
 HMRC may contact you to discuss your request and confirm eligibility.
 
