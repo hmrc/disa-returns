@@ -59,19 +59,20 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
   ): Future[Either[ErrorResponse, ReconciliationReportPage]] = {
 
     def convertResponseToPage(response: ReconciliationReportResponse): Either[ErrorResponse, ReconciliationReportPage] = {
-      val totalRecords = response.totalRecords
-      val totalNoOfPages = config
-        .getNoOfPagesForReturnResults(totalRecords)
-        .fold {
-          logger.error(
-            s"Invalid number of total records: [$totalRecords] received from upstream for IM Ref: [$isaManagerReferenceNumber] for [$taxYear] [$month]"
-          )
-          0
-        }(identity)
+      val totalRecords      = response.totalRecords
+      val totalNoOfPages    = config.getNoOfPagesForReturnResults(totalRecords)
       val recordsInThisPage = response.returnResults.size
 
       if (response.returnResults.isEmpty) Left(ReportPageNotFoundErr(pageIndex))
-      else Right(ReconciliationReportPage(pageIndex, recordsInThisPage, totalRecords, totalNoOfPages, response.returnResults))
+      else
+        totalNoOfPages.fold[Either[ErrorResponse, ReconciliationReportPage]] {
+          logger.error(
+            s"Invalid number of total records: [$totalRecords] received from upstream for IM Ref: [$isaManagerReferenceNumber] for [$taxYear] [$month]"
+          )
+          Left(InternalServerErr())
+        } { noOfPages =>
+          Right(ReconciliationReportPage(pageIndex, recordsInThisPage, totalRecords, noOfPages, response.returnResults))
+        }
     }
 
     logger.info(

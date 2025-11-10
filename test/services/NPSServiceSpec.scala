@@ -204,6 +204,34 @@ class NPSServiceSpec extends BaseUnitSpec {
       result shouldBe Left(ReportNotFoundErr)
     }
 
+    "return internal server error when there are an invalid number of total records" in {
+      val validReconciliationReportResponse = Json
+        .toJson(
+          ReconciliationReportResponse(
+            -1,
+            Seq(
+              ReturnResults("1", "a", IssueWithMessage("code", "message")),
+              ReturnResults("2", "b", IssueWithMessage("code", "message"))
+            )
+          )
+        )
+        .toString()
+
+      val httpResponse: HttpResponse = HttpResponse(NO_CONTENT, validReconciliationReportResponse)
+
+      when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val pageIndex = 0
+
+      val result: Either[ErrorResponse, ReconciliationReportPage] =
+        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+
+      result shouldBe Left(InternalServerErr())
+    }
+
     "return internal server error when unexpected status comes through" in {
       val validReconciliationReportResponse = Json
         .toJson(
