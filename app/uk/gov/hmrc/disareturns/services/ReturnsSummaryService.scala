@@ -52,7 +52,7 @@ class ReturnsSummaryService @Inject() (
     logger.info(s"Retrieving return summary for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
 
     lazy val returnResultsLocation =
-      s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month.toString).url}"
+      s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month.toString).url}?page=0"
 
     def returnSummaryResults(totalRecords: Int): Either[ErrorResponse, ReturnSummaryResults] = {
       val numberOfPages = appConfig.getNoOfPagesForReturnResults(totalRecords)

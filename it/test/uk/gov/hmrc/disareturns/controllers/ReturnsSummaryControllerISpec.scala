@@ -21,7 +21,7 @@ import play.api.libs.json._
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InvalidIsaManagerRef, InvalidMonth, InvalidTaxYear, Month, MultipleErrorResponse}
+import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
@@ -103,6 +103,7 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
       res1.status mustBe BAD_REQUEST
 
       val res2 = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> "three"))
+      res2.status mustBe BAD_REQUEST
     }
   }
 
@@ -122,9 +123,9 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
         )
 
       res.status mustBe OK
-      (res.json \ "returnResultsLocation").as[String] mustBe s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReportPage(isaManagerRef, taxYear, monthToken).url}"
-      (res.json \ "numberOfPages").as[Int] mustBe appConfig.getNoOfPagesForReturnResults(totalRecords).get
-      (res.json \ "totalRecords").as[Int] mustBe totalRecords
+      (res.json \ "returnResultsLocation").as[String] mustBe s"${appConfig.selfHost}/monthly/$isaManagerRef/$taxYear/$monthToken/results?page=0"
+      (res.json \ "numberOfPages").as[Int] mustBe 2
+      (res.json \ "totalRecords").as[Int] mustBe 3
     }
 
     "return 404 when no summary is found" in {

@@ -54,9 +54,7 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
       verify(mockAppConfig).getNoOfPagesForReturnResults(any)
 
-      result mustBe Right(
-        ReturnSummaryResults("localhost/monthly/Z1234/2026-27/SEP/results", 1, 1)
-      )
+      result mustBe Right(ReturnSummaryResults("localhost/monthly/Z1234/2026-27/SEP/results?page=0", 1, 1))
     }
 
     "return a ReturnNotFound error when no summary is found" in {
