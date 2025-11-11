@@ -76,6 +76,11 @@ paths:
         A successful submission returns a `204 No Content` response. 
         
         Submit all data batches before completing the monthly report.
+
+        **Note:** The examples shown here are limited by the OpenAPI Specification. 
+        Actual payloads must be sent as newline-delimited JSON (NDJSON), with one object per line. 
+        A trailing newline is optional. See https://github.com/ndjson/ndjson-spec for full format guidance.
+
       operationId: submitMonthlyReport
       tags:
         - Submit monthly report
