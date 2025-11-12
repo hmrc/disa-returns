@@ -20,7 +20,8 @@ import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.http.Status
 import play.api.http.Status.OK
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsObject, Json}
+import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
 
 trait CommonStubs {
 
@@ -71,9 +72,14 @@ trait CommonStubs {
         .willReturn(status)
     )
 
-  def stubNPSNotification(status: ResponseDefinitionBuilder, isaManagerRef: String): Unit =
+  def stubNPSNotification(
+    status:        ResponseDefinitionBuilder,
+    isaManagerRef: String,
+    nilReturn:     Boolean = false
+  ): Unit =
     stubFor(
       post(urlEqualTo(s"/nps/declaration/$isaManagerRef"))
+        .withRequestBody(equalToJson(Json.toJson(ReportingNilReturn(nilReturn)).toString()))
         .willReturn(status)
     )
 
@@ -86,7 +92,8 @@ trait CommonStubs {
   val testClientId = "test-client-id"
   val testHeaders: Seq[(String, String)] = Seq(
     "X-Client-ID"   -> testClientId,
-    "Authorization" -> "mock-bearer-token"
+    "Authorization" -> "mock-bearer-token",
+    "Content-Type"  -> "application/json"
   )
 
 }

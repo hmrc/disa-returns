@@ -22,21 +22,21 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.Results.BadRequest
 import play.api.mvc.{ActionRefiner, Request, Result}
-import uk.gov.hmrc.disareturns.models.common.{BadRequestErr, ClientIdRequest, ErrorResponse}
+import uk.gov.hmrc.disareturns.models.common.{BadRequestErr, DeclarationRequest, ErrorResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ClientIdAction @Inject() (implicit ec: ExecutionContext) extends ActionRefiner[Request, ClientIdRequest] with Logging {
+class ClientIdAction @Inject() (implicit ec: ExecutionContext) extends ActionRefiner[Request, DeclarationRequest] with Logging {
 
   private val ClientIdHeader = "X-Client-ID"
   override protected def executionContext: ExecutionContext = ec
 
-  override def refine[A](request: Request[A]): Future[Either[Result, ClientIdRequest[A]]] = {
+  override def refine[A](request: Request[A]): Future[Either[Result, DeclarationRequest[A]]] = {
     val optionClientId = request.headers.get(ClientIdHeader)
     optionClientId match {
       case Some(clientId) =>
-        Future.successful(Right(ClientIdRequest(clientId, request)))
+        Future.successful(Right(DeclarationRequest(request, clientId)))
       case None =>
         logger.warn("Client ID missing from request header")
         Future.successful(Left(BadRequest(Json.toJson(BadRequestErr(message = "Missing required header: X-Client-ID"): ErrorResponse))))

@@ -36,19 +36,20 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DeclarationController @Inject() (
-  cc:             ControllerComponents,
-  etmpService:    ETMPService,
-  ppnsService:    PPNSService,
-  npsService:     NPSService,
-  authAction:     AuthAction,
-  clientIdAction: ClientIdAction,
-  config:         AppConfig
-)(implicit ec:    ExecutionContext)
+  cc:              ControllerComponents,
+  etmpService:     ETMPService,
+  ppnsService:     PPNSService,
+  npsService:      NPSService,
+  authAction:      AuthAction,
+  clientIdAction:  ClientIdAction,
+  nilReturnAction: NilReturnAction,
+  config:          AppConfig
+)(implicit ec:     ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
   def declare(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[AnyContent] =
-    (Action andThen authAction andThen clientIdAction).async { implicit request =>
+    (Action andThen authAction andThen clientIdAction andThen nilReturnAction).async { implicit request =>
       ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
         case Left(errors) =>
           Future.successful(BadRequest(Json.toJson(errors)))
@@ -56,7 +57,7 @@ class DeclarationController @Inject() (
           val result: EitherT[Future, ErrorResponse, Option[String]] = for {
             _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber))
             _             <- etmpService.declaration(isaManagerReferenceNumber)
-            _             <- npsService.notification(isaManagerReferenceNumber)
+            _             <- npsService.notification(isaManagerReferenceNumber, request.nilReturnReported)
             boxIdResponse <- EitherT(ppnsService.getBoxId(request.clientId))
           } yield boxIdResponse
           result.fold(
@@ -66,20 +67,11 @@ class DeclarationController @Inject() (
             },
             optBoxId => {
               logger.info(s"Declaration of return successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
-              Ok(Json.toJson(successfulResponse(isaManagerReferenceNumber, taxYear, month, optBoxId)))
+              val returnResultsSummaryLocation =
+                config.selfHost + routes.ReturnsSummaryController.retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month).url
+              Ok(Json.toJson(DeclarationSuccessfulResponse(returnResultsSummaryLocation, optBoxId)))
             }
           )
       }
     }
-  private def successfulResponse(
-    isaManagerReferenceNumber: String,
-    taxYear:                   String,
-    month:                     String,
-    optBoxId:                  Option[String]
-  ): DeclarationSuccessfulResponse = {
-    val returnResultsSummaryLocation =
-      config.selfHost + routes.ReturnsSummaryController.retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month).url
-    DeclarationSuccessfulResponse(returnResultsSummaryLocation, optBoxId)
-  }
-
 }

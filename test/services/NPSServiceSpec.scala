@@ -32,15 +32,16 @@ class NPSServiceSpec extends BaseUnitSpec {
   val service = new NPSService(mockNPSConnector)
 
   val isaManagerReference = "Z1234"
+  val reportingNilReturn  = false
 
   "NPSService.notification" should {
 
     "return Right(HttpResponse) when connector returns a 204" in {
       val httpResponse = HttpResponse(204, "")
-      when(mockNPSConnector.sendNotification(isaManagerReference))
+      when(mockNPSConnector.sendNotification(isaManagerReference, reportingNilReturn))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result = service.notification(isaManagerReference).value.futureValue
+      val result = service.notification(isaManagerReference, reportingNilReturn).value.futureValue
 
       result shouldBe Right(httpResponse)
     }
@@ -53,10 +54,10 @@ class NPSServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockNPSConnector.sendNotification(isaManagerReference))
+      when(mockNPSConnector.sendNotification(isaManagerReference, reportingNilReturn))
         .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      val result = service.notification(isaManagerReference).value.futureValue
+      val result = service.notification(isaManagerReference, reportingNilReturn).value.futureValue
 
       result shouldBe Left(UnauthorisedErr)
     }
