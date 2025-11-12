@@ -1,8 +1,15 @@
 Use this API to submit monthly reports of current-year ISA subscription data.
 
-During the Alpha phase, only the API schema is available for evaluation and planning purposes. The sandbox environment and executable endpoints are not yet available.
+During Alpha:
 
-Before you can use the API, you must be approved by HMRC as an ISA manager. In future, enrolment for digital ISA reporting will also be required.
+- only the API schema is available for evaluation; endpoints and sandbox are not yet live
+- your organisation must be approved by HMRC as an ISA manager to access the API
+
+From the Beta onwards:
+
+- endpoints and sandbox will be available
+- your organisation must be enrolled for digital ISA reporting to access the API
+- access granted during Alpha remains valid for Beta – you do not need to reapply
 
 The API supports digital ISA reporting by enabling secure, standardised and frequent digital reporting. This helps HMRC detect errors quickly and improve oversight during the tax year.
 
@@ -26,8 +33,8 @@ This is a restricted-access API. Its endpoints are visible only to authorised an
 ### Who can request access ###
 To request access, you must:
 
-- be an employee of an organisation listed on the [ISA manager register (GOV.UK)](https://www.gov.uk/government/publications/list-of-individual-savings-account-isa-managers-approved-by-hmrc/registered-individual-savings-account-isa-managers)
-- have an HMRC Developer Hub account with a registered software application
+- be an employee of an organisation listed on the [ISA manager register (GOV.UK)](https://www.gov.uk/government/publications/list-of-individual-savings-account-isa-managers-approved-by-hmrc/registered-individual-savings-account-isa-managers).
+- have an HMRC Developer Hub account with a registered software application.
 
 If your organisation is not listed, please check [how to apply for ISA manager status on GOV.UK](https://www.gov.uk/guidance/apply-to-be-an-isa-manager).
 
@@ -37,16 +44,19 @@ If you do not have a Developer Hub account, you can [register for an account on 
 Once your Developer Hub account and software application are set up:
 
 1. [Sign in to Developer Hub](https://developer.service.hmrc.gov.uk/developer/login).
+
 2. Return to this API landing page.
+
 3. Go to the Endpoints section and select 'Request access'.
+
 4. Fill in the request form with:
     - your organisation name (as listed on the ISA manager register)
     - the API name: ISA Returns
-    - the ID linked to your Developer Hub software application
+    - the application ID linked to your Developer Hub software application
 
 HMRC may contact you to discuss your request and confirm eligibility.
 
-If access is approved, you will receive confirmation by email. You must then subscribe your software application to the API. To do this, return to your software application in your Developer Hub account and select 'API subscriptions' from the left-hand menu. Locate the relevant API in the list and select 'Show' to expand the version details. Then select 'Yes' to subscribe your application.
+If your access is approved, you will get a confirmation email and your software application will be subscribed to the API.
 
 If you are not signed in, or access has not yet been granted, the Endpoints section will not display a link. You may see 'Not applicable' or 'Request access' instead.
 
