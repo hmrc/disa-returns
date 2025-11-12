@@ -53,7 +53,7 @@ tags:
       Results are paginated to support large datasets.
 
 paths:
-  /monthly/{ZReference}/{taxYear}/{month}:
+  /monthly/{zReference}/{taxYear}/{month}:
     post:
       summary: Submit monthly report data
       description: |
@@ -88,7 +88,7 @@ paths:
         - userRestricted:
             - write:isa-returns
       parameters:
-        - name: ZReference
+        - name: zReference
           in: path
           description: |
             A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
@@ -205,7 +205,7 @@ paths:
                   message:
                     type: string
                     example: "Unexpected Error"
-  /monthly/{ZReference}/{taxYear}/{month}/declaration:
+  /monthly/{zReference}/{taxYear}/{month}/declaration:
     post:
       summary: Declare monthly report as complete
       description: |
@@ -232,7 +232,7 @@ paths:
         - userRestricted:
             - write:isa-returns
       parameters:
-        - name: ZReference
+        - name: zReference
           in: path
           description: |
             A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
@@ -359,7 +359,7 @@ paths:
                   message:
                     type: string
                     example: "Unexpected Error"
-  /monthly/{ZReference}/{taxYear}/{month}/results/summary:
+  /monthly/{zReference}/{taxYear}/{month}/results/summary:
     get:
       summary: Get report summary
       description: |
@@ -380,7 +380,7 @@ paths:
         - userRestricted:
             - read:isa-returns
       parameters:
-        - name: ZReference
+        - name: zReference
           in: path
           description: |
             A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
@@ -506,7 +506,7 @@ paths:
                     type: string
                     example: "Unexpected Error"
 
-  /monthly/{ZReference}/{taxYear}/{month}/results:
+  /monthly/{zReference}/{taxYear}/{month}/results:
     get:
       summary: Get report reconciliation results
       description: |
@@ -529,7 +529,7 @@ paths:
         - userRestricted:
             - read:isa-returns
       parameters:
-        - name: ZReference
+        - name: zReference
           in: path
           description: |
             A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
