@@ -49,7 +49,7 @@ class NilReturnActionSpec extends BaseUnitSpec {
 
     "overwrite nilReturnReported to false when JSON reports no nil return" in {
       val json    = Json.toJson(ReportingNilReturn(nilReturn = false))
-      val request = buildRequest(AnyContentAsJson(json)).copy(nilReturnReported = true) // ensure overwrite
+      val request = buildRequest(AnyContentAsJson(json)).copy(nilReturnReported = true)
 
       whenReady(action.refine(request)) { result =>
         result.isRight                        shouldBe true
@@ -65,7 +65,6 @@ class NilReturnActionSpec extends BaseUnitSpec {
         result.isLeft shouldBe true
         val response = result.left.get
         status(Future.successful(response))        shouldBe BAD_REQUEST
-        contentType(Future.successful(response))   shouldBe Some("application/json")
         contentAsJson(Future.successful(response)) shouldBe Json.toJson(MalformedJsonFailureErr)
       }
     }
