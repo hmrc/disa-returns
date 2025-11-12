@@ -2,21 +2,21 @@ Use this API to submit monthly reports of current-year ISA subscription data.
 
 During the Alpha phase:
 
-- you can access the API schema only for evaluation and planning purposes
-- the sandbox environment and executable endpoints are not available
-- your organisation must be approved by HMRC as an ISA manager to access the API
+- you can access the API schema only for evaluation and planning purposes.
+- the sandbox environment and executable endpoints are not available.
+- your organisation must be approved by HMRC as an ISA manager to access the API.
 
 From the Beta phase onwards:
 
-- your organisation must also be enrolled for digital ISA reporting
+- your organisation must also be enrolled for digital ISA reporting.
 
 The API supports digital ISA reporting by enabling secure, standardised and frequent digital reporting. This helps HMRC detect errors quickly and improve oversight during the tax year.
 
 You can use the API to:
 
-- submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals
-- check the status of submitted reports to confirm processing
-- retrieve reconciliation results in batches using pagination
+- submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals.
+- check the status of submitted reports to confirm processing.
+- retrieve reconciliation results in batches using pagination.
 
 Each report must cover ISA subscription activity from the 6th of one month to the 5th of the next, and be submitted between the 6th and 23:59 on the 19th.
 
@@ -32,8 +32,8 @@ This is a restricted-access API. Its endpoints are visible only to authorised an
 ### Who can request access ###
 To request access, you must:
 
-- be an employee of an organisation listed on the [ISA manager register (GOV.UK)](https://www.gov.uk/government/publications/list-of-individual-savings-account-isa-managers-approved-by-hmrc/registered-individual-savings-account-isa-managers)
-- have an HMRC Developer Hub account with a registered software application
+- be an employee of an organisation listed on the [ISA manager register (GOV.UK)](https://www.gov.uk/government/publications/list-of-individual-savings-account-isa-managers-approved-by-hmrc/registered-individual-savings-account-isa-managers).
+- have an HMRC Developer Hub account with a registered software application.
 
 If your organisation is not listed, please check [how to apply for ISA manager status on GOV.UK](https://www.gov.uk/guidance/apply-to-be-an-isa-manager).
 
