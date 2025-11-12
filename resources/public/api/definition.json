@@ -1,7 +1,7 @@
 {
   "api": {
     "name": "ISA Returns",
-    "description": "API providing ISA managers the ability to submit their returns.",
+    "description": "Submit monthly reports of current-year ISA subscription data. Only HMRC-approved ISA managers can use this API. In future, enrolment for digital ISA reporting will also be required.",
     "context": "obligations/declaration/isa/return",
     "categories": ["OTHER", "LIFETIME_ISA"],
     "versions": [
