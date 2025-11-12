@@ -34,16 +34,20 @@ class NilReturnAction @Inject() (implicit ec: ExecutionContext) extends ActionRe
 
   override def refine[A](request: DeclarationRequest[A]): Future[Either[Result, DeclarationRequest[A]]] = {
     val nilReturnEither: Either[Result, Boolean] = request.body match {
-      case anyContent: AnyContent if anyContent.asJson.isDefined =>
-        anyContent.asJson.get
-          .validate[ReportingNilReturn]
-          .fold(
-            errors => {
-              logger.warn(s"Failed to parse NilReturn JSON: ${JsError.toJson(errors)}")
-              Left(BadRequest(Json.toJson(MalformedJsonFailureErr)))
-            },
-            nilReturnObj => Right(nilReturnObj.nilReturn)
-          )
+      case anyContent: AnyContent =>
+        anyContent.asJson
+          .map { json =>
+            json
+              .validate[ReportingNilReturn]
+              .fold(
+                errors => {
+                  logger.warn(s"Failed to parse NilReturn JSON: ${JsError.toJson(errors)}")
+                  Left(BadRequest(Json.toJson(MalformedJsonFailureErr)))
+                },
+                nilReturnObj => Right(nilReturnObj.nilReturn)
+              )
+          }
+          .getOrElse(Right(false))
       case _ =>
         Right(false)
     }
