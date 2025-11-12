@@ -26,6 +26,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
 
   private val testIsaManagerReferenceNumber = "Z1234"
   private val submitUrl                     = s"/nps/submit/$testIsaManagerReferenceNumber"
+  private val sendNotificationUrl           = s"/nps/declaration/$testIsaManagerReferenceNumber"
 
   private val connector: NPSConnector = app.injector.instanceOf[NPSConnector]
 
@@ -54,6 +55,36 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
     "return Left(UpstreamErrorResponse) when the call fails with an unexpected exception" in {
       val Left(err) =
         await(connector.submit("non-existent", Nil).value)
+
+      err.statusCode shouldBe NOT_FOUND
+      err.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")
+    }
+  }
+  "NPSConnector.sendNotification" should {
+
+    "return Right(HttpResponse) when NPS returns 204 NO_CONTENT" in {
+      stubPost(sendNotificationUrl, NO_CONTENT, "")
+
+      val Right(response) =
+        await(connector.sendNotification(testIsaManagerReferenceNumber, nilReturnReported = true).value)
+
+      response.status shouldBe NO_CONTENT
+      response.body   shouldBe ""
+    }
+
+    "return Left(UpstreamErrorResponse) when NPS returns an error status (401)" in {
+      stubPost(sendNotificationUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
+
+      val Left(err) =
+        await(connector.sendNotification(testIsaManagerReferenceNumber, nilReturnReported = false).value)
+
+      err.statusCode shouldBe UNAUTHORIZED
+      err.message      should include("Not authorised")
+    }
+
+    "return Left(UpstreamErrorResponse) when the call fails with an unexpected exception" in {
+      val Left(err) =
+        await(connector.sendNotification("non-existent", nilReturnReported = true).value)
 
       err.statusCode shouldBe NOT_FOUND
       err.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")
