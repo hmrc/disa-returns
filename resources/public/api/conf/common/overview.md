@@ -52,7 +52,7 @@ Once your Developer Hub account and software application are set up:
 4. Fill in the request form with:
     - your organisation name (as listed on the ISA manager register)
     - the API name: ISA Returns
-    - the ID linked to your Developer Hub software application
+    - the application ID linked to your Developer Hub software application
 
 HMRC may contact you to discuss your request and confirm eligibility.
 
