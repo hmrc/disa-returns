@@ -1,22 +1,23 @@
 Use this API to submit monthly reports of current-year ISA subscription data.
 
-During the Alpha phase:
+During Alpha:
 
-- you can access the API schema only for evaluation and planning purposes.
-- the sandbox environment and executable endpoints are not available.
-- your organisation must be approved by HMRC as an ISA manager to access the API.
+- only the API schema is available for evaluation; endpoints and sandbox are not yet live
+- your organisation must be approved by HMRC as an ISA manager to access the API
 
-From the Beta phase onwards:
+From the Beta onwards:
 
-- your organisation must also be enrolled for digital ISA reporting.
+- endpoints and sandbox will be available
+- your organisation must be enrolled for digital ISA reporting to access the API
+- access granted during Alpha remains valid for Beta – you do not need to reapply
 
 The API supports digital ISA reporting by enabling secure, standardised and frequent digital reporting. This helps HMRC detect errors quickly and improve oversight during the tax year.
 
 You can use the API to:
 
-- submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals.
-- check the status of submitted reports to confirm processing.
-- retrieve reconciliation results in batches using pagination.
+- submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals
+- check the status of submitted reports to confirm processing
+- retrieve reconciliation results in batches using pagination
 
 Each report must cover ISA subscription activity from the 6th of one month to the 5th of the next, and be submitted between the 6th and 23:59 on the 19th.
 
