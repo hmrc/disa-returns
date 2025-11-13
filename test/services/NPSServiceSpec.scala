@@ -17,10 +17,13 @@
 package services
 
 import cats.data.EitherT
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import play.api.http.Status.{NO_CONTENT, OK}
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, UnauthorisedErr}
+import play.api.libs.json.Json
+import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
+import uk.gov.hmrc.disareturns.models.returnResults.{IssueWithMessage, ReconciliationReportPage, ReconciliationReportResponse, ReturnResults}
 import uk.gov.hmrc.disareturns.services.NPSService
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import utils.BaseUnitSpec
@@ -29,7 +32,7 @@ import scala.concurrent.Future
 
 class NPSServiceSpec extends BaseUnitSpec {
 
-  val service = new NPSService(mockNPSConnector)
+  val service = new NPSService(mockNPSConnector, mockAppConfig)
 
   val isaManagerReference = "Z1234"
 
@@ -103,6 +106,175 @@ class NPSServiceSpec extends BaseUnitSpec {
         service.submitIsaAccounts(validZRef, Seq.empty).futureValue
 
       result shouldBe Left(InternalServerErr("Unexpected status 200 was received from NPS submission"))
+    }
+  }
+
+  "NPSService.retrieveReconciliationReportPage" should {
+
+    val totalRecords         = 10
+    val returnResultsPerPage = 3
+    val numberOfPages        = Some(4)
+
+    "return correct reconciliation report page when connector responds with 200" in {
+      val validReconciliationReportResponse = Json
+        .toJson(
+          ReconciliationReportResponse(
+            totalRecords,
+            Seq(
+              ReturnResults("1", "a", IssueWithMessage("code", "message")),
+              ReturnResults("2", "b", IssueWithMessage("code", "message"))
+            )
+          )
+        )
+        .toString()
+
+      val httpResponse: HttpResponse = HttpResponse(OK, validReconciliationReportResponse)
+
+      when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val pageIndex = 0
+
+      val result: Either[ErrorResponse, ReconciliationReportPage] =
+        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+
+      result shouldBe Right(
+        ReconciliationReportPage(
+          pageIndex,
+          2,
+          totalRecords,
+          4,
+          Seq(
+            ReturnResults("1", "a", IssueWithMessage("code", "message")),
+            ReturnResults("2", "b", IssueWithMessage("code", "message"))
+          )
+        )
+      )
+    }
+
+    "return page not found error when return results come back empty" in {
+      val emptyReconciliationReportResponse = Json.toJson(ReconciliationReportResponse(totalRecords, Nil)).toString()
+
+      val httpResponse: HttpResponse = HttpResponse(OK, emptyReconciliationReportResponse)
+
+      when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val pageIndex = 0
+
+      val result: Either[ErrorResponse, ReconciliationReportPage] =
+        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+
+      result shouldBe Left(ReportPageNotFoundErr(pageIndex))
+    }
+
+    "return 'page not found' error when upstream returns page not found" in {
+      val errorResponse = UpstreamErrorResponse("PAGE_NOT_FOUND", 404)
+
+      when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+        .thenReturn(EitherT.leftT[Future, HttpResponse](errorResponse))
+
+      val pageIndex = 0
+
+      val result: Either[ErrorResponse, ReconciliationReportPage] =
+        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+
+      result shouldBe Left(ReportPageNotFoundErr(pageIndex))
+    }
+
+    "return 'report not found' error when upstream returns report not found" in {
+      val errorResponse = UpstreamErrorResponse("REPORT_NOT_FOUND", 404)
+
+      when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+        .thenReturn(EitherT.leftT[Future, HttpResponse](errorResponse))
+
+      val pageIndex = 0
+
+      val result: Either[ErrorResponse, ReconciliationReportPage] =
+        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+
+      result shouldBe Left(ReportNotFoundErr)
+    }
+
+    "return internal server error when there are an invalid number of total records" in {
+      val validReconciliationReportResponse = Json
+        .toJson(
+          ReconciliationReportResponse(
+            -1,
+            Seq(
+              ReturnResults("1", "a", IssueWithMessage("code", "message")),
+              ReturnResults("2", "b", IssueWithMessage("code", "message"))
+            )
+          )
+        )
+        .toString()
+
+      val httpResponse: HttpResponse = HttpResponse(NO_CONTENT, validReconciliationReportResponse)
+
+      when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val pageIndex = 0
+
+      val result: Either[ErrorResponse, ReconciliationReportPage] =
+        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+
+      result shouldBe Left(InternalServerErr())
+    }
+
+    "return internal server error when unexpected status comes through" in {
+      val validReconciliationReportResponse = Json
+        .toJson(
+          ReconciliationReportResponse(
+            totalRecords,
+            Seq(
+              ReturnResults("1", "a", IssueWithMessage("code", "message")),
+              ReturnResults("2", "b", IssueWithMessage("code", "message"))
+            )
+          )
+        )
+        .toString()
+
+      val httpResponse: HttpResponse = HttpResponse(NO_CONTENT, validReconciliationReportResponse)
+
+      when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val pageIndex = 0
+
+      val result: Either[ErrorResponse, ReconciliationReportPage] =
+        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+
+      result shouldBe Left(InternalServerErr())
+    }
+
+    "return internal server error when response has invalid json" in {
+      val httpResponse: HttpResponse = HttpResponse(OK, "bad json")
+
+      when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+
+      val pageIndex = 0
+
+      val result: Either[ErrorResponse, ReconciliationReportPage] =
+        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+
+      result                    shouldBe a[Left[InternalServerErr, ReconciliationReportPage]]
+      result.swap.value.message shouldBe InternalServerErr().message
     }
   }
 }

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.disareturns.config
 
-import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
@@ -29,19 +28,11 @@ class AppConfig @Inject() (config: ServicesConfig) {
   lazy val npsBaseUrl:  String = config.baseUrl(serviceName = "nps")
   lazy val selfHost:    String = config.baseUrl(serviceName = "self")
 
-  private val returnResultsLocation: String =
-    config.getString("urls.returnResultsLocation")
-
-  // TODO replace the following two methods with calls to controller when built
-  def getReturnResultsLocation(isaManagerReference: String, taxYear: String, month: Month): String =
-    returnResultsLocation
-      .replace("{isaManagerReference}", isaManagerReference)
-      .replace("{taxYear}", taxYear)
-      .replace("{month}", month.toString)
-
   lazy val returnSummaryExpiryInDays: Int = config.getInt("returnSummaryExpiryInDays")
 
-  private lazy val returnResultsRecordsPerPage: Int = config.getInt("returnResultsRecordsPerPage")
+  lazy val returnResultsRecordsPerPage: Int = config.getInt("returnResultsRecordsPerPage")
 
-  def getNoOfPagesForReturnResults(noOfRecords: Int): Int = math.ceil(noOfRecords.toDouble / returnResultsRecordsPerPage).toInt
+  def getNoOfPagesForReturnResults(noOfRecords: Int): Option[Int] =
+    if (noOfRecords >= 0) Some(math.ceil(noOfRecords.toDouble / returnResultsRecordsPerPage).toInt)
+    else None
 }

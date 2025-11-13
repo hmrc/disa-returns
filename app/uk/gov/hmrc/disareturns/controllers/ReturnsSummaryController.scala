@@ -47,7 +47,7 @@ class ReturnsSummaryController @Inject() (
         case Left(errors) =>
           Future.successful(BadRequest(Json.toJson(errors)))
 
-        case Right((isaManagerReferenceNumber, taxYear, month)) =>
+        case Right((isaManagerReferenceNumber, taxYear, month, _)) =>
           returnsSummaryService.retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month).map {
             case Left(e: InternalServerErr) =>
               logger.error(s"Failed to retrieve return summary for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] due to error: [$e]")
@@ -69,7 +69,7 @@ class ReturnsSummaryController @Inject() (
           case Left(errors) =>
             Future.successful(BadRequest(Json.toJson(errors)))
 
-          case Right((isaManagerReferenceNumber, taxYear, month)) =>
+          case Right((isaManagerReferenceNumber, taxYear, month, _)) =>
             returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(isaManagerReferenceNumber, taxYear, month, req.totalRecords)).map {
               case Right(_) =>
                 logger.info(s"Callback with return summary successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")

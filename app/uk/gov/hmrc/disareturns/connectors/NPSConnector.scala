@@ -19,6 +19,7 @@ package uk.gov.hmrc.disareturns.connectors
 import cats.data.EitherT
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.HttpReadsInstances.readEitherOf
@@ -50,6 +51,18 @@ class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(im
         .post(url"$url")
         .execute[Either[UpstreamErrorResponse, HttpResponse]],
       context = "NPSConnector: sendNotification"
+    )
+  }
+
+  def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: Month, pageIndex: Int, pageSize: Int)(implicit
+    hc:                                                           HeaderCarrier
+  ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+    val url = s"${appConfig.npsBaseUrl}/monthly/$isaManagerReferenceNumber/$taxYear/${month.toString}/results?pageIndex=$pageIndex&pageSize=$pageSize"
+    read(
+      httpClient
+        .get(url"$url")
+        .execute[Either[UpstreamErrorResponse, HttpResponse]],
+      context = "NPSConnector: retrieveReconciliationReportPage"
     )
   }
 }

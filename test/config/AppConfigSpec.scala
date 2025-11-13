@@ -19,7 +19,6 @@ package config
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import play.api.Configuration
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import utils.BaseUnitSpec
 
@@ -43,18 +42,29 @@ class AppConfigSpec extends BaseUnitSpec {
       appConfig.etmpBaseUrl mustBe "http://etmp:1204"
     }
 
-    "generate the correct Return Results Location URL" in {
-      val result = appConfig.getReturnResultsLocation("Z5678", "2025-26", Month.SEP)
-      result mustBe "/monthly/Z5678/2025-26/SEP/results"
-    }
-
     "read the returnSummaryExpiryInDays correctly" in {
       appConfig.returnSummaryExpiryInDays mustBe 30
     }
 
+    "read the returnResultsRecordsPerPage correctly" in {
+      appConfig.returnResultsRecordsPerPage mustBe 10
+    }
+
     "calculate the number of pages for return results correctly" in {
-      val pages = appConfig.getNoOfPagesForReturnResults(25)
-      pages mustBe 3
+      val pages1 = appConfig.getNoOfPagesForReturnResults(25)
+      pages1 mustBe Some(3)
+
+      val pages2 = appConfig.getNoOfPagesForReturnResults(0)
+      pages2 mustBe Some(0)
+
+      val pages3 = appConfig.getNoOfPagesForReturnResults(10)
+      pages3 mustBe Some(1)
+
+      val pages4 = appConfig.getNoOfPagesForReturnResults(1)
+      pages4 mustBe Some(1)
+
+      val pages5 = appConfig.getNoOfPagesForReturnResults(-10)
+      pages5 mustBe None
     }
   }
 }

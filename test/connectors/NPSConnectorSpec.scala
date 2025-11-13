@@ -16,13 +16,13 @@
 
 package connectors
 
-import cats.data.EitherT
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
+import uk.gov.hmrc.disareturns.models.returnResults.{IssueWithMessage, ReconciliationReportResponse, ReturnResults}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
@@ -42,6 +42,8 @@ class NPSConnectorSpec extends BaseUnitSpec {
     when(mockAppConfig.npsBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.post(url"$testUrl/nps/declaration/$testIsaRef")).thenReturn(mockRequestBuilder)
     when(mockHttpClient.post(url"$testUrl/nps/submit/$validZRef")).thenReturn(mockRequestBuilder)
+    when(mockHttpClient.get(url"$testUrl/monthly/$validZRef/$validTaxYear/$validMonthStr/results?pageIndex=0&pageSize=2"))
+      .thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
   }
 
@@ -92,16 +94,6 @@ class NPSConnectorSpec extends BaseUnitSpec {
       val mockHttpResponse: HttpResponse =
         HttpResponse(status = 204, json = Json.toJson(testSubscriptions), headers = Map.empty)
 
-      when(mockBaseConnector.read(any(), any()))
-        .thenAnswer { invocation =>
-          val fut =
-            invocation.getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](
-              0,
-              classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]]
-            )
-          EitherT(fut)
-        }
-
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(mockHttpResponse)))
 
@@ -131,25 +123,57 @@ class NPSConnectorSpec extends BaseUnitSpec {
     "return Left(UpstreamErrorResponse) when an unexpected Throwable occurs" in new TestSetup {
       val runtimeException = new RuntimeException("Connection timeout")
 
-      when(mockBaseConnector.read(any(), any()))
-        .thenAnswer { invocation =>
-          val fut =
-            invocation.getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](
-              0,
-              classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]]
-            )
-          EitherT(
-            fut.recover { case e =>
-              Left(UpstreamErrorResponse(s"Unexpected error: ${e.getMessage}", 500, 500))
-            }
-          )
-        }
-
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(runtimeException))
 
       val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
         connector.submit(validZRef, testSubscriptions).value.futureValue
+
+      result.statusCode shouldBe 500
+      result.message      should include("Unexpected error: Connection timeout")
+    }
+  }
+
+  "NPSConnector.retrieveReconciliationReportPage" should {
+
+    "return Right(HttpResponse) when the GET is successful" in new TestSetup {
+      val httpResponse: HttpResponse =
+        HttpResponse(200, Json.toJson(ReconciliationReportResponse(1, Seq(ReturnResults("2", "A", IssueWithMessage("code", "message"))))).toString)
+
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Right(httpResponse)))
+
+      val result: Either[UpstreamErrorResponse, HttpResponse] =
+        connector.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, 0, 2).value.futureValue
+
+      result shouldBe Right(httpResponse)
+    }
+
+    "return Left(UpstreamErrorResponse) when NPS returns an upstream error" in new TestSetup {
+      val upstreamError: UpstreamErrorResponse = UpstreamErrorResponse(
+        message = "Not authorised to access this service",
+        statusCode = 401,
+        reportAs = 401,
+        headers = Map.empty
+      )
+
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(upstreamError)))
+
+      val result: Either[UpstreamErrorResponse, HttpResponse] =
+        connector.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, 0, 2).value.futureValue
+
+      result shouldBe Left(upstreamError)
+    }
+
+    "return Left(UpstreamErrorResponse) when an unexpected Throwable occurs" in new TestSetup {
+      val runtimeException = new RuntimeException("Connection timeout")
+
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.failed(runtimeException))
+
+      val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
+        connector.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, 0, 2).value.futureValue
 
       result.statusCode shouldBe 500
       result.message      should include("Unexpected error: Connection timeout")

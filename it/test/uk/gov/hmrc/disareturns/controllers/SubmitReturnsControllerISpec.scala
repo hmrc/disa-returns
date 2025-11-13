@@ -49,7 +49,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - LifetimeIsaSubscription" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validLifetimeIsaSubscription)
       result.status shouldBe NO_CONTENT
@@ -58,7 +58,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - LifetimeIsaClosure" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validLifetimeIsaClosure)
       result.status shouldBe NO_CONTENT
@@ -67,7 +67,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaSubscription" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validStandardIsaSubscription)
       result.status shouldBe NO_CONTENT
@@ -76,7 +76,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaClosure" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
       result.status shouldBe NO_CONTENT
@@ -1353,6 +1353,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), isaManagerRef = testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
+
       result.status                 shouldBe FORBIDDEN
       result.json.as[ErrorResponse] shouldBe MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ReportingWindowClosed, ObligationClosed))
     }

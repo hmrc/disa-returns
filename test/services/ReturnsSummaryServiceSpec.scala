@@ -34,7 +34,6 @@ import scala.concurrent.Future
 
 class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
-  private val config = mock[AppConfig]
   override lazy val app: Application =
     app(bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository), bind[AppConfig].toInstance(mockAppConfig))
   private val service = app.injector.instanceOf[ReturnsSummaryService]
@@ -48,16 +47,14 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
     "return a ReturnSummaryResults object when a matching summary is found" in {
       val returnSummaryResults = MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, 1)
       when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
-      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(1)
-      when(mockAppConfig.getReturnResultsLocation(any, any, any)).thenReturn("results")
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(Some(1))
+      when(mockAppConfig.selfHost).thenReturn("localhost")
 
       val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
 
       verify(mockAppConfig).getNoOfPagesForReturnResults(any)
 
-      result mustBe Right(
-        ReturnSummaryResults("results", 1, 1)
-      )
+      result mustBe Right(ReturnSummaryResults("localhost/monthly/Z1234/2026-27/SEP/results?page=0", 1, 1))
     }
 
     "return a ReturnNotFound error when no summary is found" in {
@@ -66,6 +63,16 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
       val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
 
       result mustBe Left(ReturnNotFoundErr("No return found for Z1234 for SEP 2026-27"))
+    }
+
+    "return a InternalServerErr when NPS sends back an invalid number of records" in {
+      val returnSummaryResults = MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, -1)
+      when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
+      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(None)
+
+      val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
+
+      result mustBe Left(InternalServerErr())
     }
 
     "return a InternalServerErr when something goes wrong on the server" in {
