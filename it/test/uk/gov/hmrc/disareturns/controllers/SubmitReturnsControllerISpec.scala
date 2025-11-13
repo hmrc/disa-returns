@@ -1279,15 +1279,24 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
     }
 
-    //TODO: This currently returns duplicate field error, should return MalformedJsonFailureErr. This should pass after bug fixed in DFI-1366
-//    "return 400 with correct error response when payload NDJSON lines are not separated by a newline delimiter " in {
-//
-//      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-//      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-//      val result = submitMonthlyReturnRequest(validStandardIsaClosure + validStandardIsaSubscription)
-//      result.status                 shouldBe BAD_REQUEST
-//      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
-//    }
+
+    "return 400 with correct error response when payload NDJSON lines are not separated by a newline delimiter " in {
+
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val result = submitMonthlyReturnRequest(validStandardIsaClosure + validStandardIsaSubscription)
+      result.status                 shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
+    }
+
+    "return 400 with correct error response when payload NDJSON lines have non-whitespace trailing tokens" in {
+
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val result = submitMonthlyReturnRequest(validStandardIsaClosure + ";dlafj")
+      result.status                 shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
+    }
     //TODO: This currently returns 500 InternalServerError, should return 200. This should pass after bug fixed in DFI-1365
 //    "return 400 with correct error response when NDJSON payload does not end with a newline delimiter " in {
 //      stubAuth()
