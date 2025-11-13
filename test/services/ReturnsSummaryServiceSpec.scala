@@ -80,7 +80,7 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
       val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
 
-      result mustBe Left(InternalServerErr("fubar"))
+      result mustBe Left(InternalServerErr())
     }
   }
 
@@ -100,14 +100,13 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
       })
     }
 
-    "return Error(msg) when db fails" in {
-      val msg = "f"
+    "return InternalServerErr if repository upsert throws an exception" in {
       when(mockReturnsSummaryRepository.upsert(any[MonthlyReturnsSummary]))
-        .thenReturn(Future.failed(new Exception(msg)))
+        .thenReturn(Future.failed(new Exception("fail")))
 
       val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, totalRecords)))
 
-      result mustBe Left(InternalServerErr(msg))
+      result mustBe Left(InternalServerErr())
       verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
         summary.taxYear == validTaxYear &&
