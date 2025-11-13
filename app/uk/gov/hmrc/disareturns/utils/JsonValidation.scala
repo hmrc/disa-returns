@@ -16,17 +16,21 @@
 
 package uk.gov.hmrc.disareturns.utils
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory
+import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
+import play.api.Logging
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, NinoOrAccountNumInvalidErr, NinoOrAccountNumMissingErr}
+import play.api.libs.json.jackson.PlayJsonMapperModule
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, MalformedJsonFailureErr, NinoOrAccountNumInvalidErr, NinoOrAccountNumMissingErr}
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType.IsaType
 
 import java.time.LocalDate
 import scala.math.BigDecimal.RoundingMode
-import scala.util.{Success, Try}
 import scala.util.matching.Regex
+import scala.util.{Failure, Success, Try}
 
-object JsonValidation {
+object JsonValidation extends Logging {
 
   def firstLevelValidatorExtractNinoAndAccount(json: JsValue): Either[ErrorResponse, (String, String)] = {
     val ninoResult    = (json \ "nino").validate[String](nonEmptyStringReads)
@@ -39,6 +43,21 @@ object JsonValidation {
         if ((json \ "nino").isInstanceOf[JsUndefined] || (json \ "accountNumber").isInstanceOf[JsUndefined])
           Left(NinoOrAccountNumMissingErr)
         else Left(NinoOrAccountNumInvalidErr)
+    }
+  }
+
+  def ensureValidNDJson(s: String): Either[ErrorResponse, JsValue] = {
+    val mapper = new ObjectMapper()
+      .registerModule(new PlayJsonMapperModule(JsonConfig.settings))
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+      .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+      .setNodeFactory(new JsonNodeFactory(true))
+
+    Try(mapper.readValue(s.trim, classOf[JsValue])) match {
+      case Success(value) => Right(value)
+      case Failure(ex) =>
+        logger.info(s"Unable to parse: [$s] as valid NDJson with exception: [$ex]")
+        Left(MalformedJsonFailureErr)
     }
   }
 

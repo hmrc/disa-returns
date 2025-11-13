@@ -29,7 +29,6 @@ import uk.gov.hmrc.disareturns.utils.JsonValidation.findDuplicateFields
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
 
 @Singleton
 class StreamingParserService @Inject() (implicit val mat: Materializer) extends Logging {
@@ -63,16 +62,16 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) extends 
       .map(_.utf8String.trim)
       .filter(_.nonEmpty)
       .map { line =>
-        Try(Json.parse(line)) match {
-          case Success(jsValue) =>
+        JsonValidation.ensureValidNDJson(line) match {
+          case Right(jsValue) =>
             JsonValidation.firstLevelValidatorExtractNinoAndAccount(jsValue) match {
               case Right((nino, accountNumber)) =>
                 validateSecondLevel(line, jsValue, nino, accountNumber)
               case Left(firstLevelErr) =>
                 Left(FirstLevelValidationFailure(firstLevelErr))
             }
-          case Failure(ex) =>
-            Left(FirstLevelValidationFailure(MalformedJsonFailureErr: ErrorResponse))
+          case Left(error) =>
+            Left(FirstLevelValidationFailure(error: ErrorResponse))
         }
       }
 
