@@ -41,7 +41,10 @@ class ReturnsSummaryService @Inject() (
     summaryRepo
       .upsert(summary)
       .map(_ => Right(()))
-      .recover { case e => Left(InternalServerErr(e.getMessage)) }
+      .recover { case e =>
+        logger.error(s"Failed to save return summary for IM ref: [${summary.zRef}] for [${summary.month}][${summary.taxYear}] due to error: [$e]")
+        Left(InternalServerErr())
+      }
   }
 
   def retrieveReturnSummary(
@@ -73,6 +76,9 @@ class ReturnsSummaryService @Inject() (
         case Some(summary) => returnSummaryResults(summary.totalRecords)
         case _             => Left(ReturnNotFoundErr(s"No return found for $isaManagerReferenceNumber for ${month.toString} $taxYear"))
       }
-      .recover { case e => Left(InternalServerErr(e.getMessage)) }
+      .recover { case e =>
+        logger.error(s"Failed to retrieve return summary for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] due to error: [$e]")
+        Left(InternalServerErr())
+      }
   }
 }

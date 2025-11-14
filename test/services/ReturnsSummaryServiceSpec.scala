@@ -19,14 +19,10 @@ package services
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito.{reset, verify, when}
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
-import play.api.Application
-import play.api.inject.bind
 import play.api.test.Helpers.await
-import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
-import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
 import utils.BaseUnitSpec
 
@@ -34,13 +30,11 @@ import scala.concurrent.Future
 
 class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
-  override lazy val app: Application =
-    app(bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository), bind[AppConfig].toInstance(mockAppConfig))
-  private val service = app.injector.instanceOf[ReturnsSummaryService]
-
-  override def beforeEach(): Unit = reset(mockReturnsSummaryRepository)
+  private val service = new ReturnsSummaryService(mockReturnsSummaryRepository, mockAppConfig)
 
   private val totalRecords = 3
+
+  override def beforeEach(): Unit = reset(mockReturnsSummaryRepository)
 
   "ReturnsSummaryService#retrieveReturnSummary" should {
 
@@ -80,7 +74,7 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
 
       val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
 
-      result mustBe Left(InternalServerErr("fubar"))
+      result mustBe Left(InternalServerErr())
     }
   }
 
@@ -100,14 +94,13 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
       })
     }
 
-    "return Error(msg) when db fails" in {
-      val msg = "f"
+    "return InternalServerErr if repository upsert throws an exception" in {
       when(mockReturnsSummaryRepository.upsert(any[MonthlyReturnsSummary]))
-        .thenReturn(Future.failed(new Exception(msg)))
+        .thenReturn(Future.failed(new Exception("fail")))
 
       val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, totalRecords)))
 
-      result mustBe Left(InternalServerErr(msg))
+      result mustBe Left(InternalServerErr())
       verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
         summary.zRef == validZRef &&
         summary.taxYear == validTaxYear &&
