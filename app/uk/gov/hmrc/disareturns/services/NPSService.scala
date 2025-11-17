@@ -49,7 +49,11 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
       case Right(response) =>
         response.status match {
           case NO_CONTENT => Right(())
-          case _          => Left(InternalServerErr())
+          case otherStatus =>
+            logger.error(
+              s"Unexpected status: [$otherStatus] was received from submitting ISA Accounts to NPS for IM ref: [$isaManagerReferenceNumber]"
+            )
+            Left(InternalServerErr())
         }
     }
   }
