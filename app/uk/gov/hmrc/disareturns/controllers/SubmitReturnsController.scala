@@ -29,6 +29,8 @@ import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
+import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyData
+import uk.gov.hmrc.disareturns.repositories.MonthlyDataRepository
 import uk.gov.hmrc.disareturns.services.{ETMPService, NPSService, StreamingParserService}
 import uk.gov.hmrc.disareturns.utils.HttpHelper
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -41,6 +43,7 @@ class SubmitReturnsController @Inject() (
   streamingParserService:   StreamingParserService,
   npsService:               NPSService,
   authAction:               AuthAction,
+  monthlyDataRepository: MonthlyDataRepository,
   implicit val etmpService: ETMPService
 )(implicit ec:              ExecutionContext, implicit val mat: Materializer)
     extends BackendController(cc)
@@ -79,30 +82,25 @@ class SubmitReturnsController @Inject() (
                         Future.successful(InternalServerError(Json.toJson(InternalServerErr())))
                     }
                   case Right(subscriptions: Seq[IsaAccount]) =>
-                    npsService.submitIsaAccounts(isaManagerReferenceNumber, subscriptions) map {
-                      case Left(error) =>
+                    monthlyDataRepository
+                      .insert(MonthlyData(zRef = isaManagerReferenceNumber, isaAccounts = subscriptions))
+                      .map { _ =>
+                        Ok(Json.toJson("Inserted"))
+                      }
+                  case Left(error: ErrorResponse) =>
+                    error match {
+                      case _: InternalServerErr =>
                         logger.error(
-                          s"Submission of data to NPS for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
+                          s"Submission eligibility failed for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
                         )
-                        HttpHelper.toHttpError(error)
-                      case Right(_) =>
-                        logger.info(s"Data submitted successfully for IM ref: [$isaManagerReferenceNumber] for: [$month][$taxYear]")
-                        NoContent
+                      case _ =>
+                        logger.warn(
+                          s"Submission eligibility failed for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
+                        )
                     }
-                }
-              case Left(error: ErrorResponse) =>
-                error match {
-                  case _: InternalServerErr =>
-                    logger.error(
-                      s"Submission eligibility failed for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
-                    )
-                  case _ =>
-                    logger.warn(
-                      s"Submission eligibility failed for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
-                    )
-                }
 
-                Future.successful(HttpHelper.toHttpError(error))
+                    Future.successful(HttpHelper.toHttpError(error))
+                }
             }
       }
     }
