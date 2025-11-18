@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.disareturns.utils
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
 import play.api.Logging
 import play.api.libs.json._
@@ -49,9 +48,7 @@ object JsonValidation extends Logging {
   def ensureValidNDJson(s: String): Either[ErrorResponse, JsValue] = {
     val mapper = new ObjectMapper()
       .registerModule(new PlayJsonMapperModule(JsonConfig.settings))
-      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
-      .setNodeFactory(new JsonNodeFactory(true))
 
     Try(mapper.readValue(s.trim, classOf[JsValue])) match {
       case Success(value) => Right(value)
