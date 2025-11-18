@@ -76,6 +76,13 @@ class JsonValidationSpec extends AnyWordSpec with Matchers {
       result shouldBe Right(Json.parse(line))
     }
 
+    "return Right[JsValue] with normalisation when passed numerical values" in {
+      val line   = """{"number1":1000.00,"number2": 999.10, "number3":1.23}"""
+      val result = JsonValidation.ensureValidNDJson(line)
+
+      result shouldBe Right(Json.parse(line))
+    }
+
     "return Right[JsValue] when there are leading whitespace tokens" in {
       val line   = """    {"accountNumber":"STD000001","nino":"AB000001C"}"""
       val result = JsonValidation.ensureValidNDJson(line)
