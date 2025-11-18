@@ -30,7 +30,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthAction @Inject() (ac: AuthConnector)(implicit val executionContext: ExecutionContext)
+class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext)
     extends ActionBuilder[Request, AnyContent]
     with Logging {
 
@@ -38,7 +38,8 @@ class AuthAction @Inject() (ac: AuthConnector)(implicit val executionContext: Ex
     override def authConnector: AuthConnector = ac
   }
 
-  override def parser: BodyParser[AnyContent] = parser
+  override def parser:                     BodyParser[AnyContent] = cc.parsers.defaultBodyParser
+  override protected def executionContext: ExecutionContext       = cc.executionContext
 
   override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
