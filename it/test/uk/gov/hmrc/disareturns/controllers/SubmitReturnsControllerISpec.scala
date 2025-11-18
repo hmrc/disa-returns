@@ -1366,9 +1366,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
 
-      result.status                        shouldBe INTERNAL_SERVER_ERROR
-      (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
-      (result.json \ "message").as[String] shouldBe "There has been an issue processing your request"
+      result.status shouldBe INTERNAL_SERVER_ERROR
+      result.json   shouldBe Json.toJson(InternalServerErr())
     }
 
     "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from NPS" in {
@@ -1380,9 +1379,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
 
-      result.status                        shouldBe INTERNAL_SERVER_ERROR
-      (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
-      (result.json \ "message").as[String] shouldBe "There has been an issue processing your request"
+      result.status shouldBe INTERNAL_SERVER_ERROR
+      result.json   shouldBe Json.toJson(InternalServerErr())
     }
 
     "return 500 Internal Server Error when upstream unexpected status returned from NPS" in {
@@ -1394,9 +1392,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
 
-      result.status                        shouldBe INTERNAL_SERVER_ERROR
-      (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
-      (result.json \ "message").as[String] shouldBe "Unexpected status 201 was received from NPS submission"
+      result.status shouldBe INTERNAL_SERVER_ERROR
+      result.json   shouldBe Json.toJson(InternalServerErr())
     }
   }
 

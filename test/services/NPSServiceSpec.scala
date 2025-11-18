@@ -105,7 +105,7 @@ class NPSServiceSpec extends BaseUnitSpec {
       val result: Either[ErrorResponse, Unit] =
         service.submitIsaAccounts(validZRef, Seq.empty).futureValue
 
-      result shouldBe Left(InternalServerErr("Unexpected status 200 was received from NPS submission"))
+      result shouldBe Left(InternalServerErr())
     }
   }
 
