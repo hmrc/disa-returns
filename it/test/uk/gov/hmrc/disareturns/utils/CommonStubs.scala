@@ -25,13 +25,22 @@ import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
 
 trait CommonStubs {
 
-  def stubAuth(): Unit =
-    stubFor {
-      post("/auth/authorise")
-        .willReturn {
-          aResponse.withStatus(OK).withBody("{}")
-        }
-    }
+  def stubAuth(zRef: String = "Z1234"): Unit = {
+    val validEnrolment = s"""{
+      "allEnrolments": [{
+        "key": "HMRC-DISA-ORG",
+        "identifiers": [{ "key": "ZREF", "value": "$zRef" }],
+        "state": "Activated"
+      }]
+      }"""
+
+  stubFor {
+    post("/auth/authorise")
+      .willReturn {
+        aResponse.withStatus(OK).withBody(validEnrolment)
+      }
+  }
+}
 
   def stubAuthFail(): Unit =
     stubFor {

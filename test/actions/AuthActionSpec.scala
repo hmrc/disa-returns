@@ -16,13 +16,18 @@
 
 package actions
 
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
+import org.mockito.Mockito.verify
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.auth.core.InsufficientEnrolments
+import uk.gov.hmrc.auth.core.AffinityGroup.Organisation
+import uk.gov.hmrc.auth.core.AuthProvider.StandardApplication
+import uk.gov.hmrc.auth.core.authorise.Predicate
+import uk.gov.hmrc.auth.core.retrieve.Retrieval
+import uk.gov.hmrc.auth.core.{AuthProviders, Enrolments, UnsupportedAuthProvider}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import utils.BaseUnitSpec
 
@@ -30,7 +35,7 @@ import scala.concurrent.Future
 
 class AuthActionSpec extends BaseUnitSpec {
 
-  val action = new AuthAction(mockAuthConnector, stubControllerComponents())
+  private def authAction(zRef: String) = new AuthAction(mockAuthConnector, stubControllerComponents()).apply(zRef)
 
   import play.api.mvc.Results._
   def testBlock: Request[AnyContent] => Future[Result] =
@@ -39,24 +44,43 @@ class AuthActionSpec extends BaseUnitSpec {
   "AuthAction.invokeBlock" should {
 
     "allow the request when user is authorised" in {
-      when(mockAuthConnector.authorise[Unit](any(), any())(any(), any()))
-        .thenReturn(Future.successful(()))
+      authorizationForZRef()
 
       val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
 
-      val result = action.invokeBlock(request, testBlock)
+      val result = authAction(validZRef).invokeBlock(request, testBlock)
 
       status(result)          shouldBe OK
       contentAsString(result) shouldBe "Success"
+
+      val predicateCaptor: ArgumentCaptor[Predicate] =
+        ArgumentCaptor.forClass(classOf[Predicate])
+
+      verify(mockAuthConnector).authorise(
+        predicateCaptor.capture(),
+        any[Retrieval[Enrolments]]
+      )(any(), any())
+
+      val actualPredicate   = predicateCaptor.getValue
+      val expectedPredicate = Organisation and AuthProviders(StandardApplication)
+
+      withClue(
+        s"""
+           |Auth predicate mismatch:
+           |Expected: $expectedPredicate
+           |Actual:   $actualPredicate
+           |""".stripMargin
+      ) {
+        actualPredicate shouldBe expectedPredicate
+      }
     }
 
-    "return BadRequest when AuthorisationException is thrown" in {
-      when(mockAuthConnector.authorise[Unit](any(), any())(any(), any()))
-        .thenReturn(Future.failed(InsufficientEnrolments("Missing enrolment")))
+    "return UNAUTHORISED when zRef does not match that retrieved from enrolment" in {
+      authorizationForZRef("Z1235")
 
       val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
 
-      val result = action.invokeBlock(request, testBlock)
+      val result = authAction(validZRef).invokeBlock(request, testBlock)
 
       status(result) shouldBe UNAUTHORIZED
       contentAsJson(result) shouldBe Json.obj(
@@ -65,13 +89,68 @@ class AuthActionSpec extends BaseUnitSpec {
       )
     }
 
-    "return InternalServerError for unexpected exceptions" in {
-      when(mockAuthConnector.authorise[Unit](any(), any())(any(), any()))
-        .thenReturn(Future.failed(new RuntimeException("Unexpected error")))
+    "return UNAUTHORISED when enrolment key does not match" in {
+      stubEnrolments(enrolmentKey = "HMRC-HELLO")
 
       val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
 
-      val result = action.invokeBlock(request, testBlock)
+      val result = authAction(validZRef).invokeBlock(request, testBlock)
+
+      status(result) shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.obj(
+        "code"    -> "UNAUTHORISED",
+        "message" -> "Unauthorised"
+      )
+    }
+
+    "return UNAUTHORISED when identifier is missing" in {
+      stubEnrolments(identifierKey = None)
+
+      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
+
+      val result = authAction(validZRef).invokeBlock(request, testBlock)
+
+      status(result) shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.obj(
+        "code"    -> "UNAUTHORISED",
+        "message" -> "Unauthorised"
+      )
+    }
+
+    "return UNAUTHORISED when state of enrolment is not Activated" in {
+      stubEnrolments(state = "fubar")
+
+      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
+
+      val result = authAction(validZRef).invokeBlock(request, testBlock)
+
+      status(result) shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.obj(
+        "code"    -> "UNAUTHORISED",
+        "message" -> "Unauthorised"
+      )
+    }
+
+    "return UNAUTHORISED when AuthorisationException is thrown by auth connector" in {
+      unauthorized(UnsupportedAuthProvider("fubar"))
+
+      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
+
+      val result = authAction(validZRef).invokeBlock(request, testBlock)
+
+      status(result) shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.obj(
+        "code"    -> "UNAUTHORISED",
+        "message" -> "Unauthorised"
+      )
+    }
+
+    "return InternalServerError for unexpected exceptions thrown by auth connector" in {
+      unauthorized(new RuntimeException("Unexpected error"))
+
+      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
+
+      val result = authAction(validZRef).invokeBlock(request, testBlock)
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.obj(

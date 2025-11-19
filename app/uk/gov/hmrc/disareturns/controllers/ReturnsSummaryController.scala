@@ -42,12 +42,11 @@ class ReturnsSummaryController @Inject() (
     with WithJsonBodyWithBadRequest {
 
   def retrieveReturnSummary(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[AnyContent] =
-    (Action andThen authAction).async { _ =>
-      ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
-        case Left(errors) =>
-          Future.successful(BadRequest(Json.toJson(errors)))
-
-        case Right((isaManagerReferenceNumber, taxYear, month, _)) =>
+    ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
+      case Left(errors) =>
+        Action(_ => BadRequest(Json.toJson(errors)))
+      case Right((isaManagerReferenceNumber, taxYear, month, _)) =>
+        (Action andThen authAction(isaManagerReferenceNumber)).async { _ =>
           returnsSummaryService.retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month).map {
             case Left(e: InternalServerErr) =>
               InternalServerError(Json.toJson(e))
@@ -58,7 +57,7 @@ class ReturnsSummaryController @Inject() (
               logger.info(s"Retrieval of return summary successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
               Ok(Json.toJson(summary))
           }
-      }
+        }
     }
 
   def returnsSummaryCallback(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[JsValue] =
