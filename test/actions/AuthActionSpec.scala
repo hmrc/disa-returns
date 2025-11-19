@@ -30,7 +30,7 @@ import scala.concurrent.Future
 
 class AuthActionSpec extends BaseUnitSpec {
 
-  val action = new AuthAction(mockAuthConnector)
+  val action = new AuthAction(mockAuthConnector, stubControllerComponents())
 
   import play.api.mvc.Results._
   def testBlock: Request[AnyContent] => Future[Result] =
