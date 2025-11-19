@@ -42,6 +42,19 @@ case class ReturnNotFoundErr(message: String) extends ErrorResponse {
   val code = "RETURN_NOT_FOUND"
 }
 
+case object ReportNotFoundErr extends ErrorResponse {
+  val code    = "REPORT_NOT_FOUND"
+  val message = "Report not found"
+}
+
+case class ReportPageNotFoundErr private (message: String) extends ErrorResponse {
+  val code = "PAGE_NOT_FOUND"
+}
+
+object ReportPageNotFoundErr {
+  def apply(pageIndex: Int): ReportPageNotFoundErr = ReportPageNotFoundErr(s"No page $pageIndex found")
+}
+
 case object ObligationClosed extends ErrorResponse {
   val code    = "OBLIGATION_CLOSED"
   val message = "Obligation closed"
@@ -86,11 +99,16 @@ case object EmptyPayload extends ErrorResponse {
   val message = "NDJSON payload is empty. Please ensure the request body contains a valid NDJSON payload before resubmitting."
 }
 
+case object InvalidPageErr extends ErrorResponse {
+  val code    = "INVALID_PAGE"
+  val message = "Invalid page index parameter provided"
+}
+
 object ErrorResponse {
 
-  implicit val returnNotFoundErrReads: Reads[ReturnNotFoundErr] = Json.reads[ReturnNotFoundErr]
-
-  implicit val badRequestErrReads: Reads[BadRequestErr] = Json.reads[BadRequestErr]
+  implicit val returnNotFoundErrReads:     Reads[ReturnNotFoundErr]     = Json.reads[ReturnNotFoundErr]
+  implicit val reportPageNotFoundErrReads: Reads[ReportPageNotFoundErr] = Json.reads[ReportPageNotFoundErr]
+  implicit val badRequestErrReads:         Reads[BadRequestErr]         = Json.reads[BadRequestErr]
 
   implicit val internalServerErrReads: Reads[InternalServerErr] =
     (JsPath \ "message")
@@ -109,6 +127,7 @@ object ErrorResponse {
     InvalidIsaManagerRef.code       -> InvalidIsaManagerRef,
     InvalidTaxYear.code             -> InvalidTaxYear,
     InvalidMonth.code               -> InvalidMonth,
+    InvalidPageErr.code             -> InvalidPageErr,
     EmptyPayload.code               -> EmptyPayload
   )
 
@@ -124,13 +143,11 @@ object ErrorResponse {
             case Some(_) => Json.fromJson[MultipleErrorResponse](json)
             case None    => Json.fromJson[BadRequestErr](json)
           }
-        case "INTERNAL_SERVER_ERROR" =>
-          internalServerErrReads.reads(json)
-        case "RETURN_NOT_FOUND" => returnNotFoundErrReads.reads(json)
-        case code if singletons.contains(code) =>
-          JsSuccess(singletons(code))
-        case other =>
-          JsError(s"Unknown error code: $other")
+        case "INTERNAL_SERVER_ERROR"           => internalServerErrReads.reads(json)
+        case "RETURN_NOT_FOUND"                => returnNotFoundErrReads.reads(json)
+        case "PAGE_NOT_FOUND"                  => reportPageNotFoundErrReads.reads(json)
+        case code if singletons.contains(code) => JsSuccess(singletons(code))
+        case other                             => JsError(s"Unknown error code: $other")
       }
 
     override def writes(errorResponse: ErrorResponse): JsValue = errorResponse match {
@@ -138,6 +155,7 @@ object ErrorResponse {
         Json.toJson(m)(MultipleErrorResponse.format)
       case v: FieldValidationError =>
         Json.obj("code" -> v.code, "message" -> v.message, "path" -> v.path)
+      case r:     ReportPageNotFoundErr => Json.obj("code" -> r.code, "message" -> r.message)
       case error: ErrorResponse =>
         Json.obj("code" -> error.code, "message" -> error.message)
     }

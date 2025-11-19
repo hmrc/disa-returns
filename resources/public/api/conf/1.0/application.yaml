@@ -6,8 +6,8 @@ info:
   description: |
     # Overview
     Use this API to submit monthly reports of current-year ISA subscription data. 
-    Before you can use the API, you must be approved by HMRC as an ISA manager. 
-    In future, enrolment for digital ISA reporting will also be required.
+    During the Alpha phase, your organisation must be approved by HMRC as an ISA manager to access the API. 
+    From the Beta phase onwards, your organisation must also be enrolled for digital ISA reporting.
 
     # Supported use cases
     - Submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals.
@@ -53,7 +53,7 @@ tags:
       Results are paginated to support large datasets.
 
 paths:
-  /monthly/{isaManagerReferenceNumber}/{taxYear}/{month}:
+  /monthly/{zReference}/{taxYear}/{month}:
     post:
       summary: Submit monthly report data
       description: |
@@ -66,7 +66,7 @@ paths:
         If either condition is not met, the API returns a `403 Forbidden` response.
 
         If the request is permitted:
-        - the payload is validated against the expected structure
+        - the payload is validated against the expected structure to prevent invalid or incomplete data from being submitted
         - business validation rules are not applied at this stage
 
         If structural validation fails, the API returns a `400 Bad Request` response. 
@@ -76,6 +76,11 @@ paths:
         A successful submission returns a `204 No Content` response. 
         
         Submit all data batches before completing the monthly report.
+
+        **Note:** The examples shown here are limited by the OpenAPI Specification. 
+        Actual payloads must be sent as newline-delimited JSON (NDJSON), with one object per line. 
+        A trailing newline is optional. See https://github.com/ndjson/ndjson-spec for full format guidance.
+
       operationId: submitMonthlyReport
       tags:
         - Submit monthly report
@@ -83,10 +88,10 @@ paths:
         - userRestricted:
             - write:isa-returns
       parameters:
-        - name: isaManagerReferenceNumber
+        - name: zReference
           in: path
           description: |
-            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
+            A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
@@ -159,6 +164,7 @@ paths:
                   - $ref: '#/components/schemas/badSubmissionGeneral'
                   - $ref: '#/components/schemas/badSubmissionComplex'
                   - $ref: '#/components/schemas/badRequestParameters'
+                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -180,19 +186,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Type
-                    type: string
-                    description: Error Code
-                    enum:
-                      - FORBIDDEN
-                      - REPORTING_WINDOW_CLOSED
-                      - OBLIGATION_CLOSED
-                  message:
-                    type: string
-                    example: Forbidden
+                oneOf:
+                  - $ref: '#/components/schemas/forbiddenSingleError'
+                  - $ref: '#/components/schemas/forbiddenMultipleErrors'
         500:
           description: Internal Server Error
           content:
@@ -209,7 +205,7 @@ paths:
                   message:
                     type: string
                     example: "Unexpected Error"
-  /monthly/{isaManagerReferenceNumber}/{taxYear}/{month}/declaration:
+  /monthly/{zReference}/{taxYear}/{month}/declaration:
     post:
       summary: Declare monthly report as complete
       description: |
@@ -236,10 +232,10 @@ paths:
         - userRestricted:
             - write:isa-returns
       parameters:
-        - name: isaManagerReferenceNumber
+        - name: zReference
           in: path
           description: |
-            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
+            A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
@@ -292,7 +288,10 @@ paths:
               properties:
                 nilReturn:
                   type: boolean
-                  description: If true, this indicates that there is no data to report for the period. It acts as a declaration alongside the general declaration. Submitting a nil return will override any other data submitted for the same period.
+                  description: |
+                   If `true`, this indicates a nil return: there is no data to report for the period. 
+                   It acts as a declaration alongside the general declaration and will override any previous submission for the same period. 
+                   If `false`, or if the field is omitted, the API expects data records to be submitted separately before completion.
               required: [ nilReturn ]
       responses:
         200:
@@ -319,6 +318,7 @@ paths:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/badSubmissionGeneralDeclaration'
+                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -340,19 +340,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Type
-                    type: string
-                    description: Error Code
-                    enum:
-                      - FORBIDDEN
-                      - REPORTING_WINDOW_CLOSED
-                      - OBLIGATION_CLOSED
-                  message:
-                    type: string
-                    example: Forbidden
+                oneOf:
+                  - $ref: '#/components/schemas/forbiddenSingleError'
+                  - $ref: '#/components/schemas/forbiddenMultipleErrors'
         500:
           description: Internal Server Error
           content:
@@ -369,7 +359,7 @@ paths:
                   message:
                     type: string
                     example: "Unexpected Error"
-  /monthly/{isaManagerReferenceNumber}/{taxYear}/{month}/results/summary:
+  /monthly/{zReference}/{taxYear}/{month}/results/summary:
     get:
       summary: Get report summary
       description: |
@@ -390,10 +380,10 @@ paths:
         - userRestricted:
             - read:isa-returns
       parameters:
-        - name: isaManagerReferenceNumber
+        - name: zReference
           in: path
           description: |
-            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
+            A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
@@ -465,7 +455,7 @@ paths:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/badRequestParameters'
-
+                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -516,7 +506,7 @@ paths:
                     type: string
                     example: "Unexpected Error"
 
-  /monthly/{isaManagerReferenceNumber}/{taxYear}/{month}/results:
+  /monthly/{zReference}/{taxYear}/{month}/results:
     get:
       summary: Get report reconciliation results
       description: |
@@ -539,10 +529,10 @@ paths:
         - userRestricted:
             - read:isa-returns
       parameters:
-        - name: isaManagerReferenceNumber
+        - name: zReference
           in: path
           description: |
-            Z-Reference (Z-Ref): A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
+            A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
           required: true
           style: simple
           explode: false
@@ -587,7 +577,7 @@ paths:
         - name: page
           in: query
           description: |
-            Page of records in the report to return. Defaults to 0
+            Page of records in the report to return. Defaults to 0.
           schema:
             type: number
             example: 3
@@ -632,7 +622,7 @@ paths:
                   code:
                     title: Parameter Failure Code
                     type: string
-                    description: Code indicating the type of error
+                    description: Code indicating the type of error.
                     enum:
                       - INVALID_Z_REFERENCE
                       - INVALID_TAX_YEAR
@@ -641,7 +631,7 @@ paths:
                   message:
                     title: Description of error
                     type: string
-                    description: Message describing error detail
+                    description: Message describing error detail.
                     example: "Page number A5 is invalid"
         401:
           description: Unauthorized
@@ -1037,7 +1027,7 @@ components:
         errors:
           title: Errors
           type: array
-          description: Array of errors outlining issues found in the format of a record. (This will only outline the first issue.)
+          description: Array of errors outlining issues found in the format of a record. (This will outline only the first issue.)
           items:
             anyOf:
               - $ref: '#/components/schemas/badSubmissionComplexChild'
@@ -1060,11 +1050,11 @@ components:
           enum:
             - INVALID_FIELD
             - MISSING_FIELD
-            - DUPLICATE_ITEM
+            - DUPLICATE_FIELD
         message:
           title: Message
           type: string
-          description: Human readable message outlining the error.
+          description: Human-readable message outlining the error.
           example: "Last name field is missing"
     badRequestParameters:
       title: Bad Request (Parameters)
@@ -1073,7 +1063,7 @@ components:
         code:
           title: Parameter Failure Code
           type: string
-          description: Code indicating the type of error
+          description: Code indicating the type of error.
           enum:
             - INVALID_Z_REFERENCE
             - INVALID_TAX_YEAR
@@ -1083,6 +1073,133 @@ components:
           type: string
           description: Message describing the error in more detail.
           example: Invalid parameter for month
+    forbiddenSingleError:
+      title: Forbidden (Single Error)
+      type: object
+      properties:
+        code:
+          title: Error Code Type
+          type: string
+          enum:
+            - REPORTING_WINDOW_CLOSED
+            - OBLIGATION_CLOSED
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Reporting window has been closed"
+    forbiddenMultipleErrors:
+      title: Forbidden (Multiple Errors)
+      type: object
+      properties:
+        code:
+          title: Error Code Type
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - FORBIDDEN
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Multiple issues found regarding your submission"
+        errors:
+          title: Errors
+          type: array
+          description: Array of errors outlining issues found regarding your submission.
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/obligationClosed'
+              - $ref: '#/components/schemas/reportingWindowClosed'
+          example:
+            - code: OBLIGATION_CLOSED
+              message: Obligation closed
+            - code: REPORTING_WINDOW_CLOSED
+              message: Reporting window has been closed
+    obligationClosed:
+      title: Obligation Closed
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - OBLIGATION_CLOSED
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Obligation Closed"
+    reportingWindowClosed:
+      title: Reporting Window Closed
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - REPORTING_WINDOW_CLOSED
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Reporting window has been closed"
+    badRequestParametersMultipleErrors:
+      title: Bad Request Parameters (Multiple Errors)
+      type: object
+      properties:
+        code:
+          title: Error Code Type
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - BAD_REQUEST
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Multiple issues found regarding your submission"
+        errors:
+          title: Errors
+          type: array
+          description: Array of errors outlining issues found regarding your submission.
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/invalidTaxYear'
+              - $ref: '#/components/schemas/invalidMonth'
+          example:
+            - code: INVALID_TAX_YEAR
+              message: Invalid tax year provided
+            - code: INVALID_MONTH
+              message: Invalid month provided
+    invalidTaxYear:
+      title: Invalid Tax Year
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - INVALID_TAX_YEAR
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Invalid tax year provided"
+    invalidMonth:
+      title: Invalid Month
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - INVALID_MONTH
+        message:
+          title: Message
+          type: string
+          description: Human-readable message outlining the error.
+          example: "Invalid month provided"
   examples:
     lifetimeIsaSubscription:
       summary: Lifetime ISA Subscription

@@ -16,27 +16,31 @@
 
 package uk.gov.hmrc.disareturns.connector
 
-import play.api.http.Status.{NOT_FOUND, NO_CONTENT, UNAUTHORIZED}
+import play.api.http.Status.{NOT_FOUND, NO_CONTENT, OK, UNAUTHORIZED}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
+import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 
 class NPSConnectorISpec extends BaseIntegrationSpec {
 
   private val testIsaManagerReferenceNumber = "Z1234"
-  private val submitUrl                     = s"/nps/submit/$testIsaManagerReferenceNumber"
   private val sendNotificationUrl           = s"/nps/declaration/$testIsaManagerReferenceNumber"
-
+  private val isaManagerReferenceNumber = "Z1234"
+  private val taxYear = "2026-27"
+  private val month = Month.JAN
   private val connector: NPSConnector = app.injector.instanceOf[NPSConnector]
 
   "NPSConnector.submit" should {
+
+    val submitUrl                     = s"/nps/submit/$isaManagerReferenceNumber"
 
     "return Right(HttpResponse) when NPS returns 204 NO_CONTENT" in {
       stubPost(submitUrl, NO_CONTENT, "")
 
       val Right(response) =
-        await(connector.submit(testIsaManagerReferenceNumber, Nil).value)
+        await(connector.submit(isaManagerReferenceNumber, Nil).value)
 
       response.status shouldBe NO_CONTENT
       response.body   shouldBe ""
@@ -46,7 +50,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
       stubPost(submitUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
 
       val Left(err) =
-        await(connector.submit(testIsaManagerReferenceNumber, Nil).value)
+        await(connector.submit(isaManagerReferenceNumber, Nil).value)
 
       err.statusCode shouldBe UNAUTHORIZED
       err.message      should include("Not authorised")
@@ -78,16 +82,54 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
       val Left(err) =
         await(connector.sendNotification(testIsaManagerReferenceNumber, nilReturnReported = false).value)
 
-      err.statusCode shouldBe UNAUTHORIZED
-      err.message      should include("Not authorised")
-    }
+      "NPSConnector.retrieveReconciliationReportPage" should {
 
-    "return Left(UpstreamErrorResponse) when the call fails with an unexpected exception" in {
-      val Left(err) =
-        await(connector.sendNotification("non-existent", nilReturnReported = true).value)
+        val pageIndex = 0
+        val pageSize = 2
+        val reportRetrievalUrl = s"/monthly/$isaManagerReferenceNumber/$taxYear/${month.toString}/results?pageIndex=$pageIndex&pageSize=$pageSize"
+        val reconciliationReport =
+          """
+            |{
+            | "totalRecords": 12,
+            | "returnResults": {
+            |   "accountNumber": 123,
+            |   "nino": ABC123,
+            |   "issueIdentified": {
+            |     "code": "OVER_SUBSCRIBED",
+            |     "amount": 1823.76
+            |   }
+            | }
+            |}
+        """.stripMargin
 
-      err.statusCode shouldBe NOT_FOUND
-      err.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")
-    }
-  }
+        "return Right(HttpResponse) when NPS returns 200 OK" in {
+          stubGet(reportRetrievalUrl, OK, reconciliationReport)
+
+          val Right(response) =
+            await(connector.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, pageIndex, pageSize).value)
+
+          response.status shouldBe OK
+          response.body shouldBe reconciliationReport
+        }
+
+        "return Left(UpstreamErrorResponse) when NPS returns an error status (401)" in {
+          stubGet(reportRetrievalUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
+
+          val Left(err) =
+            await(connector.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, pageIndex, pageSize).value)
+
+          err.statusCode shouldBe UNAUTHORIZED
+          err.message should include("Not authorised")
+        }
+
+        "return Left(UpstreamErrorResponse) when the call fails with an unexpected exception" in {
+          val Left(err) =
+            await(connector.sendNotification("non-existent", nilReturnReported = true).value)
+          await(connector.retrieveReconciliationReportPage("non-existent", "nope", month, pageIndex, pageSize).value)
+
+          err.statusCode shouldBe NOT_FOUND
+          err.message should include("No response could be served as there are no stub mappings in this WireMock instance.")
+        }
+
+      }
 }

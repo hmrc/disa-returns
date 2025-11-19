@@ -53,7 +53,7 @@ class DeclarationController @Inject() (
       ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
         case Left(errors) =>
           Future.successful(BadRequest(Json.toJson(errors)))
-        case Right((isaManagerReferenceNumber, _, _)) =>
+        case Right((isaManagerReferenceNumber, _, _, _)) =>
           val result: EitherT[Future, ErrorResponse, Option[String]] = for {
             _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber))
             _             <- etmpService.declaration(isaManagerReferenceNumber)

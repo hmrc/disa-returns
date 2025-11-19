@@ -18,6 +18,7 @@ package uk.gov.hmrc.disareturns.services
 
 import play.api.Logging
 import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.controllers.routes
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
@@ -40,7 +41,10 @@ class ReturnsSummaryService @Inject() (
     summaryRepo
       .upsert(summary)
       .map(_ => Right(()))
-      .recover { case e => Left(InternalServerErr(e.getMessage)) }
+      .recover { case e =>
+        logger.error(s"Failed to save return summary for IM ref: [${summary.zRef}] for [${summary.month}][${summary.taxYear}] due to error: [$e]")
+        Left(InternalServerErr())
+      }
   }
 
   def retrieveReturnSummary(
@@ -50,16 +54,31 @@ class ReturnsSummaryService @Inject() (
   ): Future[Either[ErrorResponse, ReturnSummaryResults]] = {
     logger.info(s"Retrieving return summary for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
 
-    lazy val returnResultsLocation = appConfig.getReturnResultsLocation(isaManagerReferenceNumber, taxYear, month)
-    def returnSummaryResults(totalRecords: Int) =
-      ReturnSummaryResults(returnResultsLocation, totalRecords, appConfig.getNoOfPagesForReturnResults(totalRecords))
+    lazy val returnResultsLocation =
+      s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month.toString).url}?page=0"
+
+    def returnSummaryResults(totalRecords: Int): Either[ErrorResponse, ReturnSummaryResults] = {
+      val numberOfPages = appConfig.getNoOfPagesForReturnResults(totalRecords)
+
+      numberOfPages.fold[Either[ErrorResponse, ReturnSummaryResults]] {
+        logger.error(
+          s"Invalid number of total records [$totalRecords] received from upstream for IM Ref: [$isaManagerReferenceNumber] for [$taxYear] [$month]"
+        )
+        Left(InternalServerErr())
+      } { numberOfPages =>
+        Right(ReturnSummaryResults(returnResultsLocation, totalRecords, numberOfPages))
+      }
+    }
 
     summaryRepo
       .retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month)
       .map {
-        case Some(summary) => Right(returnSummaryResults(summary.totalRecords))
+        case Some(summary) => returnSummaryResults(summary.totalRecords)
         case _             => Left(ReturnNotFoundErr(s"No return found for $isaManagerReferenceNumber for ${month.toString} $taxYear"))
       }
-      .recover { case e => Left(InternalServerErr(e.getMessage)) }
+      .recover { case e =>
+        logger.error(s"Failed to retrieve return summary for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] due to error: [$e]")
+        Left(InternalServerErr())
+      }
   }
 }

@@ -144,5 +144,18 @@ class ErrorResponseSpec extends BaseUnitSpec {
         case other => fail(s"Expected ReturnNotFoundErr, got $other")
       }
     }
+
+    "serialise and deserialise ReturnPageNotFoundErr with page index" in {
+      val err: ErrorResponse = ReportPageNotFoundErr(1)
+      val js = Json.toJson(err)
+
+      (js \ "code").as[String]    shouldBe "PAGE_NOT_FOUND"
+      (js \ "message").as[String] shouldBe "No page 1 found"
+
+      js.as[ErrorResponse] match {
+        case i: ReportPageNotFoundErr => i.message shouldBe err.message
+        case other => fail(s"Expected ReturnNotFoundErr, got $other")
+      }
+    }
   }
 }

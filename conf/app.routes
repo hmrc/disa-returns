@@ -6,5 +6,7 @@ POST /monthly/:isaManagerReferenceNumber/:taxYear/:month/declaration      uk.gov
 
 GET /monthly/:isaManagerReferenceNumber/:taxYear/:month/results/summary   uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.retrieveReturnSummary(isaManagerReferenceNumber:String, taxYear: String, month: String)
 
+GET /monthly/:isaManagerReferenceNumber/:taxYear/:month/results           uk.gov.hmrc.disareturns.controllers.ReconciliationResultController.retrieveReconciliationReportPage(isaManagerReferenceNumber:String, taxYear: String, month: String, page: String ?= "0")
+
 ##NPS Returns Summary Callback
 POST /callback/monthly/:isaManagerReferenceNumber/:year/:month            uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.returnsSummaryCallback(isaManagerReferenceNumber: String, year: String, month: String)

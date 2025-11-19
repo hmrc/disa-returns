@@ -49,7 +49,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - LifetimeIsaSubscription" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validLifetimeIsaSubscription)
       result.status shouldBe NO_CONTENT
@@ -58,7 +58,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - LifetimeIsaClosure" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validLifetimeIsaClosure)
       result.status shouldBe NO_CONTENT
@@ -67,7 +67,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaSubscription" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validStandardIsaSubscription)
       result.status shouldBe NO_CONTENT
@@ -76,7 +76,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaClosure" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNps(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
       result.status shouldBe NO_CONTENT
@@ -1279,15 +1279,24 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
     }
 
-    //TODO: This currently returns duplicate field error, should return MalformedJsonFailureErr. This should pass after bug fixed in DFI-1366
-//    "return 400 with correct error response when payload NDJSON lines are not separated by a newline delimiter " in {
-//
-//      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-//      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-//      val result = submitMonthlyReturnRequest(validStandardIsaClosure + validStandardIsaSubscription)
-//      result.status                 shouldBe BAD_REQUEST
-//      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
-//    }
+
+    "return 400 with correct error response when payload NDJSON lines are not separated by a newline delimiter " in {
+
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val result = submitMonthlyReturnRequest(validStandardIsaClosure + validStandardIsaSubscription)
+      result.status                 shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
+    }
+
+    "return 400 with correct error response when payload NDJSON lines have non-whitespace trailing tokens" in {
+
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      val result = submitMonthlyReturnRequest(validStandardIsaClosure + ";dlafj")
+      result.status                 shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
+    }
     //TODO: This currently returns 500 InternalServerError, should return 200. This should pass after bug fixed in DFI-1365
 //    "return 400 with correct error response when NDJSON payload does not end with a newline delimiter " in {
 //      stubAuth()
@@ -1353,6 +1362,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), isaManagerRef = testIsaManagerReference)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
+
       result.status                 shouldBe FORBIDDEN
       result.json.as[ErrorResponse] shouldBe MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ReportingWindowClosed, ObligationClosed))
     }
@@ -1365,9 +1375,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
 
-      result.status                        shouldBe INTERNAL_SERVER_ERROR
-      (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
-      (result.json \ "message").as[String] shouldBe "There has been an issue processing your request"
+      result.status shouldBe INTERNAL_SERVER_ERROR
+      result.json   shouldBe Json.toJson(InternalServerErr())
     }
 
     "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from NPS" in {
@@ -1379,9 +1388,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
 
-      result.status                        shouldBe INTERNAL_SERVER_ERROR
-      (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
-      (result.json \ "message").as[String] shouldBe "There has been an issue processing your request"
+      result.status shouldBe INTERNAL_SERVER_ERROR
+      result.json   shouldBe Json.toJson(InternalServerErr())
     }
 
     "return 500 Internal Server Error when upstream unexpected status returned from NPS" in {
@@ -1393,9 +1401,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
 
-      result.status                        shouldBe INTERNAL_SERVER_ERROR
-      (result.json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
-      (result.json \ "message").as[String] shouldBe "Unexpected status 201 was received from NPS submission"
+      result.status shouldBe INTERNAL_SERVER_ERROR
+      result.json   shouldBe Json.toJson(InternalServerErr())
     }
   }
 

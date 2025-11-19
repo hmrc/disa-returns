@@ -18,14 +18,19 @@ package uk.gov.hmrc.disareturns.utils
 
 import play.api.libs.json.Json
 import play.api.mvc.Result
-import play.api.mvc.Results.{Forbidden, InternalServerError, Unauthorized}
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, UnauthorisedErr}
+import play.api.mvc.Results.{BadRequest, Forbidden, InternalServerError, NotFound, Unauthorized}
+import uk.gov.hmrc.disareturns.models.common._
 
 object HttpHelper {
   def toHttpError(error: ErrorResponse): Result = error match {
-    case _: InternalServerErr => InternalServerError(Json.toJson(error))
-    case UnauthorisedErr => Unauthorized(Json.toJson(error))
-    case _               => Forbidden(Json.toJson(error))
+    case _: ReturnNotFoundErr     => NotFound(Json.toJson(error))
+    case _: ReportPageNotFoundErr => NotFound(Json.toJson(error))
+    case _: InternalServerErr     => InternalServerError(Json.toJson(error))
+    case ReportNotFoundErr                        => NotFound(Json.toJson(error))
+    case UnauthorisedErr                          => Unauthorized(Json.toJson(error))
+    case InvalidPageErr                           => BadRequest(Json.toJson(error))
+    case ObligationClosed                         => Forbidden(Json.toJson(error))
+    case ReportingWindowClosed                    => Forbidden(Json.toJson(error))
+    case MultipleErrorResponse("FORBIDDEN", _, _) => Forbidden(Json.toJson(error))
   }
-
 }
