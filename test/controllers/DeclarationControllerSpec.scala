@@ -49,7 +49,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
   "DeclarationController.declare" should {
 
     "return 200 OK when the declaration is successful" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
@@ -74,7 +74,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
     }
 
     "return 200 OK when the declaration is successful but no boxId has been retrieved from PPNS" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
@@ -98,7 +98,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
     }
 
     "return 400 BadRequest when validation fails for taxYear" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$invalidTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
       val result = controller.declare(validZRef, invalidTaxYear, validMonth.toString)(request)
@@ -107,7 +107,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
     }
 
     "return 400 BadRequest when validation fails for month" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$invalidMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
       val result = controller.declare(validZRef, validTaxYear, invalidMonth)(request)
@@ -116,7 +116,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
     }
 
     "return 400 BadRequest when validation fails for isaManagerReference" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$invalidIsaManagerRef/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
       val result = controller.declare(invalidIsaManagerRef, validTaxYear, validMonth.toString)(request)
@@ -128,7 +128,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
     }
 
     "return 400 BadRequest when the clientId is missing from the header" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
       val result = controller.declare(validZRef, validTaxYear, validMonth.toString)(request)
       status(result) shouldBe BAD_REQUEST
@@ -138,7 +138,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
     }
 
     "return 403 Forbidden when the reporting window is closed" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ReportingWindowClosed)))
 
@@ -155,7 +155,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
     }
 
     "return 403 Forbidden when the obligation is closed" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
@@ -172,7 +172,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
     }
 
     "return 500 Internal Server Error when the call to PPNS fails" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")

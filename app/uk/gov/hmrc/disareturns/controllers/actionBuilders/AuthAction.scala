@@ -21,7 +21,9 @@ import play.api.libs.json.Json
 import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core.AffinityGroup.Organisation
+import uk.gov.hmrc.auth.core.AuthProvider.StandardApplication
 import uk.gov.hmrc.auth.core._
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.allEnrolments
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -30,30 +32,43 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext)
-    extends ActionBuilder[Request, AnyContent]
-    with Logging {
+class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit val ec: ExecutionContext) {
 
   private val auth = new AuthorisedFunctions {
     override def authConnector: AuthConnector = ac
   }
 
-  override def parser:                     BodyParser[AnyContent] = cc.parsers.defaultBodyParser
-  override protected def executionContext: ExecutionContext       = cc.executionContext
+  def apply(zRef: String): ActionBuilder[Request, AnyContent] =
+    new ActionBuilder[Request, AnyContent] with Logging {
 
-  override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
-    implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
+      override def parser:                     BodyParser[AnyContent] = cc.parsers.defaultBodyParser
+      override protected def executionContext: ExecutionContext       = cc.executionContext
 
-    auth.authorised(Organisation) {
-      block(request)
-    } recover {
-      case ex: AuthorisationException =>
-        logger.warn(s"Authorization failed. Error: ${ex.reason}")
-        Unauthorized(Json.toJson(UnauthorisedErr))
+      override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
+        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
-      case ex =>
-        logger.warn(s"Auth request failed with unexpected exception: $ex")
-        InternalServerError(Json.toJson(InternalServerErr()))
+        auth.authorised(Organisation and AuthProviders(StandardApplication)).retrieve(allEnrolments) { enrolments =>
+          val activeEnrolment = enrolments
+            .getEnrolment(enrolmentKey)
+            .fold(false)(enrolment => enrolment.getIdentifier(identifierKey).exists(_.value == zRef) && enrolment.isActivated)
+
+          if (activeEnrolment) block(request)
+          else throw InsufficientEnrolments()
+        } recover {
+          case _: InsufficientEnrolments =>
+            logger.warn(s"Authorization failed. User does not have active enrolment matching zRef.")
+            Unauthorized(Json.toJson(UnauthorisedErr))
+          case ex: AuthorisationException =>
+            logger.warn(s"Authorization failed. Error: ${ex.reason}")
+            Unauthorized(Json.toJson(UnauthorisedErr))
+
+          case ex =>
+            logger.warn(s"Auth request failed with unexpected exception: $ex")
+            InternalServerError(Json.toJson(InternalServerErr()))
+        }
+      }
     }
-  }
+
+  private val enrolmentKey  = "HMRC-DISA-ORG"
+  private val identifierKey = "ZREF"
 }

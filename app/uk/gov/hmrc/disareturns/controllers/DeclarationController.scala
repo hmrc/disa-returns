@@ -49,11 +49,11 @@ class DeclarationController @Inject() (
     with Logging {
 
   def declare(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[AnyContent] =
-    (Action andThen authAction andThen clientIdAction andThen nilReturnAction).async { implicit request =>
-      ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
-        case Left(errors) =>
-          Future.successful(BadRequest(Json.toJson(errors)))
-        case Right((isaManagerReferenceNumber, _, _, _)) =>
+    ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
+      case Left(errors) =>
+        Action(_ => BadRequest(Json.toJson(errors)))
+      case Right((isaManagerReferenceNumber, _, _, _)) =>
+        (Action andThen authAction(isaManagerReferenceNumber) andThen clientIdAction andThen nilReturnAction).async { implicit request =>
           val result: EitherT[Future, ErrorResponse, Option[String]] = for {
             _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber))
             _             <- etmpService.declaration(isaManagerReferenceNumber)
@@ -72,6 +72,6 @@ class DeclarationController @Inject() (
               Ok(Json.toJson(DeclarationSuccessfulResponse(returnResultsSummaryLocation, optBoxId)))
             }
           )
-      }
+        }
     }
 }

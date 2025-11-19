@@ -26,7 +26,7 @@ import uk.gov.hmrc.disareturns.utils.HttpHelper
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class ReconciliationResultController @Inject() (
@@ -38,11 +38,11 @@ class ReconciliationResultController @Inject() (
     with Logging {
 
   def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: String, page: String): Action[AnyContent] =
-    (Action andThen authAction).async { implicit request =>
-      ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month, Some(page)) match {
-        case Left(errors) =>
-          Future.successful(BadRequest(Json.toJson(errors)))
-        case Right((isaManagerReferenceNumber, taxYear, month, Some(page))) =>
+    ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month, Some(page)) match {
+      case Left(errors) =>
+        Action(_ => BadRequest(Json.toJson(errors)))
+      case Right((isaManagerReferenceNumber, taxYear, month, Some(page))) =>
+        (Action andThen authAction(isaManagerReferenceNumber)).async { implicit request =>
           npsService.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, page).map {
             case Left(errorResponse) =>
               logger.error(
@@ -53,6 +53,6 @@ class ReconciliationResultController @Inject() (
               logger.info(s"Retrieval of report page [$page] successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
               Ok(Json.toJson(reportPage))
           }
-      }
+        }
     }
 }
