@@ -18,4 +18,4 @@ package uk.gov.hmrc.disareturns.models.common
 
 import play.api.mvc.{Request, WrappedRequest}
 
-case class ClientIdRequest[A](clientId: String, request: Request[A]) extends WrappedRequest[A](request)
+case class DeclarationRequest[A](request: Request[A], clientId: String, nilReturnReported: Boolean = false) extends WrappedRequest[A](request)

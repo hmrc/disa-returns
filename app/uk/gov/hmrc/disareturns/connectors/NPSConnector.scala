@@ -20,6 +20,7 @@ import cats.data.EitherT
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.Month.Month
+import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.HttpReadsInstances.readEitherOf
@@ -44,11 +45,14 @@ class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(im
     )
   }
 
-  def sendNotification(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+  def sendNotification(isaManagerReferenceNumber: String, nilReturnReported: Boolean)(implicit
+    hc:                                           HeaderCarrier
+  ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.npsBaseUrl}/nps/declaration/$isaManagerReferenceNumber"
     read(
       httpClient
         .post(url"$url")
+        .withBody(Json.toJson(ReportingNilReturn(nilReturn = nilReturnReported)))
         .execute[Either[UpstreamErrorResponse, HttpResponse]],
       context = "NPSConnector: sendNotification"
     )

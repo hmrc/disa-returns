@@ -77,6 +77,48 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$isaManagerRef/$taxYear/$month/results/summary")
   }
 
+  "return 200 OK when an explicit nil return declaration is submitted" in {
+    val nilReturnBody =
+      """
+        |{
+        |  "nilReturn": true
+        |}
+        |""".stripMargin
+
+    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
+    stubETMPDeclaration(ok, isaManagerRef)
+    stubNPSNotification(ok, isaManagerRef, nilReturn = true)
+    stubPPNSBoxId(boxResponseJson, testClientId)
+
+    val result = declarationRequest(isaManagerRef, taxYear, month, body = nilReturnBody)
+
+    result.status                                           shouldBe OK
+    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$isaManagerRef/$taxYear/$month/results/summary")
+    (result.json \ "boxId").as[String]                      shouldBe boxId
+  }
+
+  "return 200 OK when an explicit none nil return declaration is submitted" in {
+    val nilReturnBody =
+      """
+        |{
+        |  "nilReturn": false
+        |}
+        |""".stripMargin
+
+    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
+    stubETMPDeclaration(ok, isaManagerRef)
+    stubNPSNotification(ok, isaManagerRef)
+    stubPPNSBoxId(boxResponseJson, testClientId)
+
+    val result = declarationRequest(isaManagerRef, taxYear, month, body = nilReturnBody)
+
+    result.status                                           shouldBe OK
+    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$isaManagerRef/$taxYear/$month/results/summary")
+    (result.json \ "boxId").as[String]                      shouldBe boxId
+  }
+
   "return 400 Bad Request for invalid taxYear" in {
     val invalidTaxYear = "2025"
     val result         = declarationRequest(isaManagerRef, invalidTaxYear, month)
@@ -102,7 +144,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
   }
 
-  "return 400 Bad Request  when the clientId is missing from the header" in {
+  "return 400 Bad Request when the clientId is missing from the header" in {
 
     val headers = Seq(
       "Authorization" -> "mock-bearer-token"
@@ -119,6 +161,27 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     val json = result.json
     (json \ "code").as[String]    shouldBe "BAD_REQUEST"
     (json \ "message").as[String] shouldBe "Missing required header: X-Client-ID"
+  }
+
+  "return 400 Bad Request when an invalid nil return request body is submitted" in {
+    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
+    stubETMPDeclaration(ok, isaManagerRef)
+    stubNPSNotification(ok, isaManagerRef)
+    stubPPNSBoxId(boxResponseJson, testClientId)
+
+    val nilReturnBody =
+      """
+        |{
+        |  "nilReturn": 123
+        |}
+        |""".stripMargin
+
+    val result = declarationRequest(isaManagerRef, taxYear, month, body = nilReturnBody)
+
+    val json = result.json
+    (json \ "code").as[String]    shouldBe "MALFORMED_JSON"
+    (json \ "message").as[String] shouldBe "One of the NDJson lines contains malformed JSON"
   }
 
   "return 403 Forbidden when the reporting window is closed" in {
@@ -159,15 +222,15 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     isaManagerRef: String,
     taxYear:       String,
     month:         String,
-    headers:       Seq[(String, String)] = testHeaders
+    headers:       Seq[(String, String)] = testHeaders,
+    body:          String = ""
   ): WSResponse = {
     stubAuth()
     await(
       ws.url(
         s"http://localhost:$port/monthly/$isaManagerRef/$taxYear/$month/declaration"
-      ).withHttpHeaders(
-        headers: _*
-      ).post("")
+      ).withHttpHeaders(headers: _*)
+        .post(body)
     )
   }
 }

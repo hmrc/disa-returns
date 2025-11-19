@@ -34,9 +34,11 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit ec: ExecutionContext) extends Logging {
 
-  def notification(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
+  def notification(isaManagerReference: String, nilReturnReported: Boolean)(implicit
+    hc:                                 HeaderCarrier
+  ): EitherT[Future, ErrorResponse, HttpResponse] = {
     logger.info(s"Sending notification to NPS for IM ref: [$isaManagerReference]")
-    connector.sendNotification(isaManagerReference).leftMap(mapToErrorResponse)
+    connector.sendNotification(isaManagerReference, nilReturnReported).leftMap(mapToErrorResponse)
   }
 
   def submitIsaAccounts(isaManagerReferenceNumber: String, isaAccounts: Seq[IsaAccount])(implicit

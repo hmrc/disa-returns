@@ -1279,7 +1279,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
     }
 
-
     "return 400 with correct error response when payload NDJSON lines are not separated by a newline delimiter " in {
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))

@@ -32,9 +32,10 @@ class NPSConnectorSpec extends BaseUnitSpec {
 
   trait TestSetup {
 
-    val connector  = new NPSConnector(mockHttpClient, mockAppConfig)
-    val testIsaRef = "Z1234"
-    val testUrl    = "http://localhost:1204"
+    val connector          = new NPSConnector(mockHttpClient, mockAppConfig)
+    val testIsaRef         = "Z1234"
+    val nilReturnSubmitted = false
+    val testUrl            = "http://localhost:1204"
     val testSubscriptions: Seq[IsaAccount] = Seq.empty
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -55,7 +56,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(httpResponse)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(testIsaRef).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(testIsaRef, nilReturnSubmitted).value.futureValue
 
       result shouldBe Right(httpResponse)
     }
@@ -66,7 +67,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(error)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(testIsaRef).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(testIsaRef, nilReturnSubmitted).value.futureValue
 
       result shouldBe Left(error)
     }
@@ -77,7 +78,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(exception))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(testIsaRef).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(testIsaRef, nilReturnSubmitted).value.futureValue
 
       result match {
         case Left(err) =>
