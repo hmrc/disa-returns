@@ -27,8 +27,10 @@ import uk.gov.hmrc.auth.core.AffinityGroup.Organisation
 import uk.gov.hmrc.auth.core.AuthProvider.StandardApplication
 import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
 import uk.gov.hmrc.auth.core.{AuthProviders, Enrolments, UnsupportedAuthProvider}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
+import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -56,13 +58,19 @@ class AuthActionSpec extends BaseUnitSpec {
       val predicateCaptor: ArgumentCaptor[Predicate] =
         ArgumentCaptor.forClass(classOf[Predicate])
 
+      val retrievalCaptor: ArgumentCaptor[Retrieval[Enrolments]] =
+        ArgumentCaptor.forClass(classOf[Retrieval[Enrolments]])
+
       verify(mockAuthConnector).authorise(
         predicateCaptor.capture(),
-        any[Retrieval[Enrolments]]
+        retrievalCaptor.capture()
       )(any(), any())
 
       val actualPredicate   = predicateCaptor.getValue
       val expectedPredicate = Organisation and AuthProviders(StandardApplication)
+
+      val actualRetrieval   = retrievalCaptor.getValue
+      val expectedRetrieval = authorisedEnrolments
 
       withClue(
         s"""
@@ -73,6 +81,16 @@ class AuthActionSpec extends BaseUnitSpec {
       ) {
         actualPredicate shouldBe expectedPredicate
       }
+
+      withClue(
+        s"""
+           |Auth retrieval mismatch:
+           |Expected: $expectedRetrieval
+           |Actual:   $actualRetrieval
+           |""".stripMargin
+      ) {
+        actualRetrieval shouldBe expectedRetrieval
+      }
     }
 
     "return UNAUTHORISED when zRef does not match that retrieved from enrolment" in {
@@ -82,11 +100,8 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val result = authAction(validZRef).invokeBlock(request, testBlock)
 
-      status(result) shouldBe UNAUTHORIZED
-      contentAsJson(result) shouldBe Json.obj(
-        "code"    -> "UNAUTHORISED",
-        "message" -> "Unauthorised"
-      )
+      status(result)        shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
     }
 
     "return UNAUTHORISED when enrolment key does not match" in {
@@ -96,11 +111,8 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val result = authAction(validZRef).invokeBlock(request, testBlock)
 
-      status(result) shouldBe UNAUTHORIZED
-      contentAsJson(result) shouldBe Json.obj(
-        "code"    -> "UNAUTHORISED",
-        "message" -> "Unauthorised"
-      )
+      status(result)        shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
     }
 
     "return UNAUTHORISED when identifier is missing" in {
@@ -110,11 +122,8 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val result = authAction(validZRef).invokeBlock(request, testBlock)
 
-      status(result) shouldBe UNAUTHORIZED
-      contentAsJson(result) shouldBe Json.obj(
-        "code"    -> "UNAUTHORISED",
-        "message" -> "Unauthorised"
-      )
+      status(result)        shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
     }
 
     "return UNAUTHORISED when state of enrolment is not Activated" in {
@@ -124,11 +133,8 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val result = authAction(validZRef).invokeBlock(request, testBlock)
 
-      status(result) shouldBe UNAUTHORIZED
-      contentAsJson(result) shouldBe Json.obj(
-        "code"    -> "UNAUTHORISED",
-        "message" -> "Unauthorised"
-      )
+      status(result)        shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
     }
 
     "return UNAUTHORISED when AuthorisationException is thrown by auth connector" in {
@@ -138,11 +144,8 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val result = authAction(validZRef).invokeBlock(request, testBlock)
 
-      status(result) shouldBe UNAUTHORIZED
-      contentAsJson(result) shouldBe Json.obj(
-        "code"    -> "UNAUTHORISED",
-        "message" -> "Unauthorised"
-      )
+      status(result)        shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
     }
 
     "return InternalServerError for unexpected exceptions thrown by auth connector" in {
@@ -152,11 +155,8 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val result = authAction(validZRef).invokeBlock(request, testBlock)
 
-      status(result) shouldBe INTERNAL_SERVER_ERROR
-      contentAsJson(result) shouldBe Json.obj(
-        "code"    -> "INTERNAL_SERVER_ERROR",
-        "message" -> "There has been an issue processing your request"
-      )
+      status(result)        shouldBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
     }
   }
 }

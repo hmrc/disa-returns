@@ -27,7 +27,7 @@ trait CommonStubs {
 
   def stubAuth(zRef: String = "Z1234"): Unit = {
     val validEnrolment = s"""{
-      "allEnrolments": [{
+      "authorisedEnrolments": [{
         "key": "HMRC-DISA-ORG",
         "identifiers": [{ "key": "ZREF", "value": "$zRef" }],
         "state": "Activated"
