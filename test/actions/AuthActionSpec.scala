@@ -28,7 +28,7 @@ import uk.gov.hmrc.auth.core.AuthProvider.StandardApplication
 import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
-import uk.gov.hmrc.auth.core.{AuthProviders, Enrolments, UnsupportedAuthProvider}
+import uk.gov.hmrc.auth.core.{AuthProviders, Enrolment, Enrolments, UnsupportedAuthProvider}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
 import utils.BaseUnitSpec
@@ -67,7 +67,7 @@ class AuthActionSpec extends BaseUnitSpec {
       )(any(), any())
 
       val actualPredicate   = predicateCaptor.getValue
-      val expectedPredicate = Organisation and AuthProviders(StandardApplication)
+      val expectedPredicate = Organisation and Enrolment("HMRC-DISA-ORG") and AuthProviders(StandardApplication)
 
       val actualRetrieval   = retrievalCaptor.getValue
       val expectedRetrieval = authorisedEnrolments

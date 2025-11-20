@@ -47,13 +47,14 @@ class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implici
       override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
         implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
-        auth.authorised(Organisation and AuthProviders(StandardApplication)).retrieve(authorisedEnrolments) { enrolments =>
-          val activeEnrolment = enrolments
-            .getEnrolment(enrolmentKey)
-            .fold(false)(enrolment => enrolment.getIdentifier(identifierKey).exists(_.value == zRef) && enrolment.isActivated)
+        auth.authorised(Organisation and Enrolment(enrolmentKey) and AuthProviders(StandardApplication)).retrieve(authorisedEnrolments) {
+          enrolments =>
+            val activeEnrolment = enrolments
+              .getEnrolment(enrolmentKey)
+              .fold(false)(enrolment => enrolment.getIdentifier(identifierKey).exists(_.value == zRef) && enrolment.isActivated)
 
-          if (activeEnrolment) block(request)
-          else throw InsufficientEnrolments()
+            if (activeEnrolment) block(request)
+            else throw InsufficientEnrolments()
         } recover {
           case _: InsufficientEnrolments =>
             logger.warn(s"Authorization failed. User does not have active enrolment matching zRef.")
