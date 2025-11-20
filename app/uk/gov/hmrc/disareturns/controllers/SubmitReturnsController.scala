@@ -46,17 +46,17 @@ class SubmitReturnsController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  private def streamingParser: BodyParser[Source[ByteString, _]] = BodyParser("Streaming NDJSON") { request =>
+  private def streamingParser: BodyParser[Source[ByteString, _]] = BodyParser("Streaming NDJSON") { _ =>
     Accumulator.source[ByteString].map(Right.apply)
   }
 
-  def submit(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[Source[ByteString, _]] =
-    (Action andThen authAction).async(streamingParser) { implicit request =>
-      ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
-        case Left(errors) =>
-          Future.successful(BadRequest(Json.toJson(errors)))
+  private def ignoreBodyParser: BodyParser[Source[ByteString, _]] = BodyParser(_ => Accumulator.done(Right(Source.empty[ByteString])))
 
-        case Right((isaManagerReferenceNumber, _, _, _)) =>
+  def submit(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[Source[ByteString, _]] =
+    ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
+      case Left(errors) => Action.async(ignoreBodyParser)(_ => Future.successful(BadRequest(Json.toJson(errors))))
+      case Right((isaManagerReferenceNumber, _, _, _)) =>
+        (Action andThen authAction(isaManagerReferenceNumber)).async(streamingParser) { implicit request =>
           etmpService
             .validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
             .flatMap {
@@ -104,6 +104,6 @@ class SubmitReturnsController @Inject() (
 
                 Future.successful(HttpHelper.toHttpError(error))
             }
-      }
+        }: Action[Source[ByteString, _]]
     }
 }

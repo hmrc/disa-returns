@@ -53,7 +53,7 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
     "return 200 with a page of results" in {
       val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=$validPageIndex")
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any)).thenReturn(Future.successful(Right(reconciliationReportPage)))
 
       val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonthStr, validPageIndex).apply(req)
@@ -65,7 +65,7 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
     "return 400 with a validation error when a parameter is invalid" in {
       val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=-1")
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
 
       val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonthStr, "-1").apply(req)
 
@@ -76,7 +76,7 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
     "return 400 with multiple validation errors when more than one parameter is invalid" in {
       val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=-1")
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
 
       val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, "month", "-1").apply(req)
 
@@ -87,7 +87,7 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
     "return 404 with an error when the report page is not found" in {
       val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=$validPageIndex")
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any))
         .thenReturn(Future.successful(Left(ReportPageNotFoundErr(validPageIndex))))
 
@@ -111,7 +111,7 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
     "return 500 with an error whens something unexpected occurs" in {
       val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=$validPageIndex")
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any)).thenReturn(Future.successful(Left(InternalServerErr())))
 
       val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonthStr, validPageIndex).apply(req)
