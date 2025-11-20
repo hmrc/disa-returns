@@ -23,7 +23,7 @@ import play.api.mvc._
 import uk.gov.hmrc.auth.core.AffinityGroup.Organisation
 import uk.gov.hmrc.auth.core.AuthProvider.StandardApplication
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.allEnrolments
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -47,7 +47,7 @@ class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implici
       override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
         implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
-        auth.authorised(Organisation and AuthProviders(StandardApplication)).retrieve(allEnrolments) { enrolments =>
+        auth.authorised(Organisation and AuthProviders(StandardApplication)).retrieve(authorisedEnrolments) { enrolments =>
           val activeEnrolment = enrolments
             .getEnrolment(enrolmentKey)
             .fold(false)(enrolment => enrolment.getIdentifier(identifierKey).exists(_.value == zRef) && enrolment.isActivated)
