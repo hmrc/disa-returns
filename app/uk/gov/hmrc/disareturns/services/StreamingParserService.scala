@@ -58,7 +58,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) extends 
 
   private def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
     source
-      .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = false))
+      .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = true))
       .map(_.utf8String.trim)
       .filter(_.nonEmpty)
       .map { line =>
