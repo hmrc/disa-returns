@@ -83,6 +83,28 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
   }
 
+  "return 204 for NDJSON payload with trailing newline at the end of the payload" in {
+    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+    stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
+
+    val payload = validStandardIsaSubscription + "\n" + validStandardIsaClosure + "\n"
+    val result  = submitMonthlyReturnRequest(payload)
+
+    result.status shouldBe NO_CONTENT
+  }
+
+  "return 204 for NDJSON payload without trailing newline at the end of the payload" in {
+    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+    stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
+
+    val payload = validStandardIsaSubscription + "\n" + validStandardIsaClosure
+    val result  = submitMonthlyReturnRequest(payload)
+
+    result.status shouldBe NO_CONTENT
+  }
+
   "POST /monthly/:isaManagerRef/:taxYear/:month path parameter validation checks" should {
 
     "return 400 with correct error response when an invalid isaManagerReference is provided" in {
