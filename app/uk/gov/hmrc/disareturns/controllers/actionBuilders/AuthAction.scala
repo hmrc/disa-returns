@@ -47,11 +47,11 @@ class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implici
         implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
         auth.authorised(Organisation and Enrolment(enrolmentKey)).retrieve(authorisedEnrolments) { enrolments =>
-          val enrolment = enrolments
+          val zRefMatchesEnrolment = enrolments
             .getEnrolment(enrolmentKey)
             .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
 
-          if (enrolment) block(request)
+          if (zRefMatchesEnrolment) block(request)
           else throw InternalError("Z-Ref does not match enrolment.")
         } recover {
           case ex: AuthorisationException =>
