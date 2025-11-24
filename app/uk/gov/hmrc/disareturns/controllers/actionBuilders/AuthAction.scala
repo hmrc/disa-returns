@@ -51,7 +51,7 @@ class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implici
           enrolments =>
             val activeEnrolment = enrolments
               .getEnrolment(enrolmentKey)
-              .fold(false)(enrolment => enrolment.getIdentifier(identifierKey).exists(_.value == zRef) && enrolment.isActivated)
+              .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
 
             if (activeEnrolment) block(request)
             else throw InsufficientEnrolments()

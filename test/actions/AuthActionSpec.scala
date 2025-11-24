@@ -126,17 +126,6 @@ class AuthActionSpec extends BaseUnitSpec {
       contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
     }
 
-    "return UNAUTHORISED when state of enrolment is not Activated" in {
-      stubEnrolments(state = "fubar")
-
-      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
-
-      val result = authAction(validZRef).invokeBlock(request, testBlock)
-
-      status(result)        shouldBe UNAUTHORIZED
-      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
-    }
-
     "return UNAUTHORISED when AuthorisationException is thrown by auth connector" in {
       unauthorized(UnsupportedAuthProvider("fubar"))
 
