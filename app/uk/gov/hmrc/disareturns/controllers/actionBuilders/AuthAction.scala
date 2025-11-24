@@ -21,7 +21,6 @@ import play.api.libs.json.Json
 import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core.AffinityGroup.Organisation
-import uk.gov.hmrc.auth.core.AuthProvider.StandardApplication
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
@@ -47,14 +46,13 @@ class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implici
       override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
         implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
-        auth.authorised(Organisation and Enrolment(enrolmentKey) and AuthProviders(StandardApplication)).retrieve(authorisedEnrolments) {
-          enrolments =>
-            val activeEnrolment = enrolments
-              .getEnrolment(enrolmentKey)
-              .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
+        auth.authorised(Organisation and Enrolment(enrolmentKey)).retrieve(authorisedEnrolments) { enrolments =>
+          val enrolment = enrolments
+            .getEnrolment(enrolmentKey)
+            .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
 
-            if (activeEnrolment) block(request)
-            else throw InsufficientEnrolments()
+          if (enrolment) block(request)
+          else throw InsufficientEnrolments()
         } recover {
           case _: InsufficientEnrolments =>
             logger.warn(s"Authorization failed. User does not have active enrolment matching zRef.")
