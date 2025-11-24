@@ -52,11 +52,8 @@ class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implici
             .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
 
           if (enrolment) block(request)
-          else throw InsufficientEnrolments()
+          else throw InternalError("Z-Ref does not match enrolment.")
         } recover {
-          case _: InsufficientEnrolments =>
-            logger.warn(s"Authorization failed. User does not have active enrolment matching zRef.")
-            Unauthorized(Json.toJson(UnauthorisedErr))
           case ex: AuthorisationException =>
             logger.warn(s"Authorization failed. Error: ${ex.reason}")
             Unauthorized(Json.toJson(UnauthorisedErr))
