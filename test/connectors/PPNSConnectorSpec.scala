@@ -33,10 +33,13 @@ class PPNSConnectorSpec extends BaseUnitSpec {
 
     val testClientId = "test-client-id-12345"
     val testUrl      = "http://localhost:6701"
+    val testBoxId    = "Box1"
 
     when(mockAppConfig.ppnsBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.get(url"$testUrl/box")).thenReturn(mockRequestBuilder)
+    when(mockHttpClient.post(url"$testUrl/box/$testBoxId/notifications")).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
 
     val connector = new PPNSConnector(mockHttpClient, mockAppConfig)
   }
@@ -79,6 +82,16 @@ class PPNSConnectorSpec extends BaseUnitSpec {
       val result: Either[UpstreamErrorResponse, Option[String]] = connector.getBox(testClientId).futureValue
 
       result shouldBe Left(UpstreamErrorResponse("Unexpected status from PPNS: 500", 500))
+    }
+
+  }
+
+  "PPNSConnector.sendNotification" should {
+
+    "return Unit when the POST notification is successful" in new TestSetup {
+      val httpResponse: HttpResponse = HttpResponse(201, "")
+      when(mockRequestBuilder.execute[HttpResponse](any(), any())).thenReturn(Future.successful(httpResponse))
+      connector.sendNotification(testBoxId, returnSummaryResults).futureValue shouldBe ()
     }
   }
 }

@@ -26,7 +26,7 @@ import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
-import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
+import uk.gov.hmrc.disareturns.services.{PPNSService, ReturnsSummaryService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,6 +35,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ReturnsSummaryController @Inject() (
   cc:                    ControllerComponents,
   returnsSummaryService: ReturnsSummaryService,
+  ppnsService:           PPNSService,
   authAction:            AuthAction
 )(implicit ec:           ExecutionContext)
     extends BackendController(cc)
@@ -60,22 +61,33 @@ class ReturnsSummaryController @Inject() (
         }
     }
 
-  def returnsSummaryCallback(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[JsValue] =
-    Action.async(parse.json) { implicit req =>
-      withJsonBody[MonthlyReturnsSummaryReq] { req =>
+  def returnsSummaryCallback(
+    isaManagerReferenceNumber: String,
+    taxYear:                   String,
+    month:                     String
+  ): Action[JsValue] =
+    Action.async(parse.json) { implicit request =>
+      withJsonBody[MonthlyReturnsSummaryReq] { body =>
         ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
-          case Left(errors) =>
-            Future.successful(BadRequest(Json.toJson(errors)))
-
+          case Left(errors) => Future.successful(BadRequest(Json.toJson(errors)))
           case Right((isaManagerReferenceNumber, taxYear, month, _)) =>
-            returnsSummaryService.saveReturnsSummary(MonthlyReturnsSummary(isaManagerReferenceNumber, taxYear, month, req.totalRecords)).map {
+            val summary = MonthlyReturnsSummary(isaManagerReferenceNumber, taxYear, month, body.totalRecords)
+            returnsSummaryService.saveReturnsSummary(summary).flatMap {
+              case Left(err: InternalServerErr) =>
+                Future.successful(InternalServerError(Json.toJson(err)))
               case Right(_) =>
-                logger.info(s"Callback with return summary successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
-                NoContent
-              case Left(e: InternalServerErr) =>
-                InternalServerError(Json.toJson(e))
+                returnsSummaryService.retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month).flatMap {
+                  case Left(_) =>
+                    Future.successful(NoContent)
+                  case Right(returnSummaryResults) =>
+                    ppnsService.sendNotification(isaManagerReferenceNumber, returnSummaryResults).map { _ =>
+                      logger.info(s"Callback with return summary successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
+                      NoContent
+                    }
+                }
             }
         }
       }
     }
+
 }
