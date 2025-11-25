@@ -81,6 +81,20 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
       result.status shouldBe NO_CONTENT
     }
+
+    "return 204 for successful submission - StandardIsaClosure when middleName is null" in {
+      val validStandardIsaClosureMiddleNameNull =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First4","middleName": null,"lastName":"Last4","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.99,"amountTransferredOut": 2500.99,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.99,"marketValueOfAccount":10000.99,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
+      val validStandardIsaClosureOutbound =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First4","lastName":"Last4","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.99,"amountTransferredOut": 2500.99,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.99,"marketValueOfAccount":10000.99,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
+
+      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+      stubNpsSubmissionWithBodyAssert(NO_CONTENT, testIsaManagerReference, validStandardIsaClosureOutbound)
+
+      val result = submitMonthlyReturnRequest(validStandardIsaClosureMiddleNameNull)
+      result.status shouldBe NO_CONTENT
+    }
   }
 
   "POST /monthly/:isaManagerRef/:taxYear/:month path parameter validation checks" should {
