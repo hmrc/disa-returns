@@ -88,7 +88,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
 
   "PPNSConnector.sendNotification" should {
 
-    "return Unit when the POST notification is successful" in new TestSetup {
+    "successfully send a notification" in new TestSetup {
       val httpResponse: HttpResponse = HttpResponse(201, "")
       when(mockRequestBuilder.execute[HttpResponse](any(), any())).thenReturn(Future.successful(httpResponse))
       connector.sendNotification(testBoxId, returnSummaryResults).futureValue shouldBe ()

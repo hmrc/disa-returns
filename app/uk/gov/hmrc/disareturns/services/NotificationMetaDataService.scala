@@ -33,7 +33,7 @@ class NotificationMetaDataService @Inject() (repository: NotificationMetaDataRep
       .insertNotificationMetaData(NotificationMetaData(clientId, boxId, zRef))
       .map(_ => Right())
       .recover { case ex: Throwable =>
-        logger.error(s"Failed to insertNotificationMetaData for zRef []. Error: ${ex.getMessage}", ex)
+        logger.error(s"Failed to insertNotificationMetaData for zRef [$zRef]. Error: ${ex.getMessage}", ex)
         Left(InternalServerErr())
       }
   def retrieveMetaData(zRef: String): Future[Option[NotificationMetaData]] =

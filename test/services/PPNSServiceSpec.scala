@@ -94,7 +94,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
       service.sendNotification(validZRef, returnSummaryResults).futureValue shouldBe ()
     }
 
-    "not send a notification after failing to retrieving a box is from ppns" in {
+    "not send a notification after failing to retrieving a boxId is from ppns" in {
       when(mockNotificationMetaDataService.retrieveMetaData(validZRef))
         .thenReturn(Future.successful(Some(notificationMetaData)))
       when(mockPPNSConnector.getBox(notificationMetaData.clientId))
@@ -103,7 +103,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
 
     }
 
-    "not send a notification if ppns returns an upstream error response when attempting to retrieve a box" in {
+    "not send a notification if ppns returns an upstream error response when attempting to retrieve a boxId" in {
       when(mockNotificationMetaDataService.retrieveMetaData(validZRef))
         .thenReturn(Future.successful(Some(notificationMetaData)))
       val error = UpstreamErrorResponse("Internal Server Error", 500)
@@ -113,14 +113,4 @@ class PPNSServiceSpec extends BaseUnitSpec {
 
     }
   }
-
-  "PPNService.retrieveBoxId" should {
-    "return None is no notification meta data exist" in {
-      when(mockNotificationMetaDataService.retrieveMetaData(validZRef))
-        .thenReturn(Future.successful(None))
-      service.retrieveBoxId(validZRef).futureValue shouldBe None
-    }
-
-  }
-
 }
