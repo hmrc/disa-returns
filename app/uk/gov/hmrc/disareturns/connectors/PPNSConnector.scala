@@ -16,7 +16,9 @@
 
 package uk.gov.hmrc.disareturns.connectors
 
+import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.{AppConfig, Constants}
+import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
@@ -45,6 +47,25 @@ class PPNSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(i
           case other =>
             logger.error(s"[PPNSConnector][getBox] Unexpected response from PPNS: status=$other, body=${response.body}")
             Left(UpstreamErrorResponse(s"Unexpected status from PPNS: $other", other))
+        }
+      }
+  }
+
+  def sendNotification(boxId: String, returnSummaryResults: ReturnSummaryResults)(implicit hc: HeaderCarrier): Future[Unit] = {
+    val url = s"${appConfig.ppnsBaseUrl}/box/$boxId/notifications"
+
+    httpClient
+      .post(url"$url")
+      .withBody(Json.toJson(returnSummaryResults))
+      .execute[HttpResponse]
+      .map { response =>
+        response.status match {
+          case 201 =>
+            logger.info(s"[PPNSConnector][sendNotification] Successfully sent notification to boxId=$boxId")
+            ()
+          case other =>
+            logger.error(s"[PPNSConnector][sendNotification] Unexpected response: status=$other, returnSummaryResults=${response.body}, boxId=$boxId")
+            ()
         }
       }
   }

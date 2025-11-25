@@ -19,13 +19,15 @@ package uk.gov.hmrc.disareturns.services
 import play.api.Logging
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
+import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.http.HeaderCarrier
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionContext) extends Logging {
+class PPNSService @Inject() (connector: PPNSConnector, notificationMetaDataService: NotificationMetaDataService)(implicit ec: ExecutionContext)
+    extends Logging {
 
   def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[ErrorResponse, Option[String]]] = {
     logger.info(s"Getting boxId for clientId: [$clientId]")
@@ -34,4 +36,39 @@ class PPNSService @Inject() (connector: PPNSConnector)(implicit ec: ExecutionCon
       case Left(_)       => Left(InternalServerErr())
     }
   }
+
+  def sendNotification(
+    isaManagerReference:  String,
+    returnSummaryResults: ReturnSummaryResults
+  )(implicit hc:          HeaderCarrier): Future[Unit] =
+    retrieveBoxId(isaManagerReference).flatMap {
+      case Some(boxId) => connector.sendNotification(boxId, returnSummaryResults)
+      case None =>
+        logger.warn(s"Unable to send notification: no boxId found for $isaManagerReference")
+        Future.successful(())
+    }
+
+  def retrieveBoxId(
+    isaManagerReference: String
+  )(implicit hc:         HeaderCarrier): Future[Option[String]] =
+    notificationMetaDataService.retrieveMetaData(isaManagerReference).flatMap {
+      case None =>
+        logger.warn(s"No metadata found for ZRef: $isaManagerReference")
+        Future.successful(None)
+      case Some(metadata) =>
+        metadata.boxId match {
+          case Some(boxId) => Future.successful(Some(boxId))
+          case None =>
+            getBoxId(metadata.clientId).map {
+              case Right(Some(boxId)) => Some(boxId)
+              case Right(None) =>
+                logger.warn(s"No boxId found for clientId: ${metadata.clientId}")
+                None
+              case Left(err) =>
+                logger.warn(s"Failed to retrieve boxId: $err")
+                None
+            }
+        }
+    }
+
 }
