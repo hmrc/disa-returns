@@ -99,7 +99,7 @@ trait CommonStubs {
     val expectedArrayJson = Json.stringify(jsArray)
     stubFor(
       post(urlEqualTo(s"/nps/submit/$isaManagerRef"))
-        .withRequestBody(equalToJson(expectedArrayJson, true, true)) // IGNORE order + extras
+        .withRequestBody(equalToJson(expectedArrayJson, true, false))
         .willReturn(aResponse().withStatus(status))
     )
   }
