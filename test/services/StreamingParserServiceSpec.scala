@@ -36,16 +36,47 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
     val service = new StreamingParserService
   }
 
+  val validIsaAccountJson: String =
+    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":250.00,"amountTransferredOut":2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}""".stripMargin
+
+  val validIsaAccountJson2: String =
+    """{"accountNumber":"STD000002","nino":"AB000002C","firstName":"First2","middleName":null,"lastName":"Last2","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":850.00,"amountTransferredOut":500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}""".stripMargin
   "processSource" should {
 
     "return a Right when input is a valid IsaAccount" in new Setup {
-      val validIsaAccountJson: String =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":250.00,"amountTransferredOut":2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}""".stripMargin
 
       val source: Source[ByteString, NotUsed]              = Source.single(ByteString(validIsaAccountJson + "\n"))
       val result: Either[ValidationError, Seq[IsaAccount]] = service.processSource(source).futureValue
       result.isRight           shouldBe true
       result.toOption.get.head shouldBe Json.parse(validIsaAccountJson).as[IsaAccount]
+    }
+
+    "parse NDJSON payload with trailing newline" in new Setup {
+
+      val payload: ByteString = ByteString(s"$validIsaAccountJson\n$validIsaAccountJson2\n")
+
+      val result: Either[ValidationError, Seq[IsaAccount]] = service.processSource(Source.single(payload)).futureValue
+
+      result.isRight shouldBe true
+      val accounts: Seq[IsaAccount] = result.toOption.get
+
+      accounts.length shouldBe 2
+      accounts.head   shouldBe Json.parse(validIsaAccountJson).as[IsaAccount]
+      accounts(1)     shouldBe Json.parse(validIsaAccountJson2).as[IsaAccount]
+    }
+
+    "parse NDJSON payload without trailing newline" in new Setup {
+
+      val payload: ByteString = ByteString(s"$validIsaAccountJson\n$validIsaAccountJson2")
+
+      val result: Either[ValidationError, Seq[IsaAccount]] = service.processSource(Source.single(payload)).futureValue
+
+      result.isRight shouldBe true
+      val accounts: Seq[IsaAccount] = result.toOption.get
+
+      accounts.length shouldBe 2
+      accounts.head   shouldBe Json.parse(validIsaAccountJson).as[IsaAccount]
+      accounts(1)     shouldBe Json.parse(validIsaAccountJson2).as[IsaAccount]
     }
 
     "return a Left when IsaAccount fails domain validation with missing first name" in new Setup {

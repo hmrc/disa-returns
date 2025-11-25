@@ -83,6 +83,35 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
   }
 
+  "return 204 for NDJSON payload with trailing newline at the end of the payload" in {
+    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+    stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
+
+    val payload = validStandardIsaSubscription + "\n" + validStandardIsaClosure + "\n"
+    val result  = submitMonthlyReturnRequest(payload)
+
+    result.status shouldBe NO_CONTENT
+  }
+
+  "return 204 for NDJSON payload without trailing newline at the end of the payload" in {
+    stubAuth()
+    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
+    stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
+
+    val result = await(
+      ws.url(
+        s"http://localhost:$port/monthly/$testIsaManagerReference/$testTaxYear/JAN"
+      ).withFollowRedirects(follow = false)
+        .withHttpHeaders(
+          testHeaders: _*
+        )
+        .post(validLifetimeIsaClosure)
+    )
+    result.status shouldBe NO_CONTENT
+  }
+
   "POST /monthly/:isaManagerRef/:taxYear/:month path parameter validation checks" should {
 
     "return 400 with correct error response when an invalid isaManagerReference is provided" in {
@@ -1296,23 +1325,6 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       result.status                 shouldBe BAD_REQUEST
       result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
     }
-    //TODO: This currently returns 500 InternalServerError, should return 200. This should pass after bug fixed in DFI-1365
-//    "return 400 with correct error response when NDJSON payload does not end with a newline delimiter " in {
-//      stubAuth()
-//      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-//      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-//      val result = await(
-//        ws.url(
-//            s"http://localhost:$port/monthly/$testIsaManagerReference/$testTaxYear/JAN"
-//          ).withFollowRedirects(follow = false)
-//          .withHttpHeaders(
-//            testHeaders: _*
-//          )
-//          .post(validLifetimeIsaClosure)
-//      )
-//      result.status                 shouldBe BAD_REQUEST
-//      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
-//    }
 
     "return 400 with correct error response body when NDJSON payload is empty" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
