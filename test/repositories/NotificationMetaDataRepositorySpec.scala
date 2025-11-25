@@ -38,7 +38,7 @@ class NotificationMetaDataRepositorySpec extends BaseUnitSpec {
     await(repository.collection.drop().toFuture())
 
   "findNotificationMetaData" should {
-    "find notificationMetaData with zRef" in {
+    "successfully return Some(NotificationMetaData)" in {
 
       await(repository.collection.insertOne(notificationMetaData).toFuture())
 

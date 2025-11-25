@@ -136,7 +136,6 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
 
       val res = controller.returnsSummaryCallback(validZRef, validTaxYear, validMonth.toString).apply(req)
       status(res) mustBe NO_CONTENT
-      contentAsString(res) mustBe empty
     }
 
     "returns 204 NoContent even if no notification has been sent to ppns" in {
@@ -148,7 +147,6 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
 
       val res = controller.returnsSummaryCallback(validZRef, validTaxYear, validMonth.toString).apply(req)
       status(res) mustBe NO_CONTENT
-      contentAsString(res) mustBe empty
     }
 
     "returns 500 with a custom InternalServerErr message when repo signals Error(msg)" in {

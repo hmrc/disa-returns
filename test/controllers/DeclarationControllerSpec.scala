@@ -218,10 +218,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
       val result = controller.declare(validZRef, validTaxYear, validMonth.toString)(request)
 
-      status(result) shouldBe INTERNAL_SERVER_ERROR
-      val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
-      (json \ "message").as[String] shouldBe "There has been an issue processing your request"
+      status(result)        shouldBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
 
     }
   }
