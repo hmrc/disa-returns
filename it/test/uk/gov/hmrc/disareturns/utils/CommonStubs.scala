@@ -89,6 +89,21 @@ trait CommonStubs {
         .willReturn(aResponse().withStatus(status))
     )
 
+  def stubNpsSubmissionWithBodyAssert(
+    status:             Int,
+    isaManagerRef:      String,
+    expectedJsonObject: String
+  ): Unit = {
+    val jsObj             = Json.parse(expectedJsonObject)
+    val jsArray           = Json.arr(jsObj)
+    val expectedArrayJson = Json.stringify(jsArray)
+    stubFor(
+      post(urlEqualTo(s"/nps/submit/$isaManagerRef"))
+        .withRequestBody(equalToJson(expectedArrayJson, true, false))
+        .willReturn(aResponse().withStatus(status))
+    )
+  }
+
   val testClientId = "test-client-id"
   val testHeaders: Seq[(String, String)] = Seq(
     "X-Client-ID"   -> testClientId,
