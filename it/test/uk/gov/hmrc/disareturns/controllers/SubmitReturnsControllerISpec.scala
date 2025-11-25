@@ -36,20 +36,20 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
   )
 
   val validLifetimeIsaSubscription =
-    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":-5000.00,"lisaBonusClaim":5000.00}"""
+    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":"Middle1","lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.01,"amountTransferredOut": 2500.21,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.31,"marketValueOfAccount":10000.31,"lisaQualifyingAddition":-5000.31,"lisaBonusClaim":5000.31}"""
   val validLifetimeIsaClosure =
-    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":-5000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01"}"""
+    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First2","middleName":"Middle2","lastName":"Last2","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":-5000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01"}"""
   val validStandardIsaSubscription =
-    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
+    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First3","middleName":"Middle3","lastName":"Last3","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
   val validStandardIsaClosure =
-    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
+    """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First4","lastName":"Last4","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.99,"amountTransferredOut": 2500.99,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.99,"marketValueOfAccount":10000.99,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
 
   "POST /monthly/:isaManagerRef/:taxYear/:month" should {
 
     "return 204 for successful submission - LifetimeIsaSubscription" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmissionWithBodyAssert(NO_CONTENT, testIsaManagerReference, validLifetimeIsaSubscription)
 
       val result = submitMonthlyReturnRequest(validLifetimeIsaSubscription)
       result.status shouldBe NO_CONTENT
@@ -58,7 +58,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - LifetimeIsaClosure" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmissionWithBodyAssert(NO_CONTENT, testIsaManagerReference, validLifetimeIsaClosure)
 
       val result = submitMonthlyReturnRequest(validLifetimeIsaClosure)
       result.status shouldBe NO_CONTENT
@@ -67,7 +67,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaSubscription" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmissionWithBodyAssert(NO_CONTENT, testIsaManagerReference, validStandardIsaSubscription)
 
       val result = submitMonthlyReturnRequest(validStandardIsaSubscription)
       result.status shouldBe NO_CONTENT
@@ -76,7 +76,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaClosure" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = testIsaManagerReference)
-      stubNpsSubmission(NO_CONTENT, testIsaManagerReference)
+      stubNpsSubmissionWithBodyAssert(NO_CONTENT, testIsaManagerReference, validStandardIsaClosure)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
       result.status shouldBe NO_CONTENT
