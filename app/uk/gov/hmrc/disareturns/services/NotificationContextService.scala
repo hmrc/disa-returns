@@ -19,24 +19,24 @@ package uk.gov.hmrc.disareturns.services
 import com.google.inject.Inject
 import play.api.Logging
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
-import uk.gov.hmrc.disareturns.models.summary.repository.NotificationMetaData
-import uk.gov.hmrc.disareturns.repositories.NotificationMetaDataRepository
+import uk.gov.hmrc.disareturns.models.summary.repository.NotificationContext
+import uk.gov.hmrc.disareturns.repositories.NotificationContextRepository
 
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class NotificationMetaDataService @Inject() (repository: NotificationMetaDataRepository)(implicit ec: ExecutionContext) extends Logging {
+class NotificationContextService @Inject() (repository: NotificationContextRepository)(implicit ec: ExecutionContext) extends Logging {
 
-  def saveMetaData(clientId: String, boxId: Option[String], zRef: String): Future[Either[ErrorResponse, Unit]] =
+  def saveContext(clientId: String, boxId: Option[String], isaManagerReference: String): Future[Either[ErrorResponse, Unit]] =
     repository
-      .insertNotificationMetaData(NotificationMetaData(clientId, boxId, zRef))
+      .insertNotificationContext(NotificationContext(clientId, boxId, isaManagerReference))
       .map(_ => Right())
       .recover { case ex: Throwable =>
-        logger.error(s"Failed to insertNotificationMetaData for zRef [$zRef]. Error: ${ex.getMessage}", ex)
+        logger.error(s"Failed to insertNotificationContext for isaManagerReference [$isaManagerReference]. Error: ${ex.getMessage}", ex)
         Left(InternalServerErr())
       }
-  def retrieveMetaData(zRef: String): Future[Option[NotificationMetaData]] =
-    repository.findNotificationMetaData(zRef)
+  def retrieveContext(zRef: String): Future[Option[NotificationContext]] =
+    repository.findNotificationContext(zRef)
 
 }
