@@ -51,8 +51,8 @@ class NotificationContextServiceSpec extends BaseUnitSpec {
     "return InternalServerErr if mongo repository throws an exception" in {
       when(notificationContextRepository.insertNotificationContext(any[NotificationContext]))
         .thenReturn(Future.failed(new Exception("fail")))
-      val result = await(service.saveContext(clientId, boxId, validZRef))
-      result shouldBe Left(InternalServerErr())
+      await(service.saveContext(clientId, boxId, validZRef)) shouldBe Left(InternalServerErr())
+
     }
   }
 

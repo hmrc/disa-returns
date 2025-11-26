@@ -199,7 +199,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     }
 
-    "return 500 Internal Server Error when save notification meta data fails" in {
+    "return 500 Internal Server Error when there is a failure whilst saving the notification context" in {
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
