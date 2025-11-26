@@ -60,7 +60,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Right(Some(boxId))))
-      when(mockNotificationMetaDataService.saveMetaData(any(), any(), any()))
+      when(notificationContextService.saveContext(any(), any(), any()))
         .thenReturn(Future.successful(Right()))
 
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
@@ -87,7 +87,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Right(None)))
-      when(mockNotificationMetaDataService.saveMetaData(any(), any(), any()))
+      when(notificationContextService.saveContext(any(), any(), any()))
         .thenReturn(Future.successful(Right()))
 
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
@@ -210,7 +210,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Right(Some(boxId))))
-      when(mockNotificationMetaDataService.saveMetaData(any(), any(), any()))
+      when(notificationContextService.saveContext(any(), any(), any()))
         .thenReturn(Future.successful(Left(InternalServerErr())))
 
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")

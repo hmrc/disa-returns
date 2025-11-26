@@ -22,7 +22,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common.ErrorResponse
-import uk.gov.hmrc.disareturns.services.{ETMPService, NPSService, NotificationMetaDataService, PPNSService}
+import uk.gov.hmrc.disareturns.services.{ETMPService, NPSService, NotificationContextService, PPNSService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.disareturns.utils.HttpHelper
@@ -36,16 +36,16 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DeclarationController @Inject() (
-  cc:                          ControllerComponents,
-  etmpService:                 ETMPService,
-  ppnsService:                 PPNSService,
-  npsService:                  NPSService,
-  notificationMetaDataService: NotificationMetaDataService,
-  authAction:                  AuthAction,
-  clientIdAction:              ClientIdAction,
-  nilReturnAction:             NilReturnAction,
-  config:                      AppConfig
-)(implicit ec:                 ExecutionContext)
+  cc:                         ControllerComponents,
+  etmpService:                ETMPService,
+  ppnsService:                PPNSService,
+  npsService:                 NPSService,
+  notificationContextService: NotificationContextService,
+  authAction:                 AuthAction,
+  clientIdAction:             ClientIdAction,
+  nilReturnAction:            NilReturnAction,
+  config:                     AppConfig
+)(implicit ec:                ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
@@ -66,9 +66,9 @@ class DeclarationController @Inject() (
               logger.error(s"Failed to declare return for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] with error: [$error]")
               Future.successful(HttpHelper.toHttpError(error))
             case Right(optBoxId) =>
-              notificationMetaDataService.saveMetaData(request.clientId, optBoxId, isaManagerReferenceNumber).map {
+              notificationContextService.saveContext(request.clientId, optBoxId, isaManagerReferenceNumber).map {
                 case Left(error) =>
-                  logger.error(s"Failed to save metadata for IM ref: [$isaManagerReferenceNumber], error: [$error]")
+                  logger.error(s"Failed to save notification context for IM ref: [$isaManagerReferenceNumber], error: [$error]")
                   HttpHelper.toHttpError(error)
                 case Right(_) =>
                   logger.info(s"Declaration of return successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")

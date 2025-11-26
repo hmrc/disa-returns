@@ -18,7 +18,7 @@ package services
 
 import org.mockito.Mockito._
 import uk.gov.hmrc.disareturns.models.common.InternalServerErr
-import uk.gov.hmrc.disareturns.models.summary.repository.NotificationMetaData
+import uk.gov.hmrc.disareturns.models.summary.repository.NotificationContext
 import uk.gov.hmrc.disareturns.services.PPNSService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import utils.BaseUnitSpec
@@ -30,8 +30,8 @@ class PPNSServiceSpec extends BaseUnitSpec {
   val testClientId = "123456"
   val testBoxId    = "Box1"
 
-  val service = new PPNSService(mockPPNSConnector, mockNotificationMetaDataService)
-  val notificationMetaData: NotificationMetaData = NotificationMetaData(clientId = testClientId, boxId = None, zRef = validZRef)
+  val service = new PPNSService(mockPPNSConnector, notificationContextService)
+  val notificationContext: NotificationContext = NotificationContext(clientId = testClientId, boxId = None, isaManagerReference = validZRef)
 
   "PPNSService.getBoxId" should {
 
@@ -69,8 +69,8 @@ class PPNSServiceSpec extends BaseUnitSpec {
   "PPNService.sendNotification" should {
 
     "successfully send a notification" in {
-      when(mockNotificationMetaDataService.retrieveMetaData(validZRef))
-        .thenReturn(Future.successful(Some(notificationMetaData)))
+      when(notificationContextService.retrieveContext(validZRef))
+        .thenReturn(Future.successful(Some(notificationContext)))
       when(mockPPNSConnector.sendNotification(testBoxId, returnSummaryResults))
         .thenReturn(Future.successful(()))
       service.sendNotification(validZRef, returnSummaryResults).futureValue shouldBe ()
@@ -78,9 +78,9 @@ class PPNSServiceSpec extends BaseUnitSpec {
     }
 
     "successfully send a notification after retrieving the boxId from from ppns" in {
-      when(mockNotificationMetaDataService.retrieveMetaData(validZRef))
-        .thenReturn(Future.successful(Some(notificationMetaData)))
-      when(mockPPNSConnector.getBox(notificationMetaData.clientId))
+      when(notificationContextService.retrieveContext(validZRef))
+        .thenReturn(Future.successful(Some(notificationContext)))
+      when(mockPPNSConnector.getBox(notificationContext.clientId))
         .thenReturn(Future.successful(Right(Some(testBoxId))))
       when(mockPPNSConnector.sendNotification(testBoxId, returnSummaryResults))
         .thenReturn(Future.successful(()))
@@ -89,25 +89,25 @@ class PPNSServiceSpec extends BaseUnitSpec {
     }
 
     "not send a notification when no notification meta data exists" in {
-      when(mockNotificationMetaDataService.retrieveMetaData(validZRef))
+      when(notificationContextService.retrieveContext(validZRef))
         .thenReturn(Future.successful(None))
       service.sendNotification(validZRef, returnSummaryResults).futureValue shouldBe ()
     }
 
     "not send a notification after failing to retrieving a boxId is from ppns" in {
-      when(mockNotificationMetaDataService.retrieveMetaData(validZRef))
-        .thenReturn(Future.successful(Some(notificationMetaData)))
-      when(mockPPNSConnector.getBox(notificationMetaData.clientId))
+      when(notificationContextService.retrieveContext(validZRef))
+        .thenReturn(Future.successful(Some(notificationContext)))
+      when(mockPPNSConnector.getBox(notificationContext.clientId))
         .thenReturn(Future.successful(Right(None)))
       service.sendNotification(validZRef, returnSummaryResults).futureValue shouldBe ()
 
     }
 
     "not send a notification if ppns returns an upstream error response when attempting to retrieve a boxId" in {
-      when(mockNotificationMetaDataService.retrieveMetaData(validZRef))
-        .thenReturn(Future.successful(Some(notificationMetaData)))
+      when(notificationContextService.retrieveContext(validZRef))
+        .thenReturn(Future.successful(Some(notificationContext)))
       val error = UpstreamErrorResponse("Internal Server Error", 500)
-      when(mockPPNSConnector.getBox(notificationMetaData.clientId))
+      when(mockPPNSConnector.getBox(notificationContext.clientId))
         .thenReturn(Future.successful(Left(error)))
       service.sendNotification(validZRef, returnSummaryResults).futureValue shouldBe ()
 

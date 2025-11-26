@@ -19,7 +19,7 @@ package uk.gov.hmrc.disareturns.repositories
 import org.mongodb.scala.model._
 import play.api.Logging
 import uk.gov.hmrc.disareturns.models.common.ErrorResponse
-import uk.gov.hmrc.disareturns.models.summary.repository.NotificationMetaData
+import uk.gov.hmrc.disareturns.models.summary.repository.NotificationContext
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
@@ -28,15 +28,15 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class NotificationMetaDataRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
-    extends PlayMongoRepository[NotificationMetaData](
+class NotificationContextRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
+    extends PlayMongoRepository[NotificationContext](
       mongoComponent = mc,
-      collectionName = "notificationMetaData",
-      domainFormat = NotificationMetaData.mongoFormat,
+      collectionName = "notificationContext",
+      domainFormat = NotificationContext.mongoFormat,
       indexes = Seq(
         IndexModel(
-          keys = Indexes.ascending("zRef"),
-          indexOptions = IndexOptions().unique(true).name("notificationMetaDataIdx")
+          keys = Indexes.ascending("isaManagerReference"),
+          indexOptions = IndexOptions().unique(true).name("notificationContextIdx")
         ),
         IndexModel(
           keys = Indexes.ascending("updatedAt"),
@@ -48,14 +48,14 @@ class NotificationMetaDataRepository @Inject() (mc: MongoComponent)(implicit ec:
     )
     with Logging {
 
-  def findNotificationMetaData(zRef: String): Future[Option[NotificationMetaData]] =
-    collection.find(Filters.eq("zRef", zRef)).headOption()
+  def findNotificationContext(isaManagerReference: String): Future[Option[NotificationContext]] =
+    collection.find(Filters.eq("isaManagerReference", isaManagerReference)).headOption()
 
-  def insertNotificationMetaData(metaData: NotificationMetaData): Future[Either[ErrorResponse, Unit]] =
+  def insertNotificationContext(notificationContext: NotificationContext): Future[Either[ErrorResponse, Unit]] =
     collection
       .replaceOne(
-        filter = Filters.eq("zRef", metaData.zRef),
-        replacement = metaData,
+        filter = Filters.eq("isaManagerReference", notificationContext.isaManagerReference),
+        replacement = notificationContext,
         options = ReplaceOptions().upsert(true)
       )
       .toFuture()

@@ -26,7 +26,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PPNSService @Inject() (connector: PPNSConnector, notificationMetaDataService: NotificationMetaDataService)(implicit ec: ExecutionContext)
+class PPNSService @Inject() (connector: PPNSConnector, notificationContextService: NotificationContextService)(implicit ec: ExecutionContext)
     extends Logging {
 
   def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[ErrorResponse, Option[String]]] = {
@@ -48,21 +48,21 @@ class PPNSService @Inject() (connector: PPNSConnector, notificationMetaDataServi
         Future.successful(())
     }
 
-  def retrieveBoxId(
+  private def retrieveBoxId(
     isaManagerReference: String
   )(implicit hc:         HeaderCarrier): Future[Option[String]] =
-    notificationMetaDataService.retrieveMetaData(isaManagerReference).flatMap {
+    notificationContextService.retrieveContext(isaManagerReference).flatMap {
       case None =>
-        logger.warn(s"No metadata found for ZRef: $isaManagerReference")
+        logger.warn(s"No notification context found for ZRef: $isaManagerReference")
         Future.successful(None)
-      case Some(metadata) =>
-        metadata.boxId match {
+      case Some(notificationContext) =>
+        notificationContext.boxId match {
           case Some(boxId) => Future.successful(Some(boxId))
           case None =>
-            getBoxId(metadata.clientId).map {
+            getBoxId(notificationContext.clientId).map {
               case Right(Some(boxId)) => Some(boxId)
               case Right(None) =>
-                logger.warn(s"No boxId found for clientId: ${metadata.clientId}")
+                logger.warn(s"No boxId found for clientId: ${notificationContext.clientId}")
                 None
               case Left(err) =>
                 logger.warn(s"Failed to retrieve boxId: $err")

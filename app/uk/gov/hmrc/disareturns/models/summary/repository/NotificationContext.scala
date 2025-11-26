@@ -18,8 +18,8 @@ package uk.gov.hmrc.disareturns.models.summary.repository
 
 import play.api.libs.json.{Json, OFormat}
 
-case class NotificationMetaData(clientId: String, boxId: Option[String], zRef: String)
+case class NotificationContext(clientId: String, boxId: Option[String], isaManagerReference: String)
 
-object NotificationMetaData {
-  implicit val mongoFormat: OFormat[NotificationMetaData] = Json.format[NotificationMetaData]
+object NotificationContext {
+  implicit val mongoFormat: OFormat[NotificationContext] = Json.format[NotificationContext]
 }
