@@ -51,23 +51,18 @@ class PPNSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(i
       }
   }
 
-  def sendNotification(boxId: String, returnSummaryResults: ReturnSummaryResults)(implicit hc: HeaderCarrier): Future[Unit] = {
-    val url = s"${appConfig.ppnsBaseUrl}/box/$boxId/notifications"
-
+  def sendNotification(
+    boxId:       String,
+    payload:     ReturnSummaryResults
+  )(implicit hc: HeaderCarrier): Future[Unit] =
     httpClient
-      .post(url"$url")
-      .withBody(Json.toJson(returnSummaryResults))
+      .post(url"${appConfig.ppnsBaseUrl}/box/$boxId/notifications")
+      .withBody(Json.toJson(payload))
       .execute[HttpResponse]
       .map { response =>
-        response.status match {
-          case 201 =>
-            logger.info(s"[PPNSConnector][sendNotification] Successfully sent notification to boxId=$boxId")
-            ()
-          case other =>
-            logger.error(s"[PPNSConnector][sendNotification] Unexpected response: status=$other, returnSummaryResults=${response.body}, boxId=$boxId")
-            ()
-        }
+        if (response.status == 201) logger.info(s"[PPNSConnector][sendNotification] Sent notification to boxId=$boxId")
+        else logger.error(s"[PPNSConnector][sendNotification] Unexpected status=${response.status}, body=${response.body}, boxId=$boxId")
+        ()
       }
-  }
 
 }
