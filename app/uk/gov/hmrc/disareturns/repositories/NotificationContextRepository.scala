@@ -45,8 +45,7 @@ class NotificationContextRepository @Inject() (mc: MongoComponent)(implicit ec: 
             .expireAfter(30L, TimeUnit.DAYS)
         )
       )
-    )
-    with Logging {
+    ) {
 
   def findNotificationContext(isaManagerReference: String): Future[Option[NotificationContext]] =
     collection.find(Filters.eq("isaManagerReference", isaManagerReference)).headOption()
