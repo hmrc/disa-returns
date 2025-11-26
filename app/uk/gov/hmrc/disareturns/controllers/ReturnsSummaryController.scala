@@ -72,6 +72,7 @@ class ReturnsSummaryController @Inject() (
           case Left(errors) => Future.successful(BadRequest(Json.toJson(errors)))
           case Right((isaManagerReferenceNumber, taxYear, month, _)) =>
             val summary = MonthlyReturnsSummary(isaManagerReferenceNumber, taxYear, month, body.totalRecords)
+            //TODO Should we consider doing the logic for the numberOfPages etc as part of saving the summary instead of doing on it on retrieveReturnSummary???
             returnsSummaryService.saveReturnsSummary(summary).flatMap {
               case Left(err: InternalServerErr) =>
                 Future.successful(InternalServerError(Json.toJson(err)))
