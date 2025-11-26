@@ -35,7 +35,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
 
   "PPNSService.getBoxId" should {
 
-    "return Right(Some(boxId)) when connector returns a box successfully" in {
+    "return Right(Some(boxId)) when ppnsConnector returns a box successfully" in {
 
       when(mockPPNSConnector.getBox(testClientId))
         .thenReturn(Future.successful(Right(Some(testBoxId))))
@@ -45,7 +45,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
       result shouldBe Right(Some(testBoxId))
     }
 
-    "return Right(None) when connector returns no box" in {
+    "return Right(None) when ppnsConnector returns no box" in {
       when(mockPPNSConnector.getBox(testClientId))
         .thenReturn(Future.successful(Right(None)))
 
@@ -54,7 +54,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
       result shouldBe Right(None)
     }
 
-    "return Left(InternalServerErr) when connector returns an error" in {
+    "return Left(InternalServerErr) when ppnsConnector returns an error" in {
       val error = UpstreamErrorResponse("Internal Server Error", 500)
 
       when(mockPPNSConnector.getBox(testClientId))
@@ -77,9 +77,9 @@ class PPNSServiceSpec extends BaseUnitSpec {
 
     }
 
-    "successfully send a notification after retrieving the boxId from from ppns" in {
+    "successfully send a notification after retrieving the boxId from ppns" in {
       when(notificationContextService.retrieveContext(validZRef))
-        .thenReturn(Future.successful(Some(notificationContext)))
+        .thenReturn(Future.successful(Some(notificationContext.copy(boxId = None))))
       when(mockPPNSConnector.getBox(notificationContext.clientId))
         .thenReturn(Future.successful(Right(Some(testBoxId))))
       when(mockPPNSConnector.sendNotification(testBoxId, returnSummaryResults))
@@ -88,7 +88,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
 
     }
 
-    "not send a notification when no notification meta data exists" in {
+    "not send a notification when no notification context exists" in {
       when(notificationContextService.retrieveContext(validZRef))
         .thenReturn(Future.successful(None))
       service.sendNotification(validZRef, returnSummaryResults).futureValue shouldBe ()
@@ -106,9 +106,8 @@ class PPNSServiceSpec extends BaseUnitSpec {
     "not send a notification if ppns returns an upstream error response when attempting to retrieve a boxId" in {
       when(notificationContextService.retrieveContext(validZRef))
         .thenReturn(Future.successful(Some(notificationContext)))
-      val error = UpstreamErrorResponse("Internal Server Error", 500)
       when(mockPPNSConnector.getBox(notificationContext.clientId))
-        .thenReturn(Future.successful(Left(error)))
+        .thenReturn(Future.successful(Left(UpstreamErrorResponse("Internal Server Error", 500))))
       service.sendNotification(validZRef, returnSummaryResults).futureValue shouldBe ()
 
     }

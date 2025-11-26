@@ -26,12 +26,12 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PPNSService @Inject() (connector: PPNSConnector, notificationContextService: NotificationContextService)(implicit ec: ExecutionContext)
+class PPNSService @Inject() (ppnsConnector: PPNSConnector, notificationContextService: NotificationContextService)(implicit ec: ExecutionContext)
     extends Logging {
 
   def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[ErrorResponse, Option[String]]] = {
     logger.info(s"Getting boxId for clientId: [$clientId]")
-    connector.getBox(clientId).map {
+    ppnsConnector.getBox(clientId).map {
       case Right(boxOpt) => Right(boxOpt)
       case Left(_)       => Left(InternalServerErr())
     }
@@ -42,7 +42,7 @@ class PPNSService @Inject() (connector: PPNSConnector, notificationContextServic
     returnSummaryResults: ReturnSummaryResults
   )(implicit hc:          HeaderCarrier): Future[Unit] =
     retrieveBoxId(isaManagerReference).flatMap {
-      case Some(boxId) => connector.sendNotification(boxId, returnSummaryResults)
+      case Some(boxId) => ppnsConnector.sendNotification(boxId, returnSummaryResults)
       case None =>
         logger.warn(s"Unable to send notification: no boxId found for $isaManagerReference")
         Future.successful(())
@@ -53,7 +53,7 @@ class PPNSService @Inject() (connector: PPNSConnector, notificationContextServic
   )(implicit hc:         HeaderCarrier): Future[Option[String]] =
     notificationContextService.retrieveContext(isaManagerReference).flatMap {
       case None =>
-        logger.warn(s"No notification context found for ZRef: $isaManagerReference")
+        logger.warn(s"No notification context found for isaManagerReference: $isaManagerReference")
         Future.successful(None)
       case Some(notificationContext) =>
         notificationContext.boxId match {
@@ -65,7 +65,7 @@ class PPNSService @Inject() (connector: PPNSConnector, notificationContextServic
                 logger.warn(s"No boxId found for clientId: ${notificationContext.clientId}")
                 None
               case Left(err) =>
-                logger.warn(s"Failed to retrieve boxId: $err")
+                logger.warn(s"Failed to a retrieve boxId: $err")
                 None
             }
         }

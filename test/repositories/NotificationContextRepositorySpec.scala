@@ -41,25 +41,21 @@ class NotificationContextRepositorySpec extends BaseUnitSpec {
     "successfully return Some(NotificationContext)" in {
 
       await(repository.collection.insertOne(notificationContext).toFuture())
+      await(repository.findNotificationContext(validZRef)) shouldBe Some(notificationContext)
 
-      val result = await(repository.findNotificationContext(validZRef))
-
-      result shouldBe Some(notificationContext)
     }
 
     "return None when no matching notificationContext exists" in {
-      val result = await(repository.findNotificationContext("Z0000"))
-      result shouldBe None
+      await(repository.findNotificationContext("Z0000")) shouldBe None
     }
   }
 
   "insertNotificationContext" should {
     "insert new notificationContext successfully" in {
+
       await(repository.insertNotificationContext(notificationContext))
+      await(repository.findNotificationContext(validZRef)) shouldBe Some(notificationContext)
 
-      val result = await(repository.findNotificationContext(validZRef))
-
-      result shouldBe Some(notificationContext)
     }
   }
 
