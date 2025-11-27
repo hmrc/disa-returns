@@ -50,7 +50,7 @@ class NotificationContextRepository @Inject() (mc: MongoComponent)(implicit ec: 
   def findNotificationContext(isaManagerReference: String): Future[Option[NotificationContext]] =
     collection.find(Filters.eq("isaManagerReference", isaManagerReference)).headOption()
 
-  def insertNotificationContext(notificationContext: NotificationContext): Future[Either[ErrorResponse, Unit]] =
+  def insertNotificationContext(notificationContext: NotificationContext): Future[Unit] =
     collection
       .replaceOne(
         filter = Filters.eq("isaManagerReference", notificationContext.isaManagerReference),
@@ -58,6 +58,5 @@ class NotificationContextRepository @Inject() (mc: MongoComponent)(implicit ec: 
         options = ReplaceOptions().upsert(true)
       )
       .toFuture()
-      .map(_ => Right())
-
+      .map(_ => ())
 }
