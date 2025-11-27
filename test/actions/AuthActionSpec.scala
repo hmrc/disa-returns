@@ -23,7 +23,6 @@ import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.auth.core.AffinityGroup.Organisation
 import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
@@ -66,7 +65,7 @@ class AuthActionSpec extends BaseUnitSpec {
       )(any(), any())
 
       val actualPredicate   = predicateCaptor.getValue
-      val expectedPredicate = Organisation and Enrolment("HMRC-DISA-ORG")
+      val expectedPredicate = Enrolment("HMRC-DISA-ORG")
 
       val actualRetrieval   = retrievalCaptor.getValue
       val expectedRetrieval = authorisedEnrolments
