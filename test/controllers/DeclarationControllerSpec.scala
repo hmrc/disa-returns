@@ -60,6 +60,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Right(Some(boxId))))
+      when(notificationContextService.saveContext(any(), any(), any()))
+        .thenReturn(Future.successful(Right()))
 
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
@@ -85,6 +87,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Right(None)))
+      when(notificationContextService.saveContext(any(), any(), any()))
+        .thenReturn(Future.successful(Right()))
 
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
@@ -192,6 +196,30 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       val json = contentAsJson(result)
       (json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
       (json \ "message").as[String] shouldBe "There has been an issue processing your request"
+
+    }
+
+    "return 500 Internal Server Error when there is a failure whilst saving the notification context" in {
+      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      val httpResponse: HttpResponse = HttpResponse(200, "")
+      when(mockETMPService.declaration(any())(any()))
+        .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
+      when(mockNPSService.notification(any(), any())(any()))
+        .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
+      when(mockPPNSService.getBoxId(any())(any()))
+        .thenReturn(Future.successful(Right(Some(boxId))))
+      when(notificationContextService.saveContext(any(), any(), any()))
+        .thenReturn(Future.successful(Left(InternalServerErr())))
+
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(POST, s"/monthly/$validZRef/$validTaxYear/$validMonth/declaration")
+        .withHeaders("X-Client-ID" -> clientId)
+
+      val result = controller.declare(validZRef, validTaxYear, validMonth.toString)(request)
+
+      status(result)        shouldBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
 
     }
   }

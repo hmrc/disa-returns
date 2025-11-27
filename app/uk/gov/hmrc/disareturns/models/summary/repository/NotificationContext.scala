@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package utils
+package uk.gov.hmrc.disareturns.models.summary.repository
 
-import uk.gov.hmrc.disareturns.models.common.Month
-import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
+import play.api.libs.json.{Json, OFormat}
 
-trait TestData {
-  val validZRef:            String               = "Z1234"
-  val validTaxYear:         String               = "2026-27"
-  val validMonth:           Month.Value          = Month.SEP
-  val validMonthStr:        String               = "SEP"
-  val returnSummaryResults: ReturnSummaryResults = ReturnSummaryResults(returnResultsLocation = "some-location", totalRecords = 20, numberOfPages = 2)
+case class NotificationContext(clientId: String, boxId: Option[String], isaManagerReference: String)
+
+object NotificationContext {
+  implicit val mongoFormat: OFormat[NotificationContext] = Json.format[NotificationContext]
 }
