@@ -24,7 +24,6 @@ import play.api.libs.json._
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.controllers.SubmitReturnsController
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.etmp.{EtmpObligations, EtmpReportingWindow}
@@ -76,7 +75,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 204 when processing is successful" in {
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processSource(any()))
@@ -91,7 +90,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
     "return 400 for FirstLevelValidationException - missing accountNumber" in {
       val ndJsonLineError =
         """{"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processSource(any()))
@@ -108,7 +107,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       val ndJsonLine =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processSource(any()))
@@ -150,7 +149,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       val ndJsonLine =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processSource(any()))
@@ -194,7 +193,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
           |{"accountNumber":"STD000002","nino":"AB000002C","firstName":"","middleName":"Middle2","lastName":"Last2","dateOfBirth":"1980-01-03","isaType":"CASH","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"accountNumberOfTransferringAccount":"OLD000002","amountTransferred":5000.00,"flexibleIsa":true}
           |""".stripMargin
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processSource(any()))
@@ -244,7 +243,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
     }
 
     "return 401 Unauthorised  when ETMP responds with an unauthorised error" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(UnauthorisedErr)))
 
@@ -256,7 +255,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
     }
 
     "return 403 when ETMP returns ErrorResponse" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
@@ -268,7 +267,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
     }
 
     "return 500 when NPS returns unexpected error" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processSource(any()))
@@ -282,7 +281,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
     }
 
     "return 500 for unexpected errors" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(

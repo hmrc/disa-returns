@@ -56,7 +56,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
     "return 200 with return result summary" in {
       val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results/summary")
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Right(returnSummaryResult)))
 
       val res = controller.retrieveReturnSummary(validZRef, validTaxYear, validMonth.toString).apply(req)
@@ -72,7 +72,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
     "return 404 Return Not Found when no summary is available" in {
       val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results/summary")
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Left(ReturnNotFoundErr("not found"))))
 
       val res = controller.retrieveReturnSummary(validZRef, validTaxYear, validMonth.toString).apply(req)
@@ -84,7 +84,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
     "return 500 Internal server error when a server issue occurs" in {
       val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results/summary")
 
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
+      authorizationForZRef()
       when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Left(InternalServerErr())))
 
       val res = controller.retrieveReturnSummary(validZRef, validTaxYear, validMonth.toString).apply(req)
