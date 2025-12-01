@@ -17,8 +17,7 @@
 package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model._
-import play.api.Logging
-import uk.gov.hmrc.disareturns.models.common.ErrorResponse
+import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.summary.repository.NotificationContext
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -28,7 +27,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class NotificationContextRepository @Inject() (mc: MongoComponent)(implicit ec: ExecutionContext)
+class NotificationContextRepository @Inject() (mc: MongoComponent, appConfig: AppConfig)(implicit ec: ExecutionContext)
     extends PlayMongoRepository[NotificationContext](
       mongoComponent = mc,
       collectionName = "notificationContext",
@@ -42,7 +41,7 @@ class NotificationContextRepository @Inject() (mc: MongoComponent)(implicit ec: 
           keys = Indexes.ascending("updatedAt"),
           indexOptions = IndexOptions()
             .name("updatedAtTtlIdx")
-            .expireAfter(30L, TimeUnit.DAYS)
+            .expireAfter(appConfig.timeToLive, TimeUnit.DAYS)
         )
       )
     ) {

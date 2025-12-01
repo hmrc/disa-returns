@@ -28,7 +28,7 @@ class NotificationContextRepositorySpec extends BaseUnitSpec {
   lazy val mongoComponentForTest: MongoComponent = MongoComponent(mongoUri)
 
   protected val repository: NotificationContextRepository =
-    new NotificationContextRepository(mongoComponentForTest)
+    new NotificationContextRepository(mongoComponentForTest, mockAppConfig)
 
   val clientId = "client-123"
   val boxId:               Option[String]      = Some("box-456")

@@ -28,7 +28,7 @@ class AppConfig @Inject() (config: ServicesConfig) {
   lazy val npsBaseUrl:  String = config.baseUrl(serviceName = "nps")
   lazy val selfHost:    String = config.baseUrl(serviceName = "self")
 
-  lazy val returnSummaryExpiryInDays: Int = config.getInt("returnSummaryExpiryInDays")
+  lazy val timeToLive: Int = config.getInt("mongodb.timeToLive")
 
   lazy val returnResultsRecordsPerPage: Int = config.getInt("returnResultsRecordsPerPage")
 

@@ -62,7 +62,9 @@ class PPNSService @Inject() (ppnsConnector: PPNSConnector, notificationContextSe
             getBoxId(notificationContext.clientId).map {
               case Right(Some(boxId)) => Some(boxId)
               case Right(None) =>
-                logger.warn(s"No boxId found for clientId: ${notificationContext.clientId}")
+                logger.warn(
+                  s"No boxId found for clientId: ${notificationContext.clientId} and isaManagerReference: ${notificationContext.isaManagerReference}"
+                )
                 None
               case Left(err) =>
                 logger.warn(s"Failed to a retrieve boxId: $err")
