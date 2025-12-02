@@ -66,7 +66,6 @@ abstract class BaseUnitSpec
   val mockETMPConnector:             ETMPConnector                   = mock[ETMPConnector]
   val mockETMPService:               ETMPService                     = mock[ETMPService]
   val mockBaseConnector:             BaseConnector                   = mock[BaseConnector]
-  val mockAuthConnector:             AuthConnector                   = mock[AuthConnector]
   val mockStreamingParserService:    StreamingParserService          = mock[StreamingParserService]
   val mockReturnsSummaryService:     ReturnsSummaryService           = mock[ReturnsSummaryService]
   val mockReturnsSummaryRepository:  MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
