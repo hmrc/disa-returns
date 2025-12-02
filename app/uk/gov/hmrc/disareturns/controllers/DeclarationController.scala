@@ -77,6 +77,6 @@ class DeclarationController @Inject() (
                   Ok(Json.toJson(DeclarationSuccessfulResponse(returnResultsSummaryLocation, optBoxId)))
               }
           }
-      }
+        }
     }
 }
