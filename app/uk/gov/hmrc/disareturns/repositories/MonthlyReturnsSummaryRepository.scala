@@ -43,7 +43,7 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
           keys = Indexes.ascending("updatedAt"),
           indexOptions = IndexOptions()
             .name("updatedAtTtlIdx")
-            .expireAfter(appConfig.returnSummaryExpiryInDays, TimeUnit.DAYS)
+            .expireAfter(appConfig.timeToLive, TimeUnit.DAYS)
         )
       )
     ) {

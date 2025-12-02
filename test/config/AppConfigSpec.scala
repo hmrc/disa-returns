@@ -28,7 +28,7 @@ class AppConfigSpec extends BaseUnitSpec {
     "microservice.services.etmp.host" -> "etmp",
     "microservice.services.etmp.port" -> "1204",
     "urls.returnResultsLocation"      -> "/monthly/{isaManagerReference}/{taxYear}/{month}/results",
-    "returnSummaryExpiryInDays"       -> 30,
+    "mongodb.timeToLive"              -> 30,
     "returnResultsRecordsPerPage"     -> 10
   )
 
@@ -42,8 +42,8 @@ class AppConfigSpec extends BaseUnitSpec {
       appConfig.etmpBaseUrl mustBe "http://etmp:1204"
     }
 
-    "read the returnSummaryExpiryInDays correctly" in {
-      appConfig.returnSummaryExpiryInDays mustBe 30
+    "read the mongodb timeToLive correctly" in {
+      appConfig.timeToLive mustBe 30
     }
 
     "read the returnResultsRecordsPerPage correctly" in {

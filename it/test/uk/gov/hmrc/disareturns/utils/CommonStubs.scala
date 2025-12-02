@@ -34,13 +34,13 @@ trait CommonStubs {
       }]
       }"""
 
-  stubFor {
-    post("/auth/authorise")
-      .willReturn {
-        aResponse.withStatus(OK).withBody(validEnrolment)
-      }
+    stubFor {
+      post("/auth/authorise")
+        .willReturn {
+          aResponse.withStatus(OK).withBody(validEnrolment)
+        }
+    }
   }
-}
 
   def stubAuthFail(): Unit =
     stubFor {

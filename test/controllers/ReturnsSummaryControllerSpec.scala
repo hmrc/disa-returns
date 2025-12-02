@@ -58,6 +58,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
 
       authorizationForZRef()
       when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Right(returnSummaryResult)))
+      when(mockPPNSService.sendNotification(any, any)(any)).thenReturn(Future.successful())
 
       val res = controller.retrieveReturnSummary(validZRef, validTaxYear, validMonth.toString).apply(req)
 
@@ -131,10 +132,21 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
         .withBody(Json.toJson(callbackRequest))
 
       when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Right(())))
+      when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Right(returnSummaryResult)))
 
       val res = controller.returnsSummaryCallback(validZRef, validTaxYear, validMonth.toString).apply(req)
       status(res) mustBe NO_CONTENT
-      contentAsString(res) mustBe empty
+    }
+
+    "returns 204 NoContent even if no notification has been sent to ppns" in {
+      val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validTaxYear/$validMonth")
+        .withBody(Json.toJson(callbackRequest))
+
+      when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Right(())))
+      when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Left(InternalServerErr())))
+
+      val res = controller.returnsSummaryCallback(validZRef, validTaxYear, validMonth.toString).apply(req)
+      status(res) mustBe NO_CONTENT
     }
 
     "returns 500 with a custom InternalServerErr message when repo signals Error(msg)" in {

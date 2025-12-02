@@ -16,7 +16,9 @@
 
 package uk.gov.hmrc.disareturns.connectors
 
+import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.{AppConfig, Constants}
+import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
@@ -48,5 +50,19 @@ class PPNSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(i
         }
       }
   }
+
+  def sendNotification(
+    boxId:       String,
+    payload:     ReturnSummaryResults
+  )(implicit hc: HeaderCarrier): Future[Unit] =
+    httpClient
+      .post(url"${appConfig.ppnsBaseUrl}/box/$boxId/notifications")
+      .withBody(Json.toJson(payload))
+      .execute[HttpResponse]
+      .map { response =>
+        if (response.status == 201) logger.info(s"[PPNSConnector][sendNotification] Sent notification to boxId=$boxId")
+        else logger.error(s"[PPNSConnector][sendNotification] Unexpected status=${response.status}, body=${response.body}, boxId=$boxId")
+        ()
+      }
 
 }
