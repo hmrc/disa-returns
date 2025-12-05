@@ -33,7 +33,7 @@ Annual ISA end-of-year returns are not currently supported by the API.
 The API does not replace or affect the Lifetime ISA API, which remains live and in use.
 
 ### Data Items ###
-To view the data items associated with this API without the context of the API schema, please download [this file](downloads/ISA_Returns_Monthly_Reporting_Required_Data_Items.ods)
+To view the data items associated with this API without the context of the API schema, please download [this file](https://github.com/hmrc/disa-returns/raw/refs/heads/main/resources/public/api/conf/common/downloads/ISA_Returns_Monthly_Reporting_Required_Data_Items.ods)
 
 ### Request access to the API ###
 This is a restricted-access API. Its endpoints are visible only to authorised and subscribed software applications. Because it is a restricted-access API, you must request access before your software application can be subscribed to the API.
