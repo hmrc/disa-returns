@@ -11,8 +11,8 @@ info:
 
     # Supported use cases
     - Submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals.
-    - Check the status of submitted reports to confirm processing.
-    - Retrieve reconciliation results in batches using pagination.
+    - Check the status of submitted reports to confirm they have been processed.
+    - Retrieve reconciliation results using batch pagination.
 
     # Integration requirements
     - REST API using JSON over HTTPS.
