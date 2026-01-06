@@ -19,8 +19,8 @@ package uk.gov.hmrc.disareturns.models.common
 import scala.util.matching.Regex
 
 object ZReferenceValidator {
-  private val isaRefRegex: Regex = "^[z|Z][0-9]{4}$".r
+  private val zRefRegex: Regex = "^[z|Z][0-9]{4}$".r
 
   def isValid(ref: String): Boolean =
-    isaRefRegex.pattern.matcher(ref).matches()
+    zRefRegex.pattern.matcher(ref).matches()
 }
