@@ -24,9 +24,7 @@ import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 trait TestData {
 
   val zReferenceGen: Gen[String] =
-    for {
-      digits <- Gen.listOfN(4, Gen.numChar)
-    } yield s"Z${digits.mkString}"
+    Gen.listOfN(4, Gen.numChar).map(digits => s"Z${digits.mkString}")
 
   val validZReference:      String               = zReferenceGen.sample.get
   val validTaxYear:         String               = "2026-27"
