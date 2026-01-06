@@ -28,15 +28,15 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class NotificationContextService @Inject() (repository: NotificationContextRepository)(implicit ec: ExecutionContext) extends Logging {
 
-  def saveContext(clientId: String, boxId: Option[String], isaManagerReference: String): Future[Either[ErrorResponse, Unit]] =
+  def saveContext(clientId: String, boxId: Option[String], zReference: String): Future[Either[ErrorResponse, Unit]] =
     repository
-      .insertNotificationContext(NotificationContext(clientId, boxId, isaManagerReference))
+      .insertNotificationContext(NotificationContext(clientId, boxId, zReference))
       .map(_ => Right())
       .recover { case ex: Throwable =>
-        logger.error(s"Failed to insertNotificationContext for isaManagerReference [$isaManagerReference]. Error: ${ex.getMessage}", ex)
+        logger.error(s"Failed to insertNotificationContext for zReference [$zReference]. Error: ${ex.getMessage}", ex)
         Left(InternalServerErr())
       }
-  def retrieveContext(zRef: String): Future[Option[NotificationContext]] =
-    repository.findNotificationContext(zRef)
+  def retrieveContext(zReference: String): Future[Option[NotificationContext]] =
+    repository.findNotificationContext(zReference)
 
 }

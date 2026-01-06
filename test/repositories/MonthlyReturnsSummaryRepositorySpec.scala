@@ -38,13 +38,13 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
   "retrieveReturnSummary" should {
 
     "find a summary with matching details" in {
-      val doc = MonthlyReturnsSummary(zRef = validZRef, taxYear = validTaxYear, month = validMonth, totalRecords = 3)
+      val doc = MonthlyReturnsSummary(zRef = validZReference, taxYear = validTaxYear, month = validMonth, totalRecords = 3)
 
       await(repository.collection.insertOne(doc).toFuture())
 
-      val result = await(repository.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
+      val result = await(repository.retrieveReturnSummary(validZReference, validTaxYear, validMonth))
 
-      result.head.zRef mustBe validZRef
+      result.head.zRef mustBe validZReference
       result.head.taxYear mustBe validTaxYear
       result.head.month mustBe validMonth
       result.head.totalRecords mustBe 3
@@ -54,20 +54,20 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
   "upsert" should {
 
     "insert a new MonthlyReturnsSummary document when it does not exist" in {
-      val doc = MonthlyReturnsSummary(zRef = validZRef, taxYear = validTaxYear, month = validMonth, totalRecords = 3)
+      val doc = MonthlyReturnsSummary(zRef = validZReference, taxYear = validTaxYear, month = validMonth, totalRecords = 3)
 
       await(repository.upsert(doc))
 
       val stored = await(repository.collection.find().toFuture())
       stored must have size 1
-      stored.head.zRef mustBe validZRef
+      stored.head.zRef mustBe validZReference
       stored.head.taxYear mustBe validTaxYear
       stored.head.month mustBe validMonth
       stored.head.totalRecords mustBe 3
     }
 
     "replace the existing document and update fields" in {
-      val original = MonthlyReturnsSummary(zRef = validZRef, taxYear = validTaxYear, month = validMonth, totalRecords = 2)
+      val original = MonthlyReturnsSummary(zRef = validZReference, taxYear = validTaxYear, month = validMonth, totalRecords = 2)
 
       val updated = original.copy(totalRecords = 9)
 

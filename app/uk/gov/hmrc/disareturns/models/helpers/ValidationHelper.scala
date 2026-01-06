@@ -28,15 +28,15 @@ import scala.util.Try
 object ValidationHelper extends Logging {
 
   def validateParams(
-    isaManagerReferenceNumber: String,
-    year:                      String,
-    month:                     String,
-    pageIndex:                 Option[String] = None
+    zReference: String,
+    year:       String,
+    month:      String,
+    pageIndex:  Option[String] = None
   ): Either[ErrorResponse, (String, String, Month, Option[Int])] = {
 
-    val imRefValidated: ValidatedNel[ErrorResponse, String] =
-      if (IsaRefValidator.isValid(isaManagerReferenceNumber)) isaManagerReferenceNumber.toUpperCase.validNel
-      else InvalidIsaManagerRef.invalidNel
+    val zRefValidated: ValidatedNel[ErrorResponse, String] =
+      if (ZReferenceValidator.isValid(zReference)) zReference.toUpperCase.validNel
+      else InvalidZReference.invalidNel
 
     val yearValidated: ValidatedNel[ErrorResponse, String] =
       if (TaxYearValidator.isValid(year)) year.validNel
@@ -56,7 +56,7 @@ object ValidationHelper extends Logging {
             .toValidNel(InvalidPageErr)
       }
 
-    val combined = (imRefValidated, yearValidated, monthValidated, pageValidated).mapN((im, yr, mo, pg) => (im, yr, mo, pg))
+    val combined = (zRefValidated, yearValidated, monthValidated, pageValidated).mapN((im, yr, mo, pg) => (im, yr, mo, pg))
 
     combined.toEither.leftMap { nonEmptyList =>
       val errs = nonEmptyList.toList

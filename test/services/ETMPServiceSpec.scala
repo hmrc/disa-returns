@@ -36,10 +36,10 @@ class ETMPServiceSpec extends BaseUnitSpec {
       val etmpObligationsJson: JsValue         = Json.toJson(expectedResponse)
       val httpResponse:        HttpResponse    = HttpResponse(200, etmpObligationsJson.toString())
 
-      when(mockETMPConnector.getReturnsObligationStatus(testIsaManagerReferenceNumber))
+      when(mockETMPConnector.getReturnsObligationStatus(validZReference))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result: Either[ErrorResponse, EtmpObligations] = service.getObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[ErrorResponse, EtmpObligations] = service.getObligationStatus(validZReference).value.futureValue
 
       result shouldBe Right(expectedResponse)
     }
@@ -52,10 +52,10 @@ class ETMPServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockETMPConnector.getReturnsObligationStatus(testIsaManagerReferenceNumber))
+      when(mockETMPConnector.getReturnsObligationStatus(validZReference))
         .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      val result: Either[ErrorResponse, EtmpObligations] = service.getObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[ErrorResponse, EtmpObligations] = service.getObligationStatus(validZReference).value.futureValue
 
       result shouldBe Left(UnauthorisedErr)
     }
@@ -99,10 +99,10 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
       val httpResponse: HttpResponse = HttpResponse(200, obligation)
 
-      when(mockETMPConnector.getReturnsObligationStatus(testIsaManagerReferenceNumber))
+      when(mockETMPConnector.getReturnsObligationStatus(validZReference))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result: Either[ErrorResponse, EtmpObligations] = service.getObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[ErrorResponse, EtmpObligations] = service.getObligationStatus(validZReference).value.futureValue
 
       result shouldBe Left(InternalServerErr())
     }
@@ -127,10 +127,10 @@ class ETMPServiceSpec extends BaseUnitSpec {
       val etmpObligationsJson: JsValue         = Json.toJson(expectedResponse)
       val httpResponse:        HttpResponse    = HttpResponse(200, etmpObligationsJson.toString())
 
-      when(mockETMPConnector.sendDeclaration(testIsaManagerReferenceNumber))
+      when(mockETMPConnector.sendDeclaration(validZReference))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result: Either[ErrorResponse, HttpResponse] = service.declaration(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[ErrorResponse, HttpResponse] = service.declaration(validZReference).value.futureValue
 
       result shouldBe Right(httpResponse)
     }
@@ -145,17 +145,16 @@ class ETMPServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockETMPConnector.sendDeclaration(testIsaManagerReferenceNumber))
+      when(mockETMPConnector.sendDeclaration(validZReference))
         .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      val result: Either[ErrorResponse, HttpResponse] = service.declaration(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[ErrorResponse, HttpResponse] = service.declaration(validZReference).value.futureValue
 
       result shouldBe Left(UnauthorisedErr)
     }
   }
 
   trait TestSetup {
-    val testIsaManagerReferenceNumber: String      = "123456"
-    val service:                       ETMPService = new ETMPService(mockETMPConnector)
+    val service: ETMPService = new ETMPService(mockETMPConnector)
   }
 }

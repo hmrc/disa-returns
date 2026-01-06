@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.common
+package uk.gov.hmrc.disareturns.utils
 
-import scala.util.matching.Regex
+import org.scalacheck.Gen
 
-object IsaRefValidator {
-  private val isaRefRegex: Regex = "^[z|Z][0-9]{4}$".r
+trait TestData {
 
-  def isValid(ref: String): Boolean =
-    isaRefRegex.pattern.matcher(ref).matches()
+  val zReferenceGen: Gen[String] =
+    for {
+      digits <- Gen.listOfN(4, Gen.numChar)
+    } yield s"Z${digits.mkString}"
+
+  val validZReference: String = zReferenceGen.sample.get
 }

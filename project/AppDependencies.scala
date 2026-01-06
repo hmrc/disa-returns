@@ -15,11 +15,13 @@ object AppDependencies {
   val test: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"       %% "bootstrap-test-play-30"  % bootstrapVersion % Test,
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-30" % hmrcMongoVersion % Test,
-    "org.scalamock"     %% "scalamock"               % "7.5.0"
+    "org.scalamock"     %% "scalamock"               % "7.5.0" % Test,
+    "org.scalacheck"    %% "scalacheck"              % "1.18.0" % Test
   )
 
   val it: Seq[ModuleID] = Seq(
     "org.scalatestplus.play" %% "scalatestplus-play"      % "7.0.2" % Test,
-    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-30" % hmrcMongoVersion
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-30" % hmrcMongoVersion,
+    "org.scalacheck"         %% "scalacheck"              % "1.18.0" % Test
   )
 }

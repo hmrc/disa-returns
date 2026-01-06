@@ -24,13 +24,12 @@ import play.api.Play.materializer
 import play.api.http.Status._
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{GET, POST, contentAsJson, contentAsString, status}
-import uk.gov.hmrc.auth.core.retrieve.Retrieval
+import play.api.test.Helpers.{GET, POST, contentAsJson, status}
 import uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, ReturnNotFoundErr}
+import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
-import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -54,13 +53,13 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
   "ReturnsSummaryController#retrieveReturnSummary" should {
 
     "return 200 with return result summary" in {
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results/summary")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results/summary")
 
       authorizationForZRef()
       when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Right(returnSummaryResult)))
       when(mockPPNSService.sendNotification(any, any)(any)).thenReturn(Future.successful())
 
-      val res = controller.retrieveReturnSummary(validZRef, validTaxYear, validMonth.toString).apply(req)
+      val res = controller.retrieveReturnSummary(validZReference, validTaxYear, validMonth.toString).apply(req)
 
       status(res) mustBe OK
       contentAsJson(res) shouldBe Json.obj(
@@ -71,24 +70,24 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
     }
 
     "return 404 Return Not Found when no summary is available" in {
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results/summary")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results/summary")
 
       authorizationForZRef()
       when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Left(ReturnNotFoundErr("not found"))))
 
-      val res = controller.retrieveReturnSummary(validZRef, validTaxYear, validMonth.toString).apply(req)
+      val res = controller.retrieveReturnSummary(validZReference, validTaxYear, validMonth.toString).apply(req)
 
       status(res) mustBe NOT_FOUND
       contentAsJson(res) shouldBe Json.toJson(ReturnNotFoundErr("not found"))
     }
 
     "return 500 Internal server error when a server issue occurs" in {
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results/summary")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results/summary")
 
       authorizationForZRef()
       when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Left(InternalServerErr())))
 
-      val res = controller.retrieveReturnSummary(validZRef, validTaxYear, validMonth.toString).apply(req)
+      val res = controller.retrieveReturnSummary(validZReference, validTaxYear, validMonth.toString).apply(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       contentAsJson(res) shouldBe Json.toJson(InternalServerErr())
@@ -106,10 +105,10 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
 
     "return 400 BAD_REQUEST when year token is invalid" in {
       val badYear = "2008"
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$badYear/$validMonth/results/summary")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$badYear/$validMonth/results/summary")
         .withBody(Json.toJson(callbackRequest))
 
-      val res = controller.retrieveReturnSummary(validZRef, badYear, validMonth.toString).apply(req)
+      val res = controller.retrieveReturnSummary(validZReference, badYear, validMonth.toString).apply(req)
 
       status(res) mustBe BAD_REQUEST
     }
@@ -117,10 +116,10 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
     "return 400 BAD_REQUEST when month token is invalid" in {
       val badMonth = "NOPE"
 
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$badMonth/results/summary")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$badMonth/results/summary")
         .withBody(Json.toJson(callbackRequest))
 
-      val res = controller.retrieveReturnSummary(validZRef, validTaxYear, badMonth).apply(req)
+      val res = controller.retrieveReturnSummary(validZReference, validTaxYear, badMonth).apply(req)
 
       status(res) mustBe BAD_REQUEST
     }
@@ -128,43 +127,43 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
   "ReturnsSummaryController#returnsSummaryCallback" should {
 
     "returns 204 NoContent when the summary is stored" in {
-      val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validTaxYear/$validMonth")
+      val req = FakeRequest(POST, s"/callback/monthly/$validZReference/$validTaxYear/$validMonth")
         .withBody(Json.toJson(callbackRequest))
 
       when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Right(())))
       when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Right(returnSummaryResult)))
 
-      val res = controller.returnsSummaryCallback(validZRef, validTaxYear, validMonth.toString).apply(req)
+      val res = controller.returnsSummaryCallback(validZReference, validTaxYear, validMonth.toString).apply(req)
       status(res) mustBe NO_CONTENT
     }
 
     "returns 204 NoContent even if no notification has been sent to ppns" in {
-      val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validTaxYear/$validMonth")
+      val req = FakeRequest(POST, s"/callback/monthly/$validZReference/$validTaxYear/$validMonth")
         .withBody(Json.toJson(callbackRequest))
 
       when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Right(())))
       when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Left(InternalServerErr())))
 
-      val res = controller.returnsSummaryCallback(validZRef, validTaxYear, validMonth.toString).apply(req)
+      val res = controller.returnsSummaryCallback(validZReference, validTaxYear, validMonth.toString).apply(req)
       status(res) mustBe NO_CONTENT
     }
 
     "returns 500 with a custom InternalServerErr message when repo signals Error(msg)" in {
       val msg = "Downstream write failed"
 
-      val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validTaxYear/$validMonth")
+      val req = FakeRequest(POST, s"/callback/monthly/$validZReference/$validTaxYear/$validMonth")
         .withBody(Json.toJson(callbackRequest))
 
       when(mockReturnsSummaryService.saveReturnsSummary(any)).thenReturn(Future.successful(Left(InternalServerErr(msg))))
 
-      val res = controller.returnsSummaryCallback(validZRef, validTaxYear, validMonth.toString).apply(req)
+      val res = controller.returnsSummaryCallback(validZReference, validTaxYear, validMonth.toString).apply(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "code").as[String] mustBe InternalServerErr().code
       (contentAsJson(res) \ "message").as[String] mustBe msg
 
       verify(mockReturnsSummaryService).saveReturnsSummary(argThat[MonthlyReturnsSummary] { summary =>
-        summary.zRef == validZRef &&
+        summary.zRef == validZReference &&
         summary.taxYear == validTaxYear &&
         summary.month == validMonth &&
         summary.totalRecords == totalRecords
@@ -183,10 +182,10 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
 
     "return 400 BAD_REQUEST when year token is invalid" in {
       val badYear = "2008"
-      val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$badYear/$validMonth")
+      val req = FakeRequest(POST, s"/callback/monthly/$validZReference/$badYear/$validMonth")
         .withBody(Json.toJson(callbackRequest))
 
-      val res = controller.returnsSummaryCallback(validZRef, badYear, validMonth.toString).apply(req)
+      val res = controller.returnsSummaryCallback(validZReference, badYear, validMonth.toString).apply(req)
 
       status(res) mustBe BAD_REQUEST
     }
@@ -194,34 +193,34 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
     "return 400 BAD_REQUEST when month token is invalid" in {
       val badMonth = "NOPE"
 
-      val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validTaxYear/$badMonth")
+      val req = FakeRequest(POST, s"/callback/monthly/$validZReference/$validTaxYear/$badMonth")
         .withBody(Json.toJson(callbackRequest))
 
-      val res = controller.returnsSummaryCallback(validZRef, validTaxYear, badMonth).apply(req)
+      val res = controller.returnsSummaryCallback(validZReference, validTaxYear, badMonth).apply(req)
 
       status(res) mustBe BAD_REQUEST
     }
 
     "return 400 BAD_REQUEST when body is invalid" in {
-      val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validTaxYear/$validMonth")
+      val req = FakeRequest(POST, s"/callback/monthly/$validZReference/$validTaxYear/$validMonth")
         .withBody(Json.toJson("totalEntries" -> "fifty"))
 
-      val res = controller.returnsSummaryCallback(validZRef, validTaxYear, validMonth.toString).apply(req)
+      val res = controller.returnsSummaryCallback(validZReference, validTaxYear, validMonth.toString).apply(req)
 
       status(res) mustBe BAD_REQUEST
     }
 
     "propagate correct params into the service (zRef, tax-year string, Month enum, totalRecords)" in {
-      val req = FakeRequest(POST, s"/callback/monthly/$validZRef/$validTaxYear/$validMonth")
+      val req = FakeRequest(POST, s"/callback/monthly/$validZReference/$validTaxYear/$validMonth")
         .withBody(Json.toJson(callbackRequest))
 
       when(mockReturnsSummaryService.saveReturnsSummary(any))
         .thenReturn(Future.successful(Right(())))
 
-      val _ = controller.returnsSummaryCallback(validZRef, validTaxYear, validMonth.toString).apply(req)
+      val _ = controller.returnsSummaryCallback(validZReference, validTaxYear, validMonth.toString).apply(req)
 
       verify(mockReturnsSummaryService).saveReturnsSummary(argThat[MonthlyReturnsSummary] { summary =>
-        summary.zRef == validZRef &&
+        summary.zRef == validZReference &&
         summary.taxYear == validTaxYear &&
         summary.month == validMonth &&
         summary.totalRecords == totalRecords

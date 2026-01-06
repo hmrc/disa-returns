@@ -24,9 +24,8 @@ import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 
 class ETMPConnectorISpec extends BaseIntegrationSpec {
 
-  val testIsaManagerReferenceNumber = "123456"
-  val obligationsUrl                = s"/etmp/check-obligation-status/$testIsaManagerReferenceNumber"
-  val reportingWindowUrl            = "/etmp/check-reporting-window"
+  val obligationsUrl     = s"/etmp/check-obligation-status/$validZReference"
+  val reportingWindowUrl = "/etmp/check-reporting-window"
 
   val connector: ETMPConnector = app.injector.instanceOf[ETMPConnector]
 
@@ -36,7 +35,7 @@ class ETMPConnectorISpec extends BaseIntegrationSpec {
 
       stubGet(obligationsUrl, OK, responseBody)
 
-      val Right(response) = await(connector.getReturnsObligationStatus(testIsaManagerReferenceNumber).value)
+      val Right(response) = await(connector.getReturnsObligationStatus(validZReference).value)
 
       response.status                                      shouldBe OK
       (response.json \ "obligationAlreadyMet").as[Boolean] shouldBe true
@@ -45,7 +44,7 @@ class ETMPConnectorISpec extends BaseIntegrationSpec {
     "return Left(UpstreamErrorResponse) when ETMP returns an error status" in {
       stubGet(obligationsUrl, UNAUTHORIZED, """{"error": "Not authorised"}""")
 
-      val Left(response) = await(connector.getReturnsObligationStatus(testIsaManagerReferenceNumber).value)
+      val Left(response) = await(connector.getReturnsObligationStatus(validZReference).value)
 
       response.statusCode shouldBe UNAUTHORIZED
       response.message      should include("Not authorised")

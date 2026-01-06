@@ -33,7 +33,6 @@ class NPSConnectorSpec extends BaseUnitSpec {
   trait TestSetup {
 
     val connector          = new NPSConnector(mockHttpClient, mockAppConfig)
-    val testIsaRef         = "Z1234"
     val nilReturnSubmitted = false
     val testUrl            = "http://localhost:1204"
     val testSubscriptions: Seq[IsaAccount] = Seq.empty
@@ -41,9 +40,9 @@ class NPSConnectorSpec extends BaseUnitSpec {
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     when(mockAppConfig.npsBaseUrl).thenReturn(testUrl)
-    when(mockHttpClient.post(url"$testUrl/nps/declaration/$testIsaRef")).thenReturn(mockRequestBuilder)
-    when(mockHttpClient.post(url"$testUrl/nps/submit/$validZRef")).thenReturn(mockRequestBuilder)
-    when(mockHttpClient.get(url"$testUrl/monthly/$validZRef/$validTaxYear/$validMonthStr/results?pageIndex=0&pageSize=2"))
+    when(mockHttpClient.post(url"$testUrl/nps/declaration/$validZReference")).thenReturn(mockRequestBuilder)
+    when(mockHttpClient.post(url"$testUrl/nps/submit/$validZReference")).thenReturn(mockRequestBuilder)
+    when(mockHttpClient.get(url"$testUrl/monthly/$validZReference/$validTaxYear/$validMonthStr/results?pageIndex=0&pageSize=2"))
       .thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
   }
@@ -56,7 +55,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(httpResponse)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(testIsaRef, nilReturnSubmitted).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(validZReference, nilReturnSubmitted).value.futureValue
 
       result shouldBe Right(httpResponse)
     }
@@ -67,7 +66,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(error)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(testIsaRef, nilReturnSubmitted).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(validZReference, nilReturnSubmitted).value.futureValue
 
       result shouldBe Left(error)
     }
@@ -78,7 +77,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(exception))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(testIsaRef, nilReturnSubmitted).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(validZReference, nilReturnSubmitted).value.futureValue
 
       result match {
         case Left(err) =>
@@ -99,7 +98,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right(mockHttpResponse)))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.submit(validZRef, testSubscriptions).value.futureValue
+        connector.submit(validZReference, testSubscriptions).value.futureValue
 
       result shouldBe Right(mockHttpResponse)
     }
@@ -116,7 +115,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Left(upstreamError)))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.submit(validZRef, testSubscriptions).value.futureValue
+        connector.submit(validZReference, testSubscriptions).value.futureValue
 
       result shouldBe Left(upstreamError)
     }
@@ -128,7 +127,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.failed(runtimeException))
 
       val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
-        connector.submit(validZRef, testSubscriptions).value.futureValue
+        connector.submit(validZReference, testSubscriptions).value.futureValue
 
       result.statusCode shouldBe 500
       result.message      should include("Unexpected error: Connection timeout")
@@ -145,7 +144,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right(httpResponse)))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, 0, 2).value.futureValue
+        connector.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, 0, 2).value.futureValue
 
       result shouldBe Right(httpResponse)
     }
@@ -162,7 +161,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Left(upstreamError)))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, 0, 2).value.futureValue
+        connector.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, 0, 2).value.futureValue
 
       result shouldBe Left(upstreamError)
     }
@@ -174,7 +173,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.failed(runtimeException))
 
       val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
-        connector.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, 0, 2).value.futureValue
+        connector.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, 0, 2).value.futureValue
 
       result.statusCode shouldBe 500
       result.message      should include("Unexpected error: Connection timeout")

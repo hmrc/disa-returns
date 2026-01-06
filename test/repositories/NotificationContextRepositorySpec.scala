@@ -32,7 +32,7 @@ class NotificationContextRepositorySpec extends BaseUnitSpec {
 
   val clientId = "client-123"
   val boxId:               Option[String]      = Some("box-456")
-  val notificationContext: NotificationContext = NotificationContext(clientId, boxId, validZRef)
+  val notificationContext: NotificationContext = NotificationContext(clientId, boxId, validZReference)
 
   override def beforeEach(): Unit =
     await(repository.collection.drop().toFuture())
@@ -41,12 +41,12 @@ class NotificationContextRepositorySpec extends BaseUnitSpec {
     "successfully return Some(NotificationContext)" in {
 
       await(repository.collection.insertOne(notificationContext).toFuture())
-      await(repository.findNotificationContext(validZRef)) shouldBe Some(notificationContext)
+      await(repository.findNotificationContext(validZReference)) shouldBe Some(notificationContext)
 
     }
 
     "return None when no matching notificationContext exists" in {
-      await(repository.findNotificationContext("Z0000")) shouldBe None
+      await(repository.findNotificationContext(validZReference)) shouldBe None
     }
   }
 
@@ -54,9 +54,8 @@ class NotificationContextRepositorySpec extends BaseUnitSpec {
     "insert new notificationContext successfully" in {
 
       await(repository.insertNotificationContext(notificationContext))
-      await(repository.findNotificationContext(validZRef)) shouldBe Some(notificationContext)
+      await(repository.findNotificationContext(validZReference)) shouldBe Some(notificationContext)
 
     }
   }
-
 }

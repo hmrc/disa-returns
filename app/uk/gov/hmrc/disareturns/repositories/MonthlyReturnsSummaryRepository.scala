@@ -48,9 +48,9 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
       )
     ) {
 
-  def retrieveReturnSummary(isaManagerReferenceNumber: String, taxYear: String, month: Month): Future[Option[MonthlyReturnsSummary]] = {
+  def retrieveReturnSummary(zReference: String, taxYear: String, month: Month): Future[Option[MonthlyReturnsSummary]] = {
     val filter = Filters.and(
-      Filters.eq("zRef", isaManagerReferenceNumber),
+      Filters.eq("zRef", zReference),
       Filters.eq("taxYear", taxYear),
       Filters.eq("month", month.toString)
     )

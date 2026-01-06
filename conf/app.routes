@@ -1,12 +1,12 @@
 # microservice specific routes
 
-POST /monthly/:isaManagerReferenceNumber/:taxYear/:month                  uk.gov.hmrc.disareturns.controllers.SubmitReturnsController.submit(isaManagerReferenceNumber:String, taxYear: String, month: String)
+POST /monthly/:zReference/:taxYear/:month                  uk.gov.hmrc.disareturns.controllers.SubmitReturnsController.submit(zReference:String, taxYear: String, month: String)
 
-POST /monthly/:isaManagerReferenceNumber/:taxYear/:month/declaration      uk.gov.hmrc.disareturns.controllers.DeclarationController.declare(isaManagerReferenceNumber:String, taxYear: String, month: String)
+POST /monthly/:zReference/:taxYear/:month/declaration      uk.gov.hmrc.disareturns.controllers.DeclarationController.declare(zReference:String, taxYear: String, month: String)
 
-GET /monthly/:isaManagerReferenceNumber/:taxYear/:month/results/summary   uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.retrieveReturnSummary(isaManagerReferenceNumber:String, taxYear: String, month: String)
+GET /monthly/:zReference/:taxYear/:month/results/summary   uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.retrieveReturnSummary(zReference:String, taxYear: String, month: String)
 
-GET /monthly/:isaManagerReferenceNumber/:taxYear/:month/results           uk.gov.hmrc.disareturns.controllers.ReconciliationResultController.retrieveReconciliationReportPage(isaManagerReferenceNumber:String, taxYear: String, month: String, page: String ?= "0")
+GET /monthly/:zReference/:taxYear/:month/results           uk.gov.hmrc.disareturns.controllers.ReconciliationResultController.retrieveReconciliationReportPage(zReference:String, taxYear: String, month: String, page: String ?= "0")
 
 ##NPS Returns Summary Callback
-POST /callback/monthly/:isaManagerReferenceNumber/:year/:month            uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.returnsSummaryCallback(isaManagerReferenceNumber: String, year: String, month: String)
+POST /callback/monthly/:zReference/:year/:month            uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.returnsSummaryCallback(zReference: String, year: String, month: String)

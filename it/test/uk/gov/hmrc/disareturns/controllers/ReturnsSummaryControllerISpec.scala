@@ -36,14 +36,13 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
     await(repo.collection.drop().toFuture())
   }
 
-  private val isaManagerRef = "Z1234"
-  private val taxYear       = "2025-26"
-  private val monthEnum     = Month.SEP
-  private val monthToken    = monthEnum.toString
-  private val totalRecords  = 3
-  val invalidZRef           = "Z1111000000000"
-  val invalidTaxYear        = "2025-27"
-  val invalidMonth          = "SEPT"
+  private val taxYear      = "2025-26"
+  private val monthEnum    = Month.SEP
+  private val monthToken   = monthEnum.toString
+  private val totalRecords = 3
+  val invalidZRef          = "Z1111000000000"
+  val invalidTaxYear       = "2025-27"
+  val invalidMonth         = "SEPT"
 
   private val returnsSummaryJson = Json.obj("totalRecords" -> totalRecords)
 
@@ -59,7 +58,7 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
       stored must have size 1
       val doc = stored.head
-      doc.zRef mustBe isaManagerRef
+      doc.zRef mustBe validZReference
       doc.taxYear mustBe taxYear
       doc.month mustBe monthEnum
       doc.totalRecords mustBe totalRecords
@@ -71,15 +70,15 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
       res.status mustBe BAD_REQUEST
       res.json
-        .as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear, InvalidMonth))
+        .as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear, InvalidMonth))
     }
 
-    "return 400 with correct error response when an invalid isaManagerReference is provided" in {
-      val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), isaManagerReference = invalidZRef)
+    "return 400 with correct error response when an invalid zReference is provided" in {
+      val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), zReference = invalidZRef)
 
       res.status mustBe BAD_REQUEST
       res.json
-        .as[ErrorResponse] shouldBe InvalidIsaManagerRef
+        .as[ErrorResponse] shouldBe InvalidZReference
     }
 
     "return 400 with correct error response when an invalid taxYear is provided" in {
@@ -111,19 +110,19 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
     "return 200 and a ReturnResultsSummary when the summary exists" in {
       await(repo.collection.drop().toFuture())
-      await(repo.collection.insertOne(MonthlyReturnsSummary(isaManagerRef, taxYear, monthEnum, totalRecords)).toFuture())
+      await(repo.collection.insertOne(MonthlyReturnsSummary(validZReference, taxYear, monthEnum, totalRecords)).toFuture())
 
       stubAuth()
       val res: WSResponse =
         await(
-          ws.url(s"http://localhost:$port/monthly/$isaManagerRef/$taxYear/$monthToken/results/summary")
+          ws.url(s"http://localhost:$port/monthly/$validZReference/$taxYear/$monthToken/results/summary")
             .withFollowRedirects(follow = false)
             .withHttpHeaders(testHeaders: _*)
             .get()
         )
 
       res.status mustBe OK
-      (res.json \ "returnResultsLocation").as[String] mustBe s"${appConfig.selfHost}/monthly/$isaManagerRef/$taxYear/$monthToken/results?page=0"
+      (res.json \ "returnResultsLocation").as[String] mustBe s"${appConfig.selfHost}/monthly/$validZReference/$taxYear/$monthToken/results?page=0"
       (res.json \ "numberOfPages").as[Int] mustBe 2
       (res.json \ "totalRecords").as[Int] mustBe 3
     }
@@ -133,32 +132,32 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
 
       res.status mustBe NOT_FOUND
       (res.json \ "code").as[String] mustBe "RETURN_NOT_FOUND"
-      (res.json \ "message").as[String] mustBe "No return found for Z1234 for SEP 2025-26"
+      (res.json \ "message").as[String] mustBe s"No return found for $validZReference for SEP 2025-26"
     }
 
     "return 400 with aggregated issues when zRef, taxYear and month are invalid" in {
       val res = retrieveReturnsSummaryRequest(
-        isaManagerReference = invalidZRef,
+        zReference = invalidZRef,
         taxYear = invalidTaxYear,
         month = invalidMonth
       )
       res.status mustBe BAD_REQUEST
       res.json
-        .as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear, InvalidMonth))
+        .as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear, InvalidMonth))
     }
   }
 
   def retrieveReturnsSummaryRequest(
-    headers:             Seq[(String, String)] = testHeaders,
-    isaManagerReference: String = isaManagerRef,
-    taxYear:             String = taxYear,
-    month:               String = monthEnum.toString
+    headers:    Seq[(String, String)] = testHeaders,
+    zReference: String = validZReference,
+    taxYear:    String = taxYear,
+    month:      String = monthEnum.toString
   ): WSResponse = {
     stubAuth()
     await(repo.collection.drop().toFuture())
     await(
       ws.url(
-        s"http://localhost:$port/monthly/$isaManagerReference/$taxYear/$month/results/summary"
+        s"http://localhost:$port/monthly/$zReference/$taxYear/$month/results/summary"
       ).withFollowRedirects(follow = false)
         .withHttpHeaders(
           headers: _*
@@ -168,16 +167,16 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
   }
 
   def returnsSummaryCallbackRequest(
-    requestBody:         JsObject,
-    isaManagerReference: String = isaManagerRef,
-    taxYear:             String = taxYear,
-    month:               String = monthEnum.toString,
-    headers:             Seq[(String, String)] = Seq("Authorization" -> "mock-bearer-token")
+    requestBody: JsObject,
+    zReference:  String = validZReference,
+    taxYear:     String = taxYear,
+    month:       String = monthEnum.toString,
+    headers:     Seq[(String, String)] = Seq("Authorization" -> "mock-bearer-token")
   ): WSResponse = {
     await(repo.collection.drop().toFuture())
     await(
       ws.url(
-        s"http://localhost:$port/callback/monthly/$isaManagerReference/$taxYear/$month"
+        s"http://localhost:$port/callback/monthly/$zReference/$taxYear/$month"
       ).withFollowRedirects(follow = false)
         .withHttpHeaders(
           headers: _*

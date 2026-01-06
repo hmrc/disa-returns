@@ -49,7 +49,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(mockHttpResponse)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getReturnsObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getReturnsObligationStatus(testZReference).value.futureValue
 
       result shouldBe Right(mockHttpResponse)
     }
@@ -64,7 +64,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(upstreamErrorResponse)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getReturnsObligationStatus(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getReturnsObligationStatus(testZReference).value.futureValue
 
       result shouldBe Left(upstreamErrorResponse)
     }
@@ -144,7 +144,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(mockHttpResponse)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendDeclaration(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendDeclaration(testZReference).value.futureValue
 
       result shouldBe Right(mockHttpResponse)
     }
@@ -159,7 +159,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(upstreamErrorResponse)))
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendDeclaration(testIsaManagerReferenceNumber).value.futureValue
+      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendDeclaration(testZReference).value.futureValue
 
       result shouldBe Left(upstreamErrorResponse)
     }
@@ -171,7 +171,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.failed(runtimeException))
 
       val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
-        connector.sendDeclaration(testIsaManagerReferenceNumber).value.futureValue
+        connector.sendDeclaration(testZReference).value.futureValue
 
       result.statusCode shouldBe 500
       result.message      should include("Unexpected error: Connection timeout")
@@ -179,15 +179,15 @@ class ETMPConnectorSpec extends BaseUnitSpec {
   }
 
   trait TestSetup {
-    val testIsaManagerReferenceNumber: String        = "123456"
-    val connector:                     ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
-    val testUrl:                       String        = "http://localhost:1204"
+    val testZReference: String        = "123456"
+    val connector:      ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
+    val testUrl:        String        = "http://localhost:1204"
     when(mockAppConfig.etmpBaseUrl).thenReturn(testUrl)
-    when(mockHttpClient.get(url"$testUrl/etmp/check-obligation-status/$testIsaManagerReferenceNumber"))
+    when(mockHttpClient.get(url"$testUrl/etmp/check-obligation-status/$testZReference"))
       .thenReturn(mockRequestBuilder)
     when(mockHttpClient.get(url"$testUrl/etmp/check-reporting-window"))
       .thenReturn(mockRequestBuilder)
-    when(mockHttpClient.post(url"$testUrl/etmp/declaration/$testIsaManagerReferenceNumber"))
+    when(mockHttpClient.post(url"$testUrl/etmp/declaration/$testZReference"))
       .thenReturn(mockRequestBuilder)
   }
 }

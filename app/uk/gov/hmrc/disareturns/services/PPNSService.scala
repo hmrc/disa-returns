@@ -38,22 +38,22 @@ class PPNSService @Inject() (ppnsConnector: PPNSConnector, notificationContextSe
   }
 
   def sendNotification(
-    isaManagerReference:  String,
+    zReference:           String,
     returnSummaryResults: ReturnSummaryResults
   )(implicit hc:          HeaderCarrier): Future[Unit] =
-    retrieveBoxId(isaManagerReference).flatMap {
+    retrieveBoxId(zReference).flatMap {
       case Some(boxId) => ppnsConnector.sendNotification(boxId, returnSummaryResults)
       case None =>
-        logger.warn(s"Unable to send notification: no boxId found for $isaManagerReference")
+        logger.warn(s"Unable to send notification: no boxId found for $zReference")
         Future.successful(())
     }
 
   private def retrieveBoxId(
-    isaManagerReference: String
-  )(implicit hc:         HeaderCarrier): Future[Option[String]] =
-    notificationContextService.retrieveContext(isaManagerReference).flatMap {
+    zReference:  String
+  )(implicit hc: HeaderCarrier): Future[Option[String]] =
+    notificationContextService.retrieveContext(zReference).flatMap {
       case None =>
-        logger.warn(s"No notification context found for isaManagerReference: $isaManagerReference")
+        logger.warn(s"No notification context found for zReference: $zReference")
         Future.successful(None)
       case Some(notificationContext) =>
         notificationContext.boxId match {
@@ -63,7 +63,7 @@ class PPNSService @Inject() (ppnsConnector: PPNSConnector, notificationContextSe
               case Right(Some(boxId)) => Some(boxId)
               case Right(None) =>
                 logger.warn(
-                  s"No boxId found for clientId: ${notificationContext.clientId} and isaManagerReference: ${notificationContext.isaManagerReference}"
+                  s"No boxId found for clientId: ${notificationContext.clientId} and zReference: ${notificationContext.zReference}"
                 )
                 None
               case Left(err) =>

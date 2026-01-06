@@ -37,20 +37,20 @@ class ReconciliationResultController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: String, page: String): Action[AnyContent] =
-    ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month, Some(page)) match {
+  def retrieveReconciliationReportPage(zReference: String, taxYear: String, month: String, page: String): Action[AnyContent] =
+    ValidationHelper.validateParams(zReference, taxYear, month, Some(page)) match {
       case Left(errors) =>
         Action(_ => BadRequest(Json.toJson(errors)))
-      case Right((isaManagerReferenceNumber, taxYear, month, Some(page))) =>
-        (Action andThen authAction(isaManagerReferenceNumber)).async { implicit request =>
-          npsService.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, page).map {
+      case Right((zReference, taxYear, month, Some(page))) =>
+        (Action andThen authAction(zReference)).async { implicit request =>
+          npsService.retrieveReconciliationReportPage(zReference, taxYear, month, page).map {
             case Left(errorResponse) =>
               logger.error(
-                s"Failed to retrieve report page [$page] for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] with error: [$errorResponse]"
+                s"Failed to retrieve report page [$page] for IM ref: [$zReference] for [$month][$taxYear] with error: [$errorResponse]"
               )
               HttpHelper.toHttpError(errorResponse)
             case Right(reportPage) =>
-              logger.info(s"Retrieval of report page [$page] successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
+              logger.info(s"Retrieval of report page [$page] successful for IM ref: [$zReference] for [$month][$taxYear]")
               Ok(Json.toJson(reportPage))
           }
         }

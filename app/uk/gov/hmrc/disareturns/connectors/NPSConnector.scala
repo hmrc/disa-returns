@@ -32,10 +32,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
 
-  def submit(isaManagerReferenceNumber: String, isaAccounts: Seq[IsaAccount])(implicit
-    hc:                                 HeaderCarrier
+  def submit(zReference: String, isaAccounts: Seq[IsaAccount])(implicit
+    hc:                  HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.npsBaseUrl}/nps/submit/$isaManagerReferenceNumber"
+    val url = s"${appConfig.npsBaseUrl}/nps/submit/$zReference"
     read(
       httpClient
         .post(url"$url")
@@ -45,10 +45,10 @@ class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(im
     )
   }
 
-  def sendNotification(isaManagerReferenceNumber: String, nilReturnReported: Boolean)(implicit
-    hc:                                           HeaderCarrier
+  def sendNotification(zReference: String, nilReturnReported: Boolean)(implicit
+    hc:                            HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.npsBaseUrl}/nps/declaration/$isaManagerReferenceNumber"
+    val url = s"${appConfig.npsBaseUrl}/nps/declaration/$zReference"
     read(
       httpClient
         .post(url"$url")
@@ -58,10 +58,10 @@ class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(im
     )
   }
 
-  def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: Month, pageIndex: Int, pageSize: Int)(implicit
-    hc:                                                           HeaderCarrier
+  def retrieveReconciliationReportPage(zReference: String, taxYear: String, month: Month, pageIndex: Int, pageSize: Int)(implicit
+    hc:                                            HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.npsBaseUrl}/monthly/$isaManagerReferenceNumber/$taxYear/${month.toString}/results?pageIndex=$pageIndex&pageSize=$pageSize"
+    val url = s"${appConfig.npsBaseUrl}/monthly/$zReference/$taxYear/${month.toString}/results?pageIndex=$pageIndex&pageSize=$pageSize"
     read(
       httpClient
         .get(url"$url")

@@ -34,34 +34,34 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit ec: ExecutionContext) extends Logging {
 
-  def notification(isaManagerReference: String, nilReturnReported: Boolean)(implicit
-    hc:                                 HeaderCarrier
+  def notification(zReference: String, nilReturnReported: Boolean)(implicit
+    hc:                        HeaderCarrier
   ): EitherT[Future, ErrorResponse, HttpResponse] = {
-    logger.info(s"Sending notification to NPS for IM ref: [$isaManagerReference]")
-    connector.sendNotification(isaManagerReference, nilReturnReported).leftMap(mapToErrorResponse)
+    logger.info(s"Sending notification to NPS for IM ref: [$zReference]")
+    connector.sendNotification(zReference, nilReturnReported).leftMap(mapToErrorResponse)
   }
 
-  def submitIsaAccounts(isaManagerReferenceNumber: String, isaAccounts: Seq[IsaAccount])(implicit
-    hc:                                            HeaderCarrier
+  def submitIsaAccounts(zReference: String, isaAccounts: Seq[IsaAccount])(implicit
+    hc:                             HeaderCarrier
   ): Future[Either[ErrorResponse, Unit]] = {
-    logger.info(s"Submitting ISA Accounts to NPS for IM ref: [$isaManagerReferenceNumber]")
+    logger.info(s"Submitting ISA Accounts to NPS for IM ref: [$zReference]")
 
-    connector.submit(isaManagerReferenceNumber, isaAccounts).value.map {
+    connector.submit(zReference, isaAccounts).value.map {
       case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
       case Right(response) =>
         response.status match {
           case NO_CONTENT => Right(())
           case otherStatus =>
             logger.error(
-              s"Unexpected status: [$otherStatus] was received from submitting ISA Accounts to NPS for IM ref: [$isaManagerReferenceNumber]"
+              s"Unexpected status: [$otherStatus] was received from submitting ISA Accounts to NPS for IM ref: [$zReference]"
             )
             Left(InternalServerErr())
         }
     }
   }
 
-  def retrieveReconciliationReportPage(isaManagerReferenceNumber: String, taxYear: String, month: Month, pageIndex: Int)(implicit
-    hc:                                                           HeaderCarrier
+  def retrieveReconciliationReportPage(zReference: String, taxYear: String, month: Month, pageIndex: Int)(implicit
+    hc:                                            HeaderCarrier
   ): Future[Either[ErrorResponse, ReconciliationReportPage]] = {
 
     def convertResponseToPage(response: ReconciliationReportResponse): Either[ErrorResponse, ReconciliationReportPage] = {
@@ -73,7 +73,7 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
       else
         totalNoOfPages.fold[Either[ErrorResponse, ReconciliationReportPage]] {
           logger.error(
-            s"Invalid number of total records: [$totalRecords] received from upstream for IM Ref: [$isaManagerReferenceNumber] for [$taxYear] [$month]"
+            s"Invalid number of total records: [$totalRecords] received from upstream for IM Ref: [$zReference] for [$taxYear] [$month]"
           )
           Left(InternalServerErr())
         } { noOfPages =>
@@ -82,12 +82,12 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
     }
 
     logger.info(
-      s"Retrieving reconciliation report page: [$pageIndex] from NPS for IM ref: [$isaManagerReferenceNumber] with month/taxYear: [$month] [$taxYear]"
+      s"Retrieving reconciliation report page: [$pageIndex] from NPS for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
     )
 
     val pageSize = config.returnResultsRecordsPerPage
 
-    connector.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, pageIndex, pageSize).value.map {
+    connector.retrieveReconciliationReportPage(zReference, taxYear, month, pageIndex, pageSize).value.map {
       case Left(upstreamError) =>
         Left(
           upstreamError.message match {
@@ -103,13 +103,13 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
             catch {
               case e: Throwable =>
                 logger.error(
-                  s"Caught exception with message: [${e.getMessage}] when parsing response from NPS for IM ref: [$isaManagerReferenceNumber] with month/taxYear: [$month] [$taxYear]"
+                  s"Caught exception with message: [${e.getMessage}] when parsing response from NPS for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
                 )
                 Left(InternalServerErr())
             }
           case otherStatus =>
             logger.error(
-              s"Unexpected status: [$otherStatus] was received from NPS report retrieval for IM ref: [$isaManagerReferenceNumber] with month/taxYear: [$month] [$taxYear]"
+              s"Unexpected status: [$otherStatus] was received from NPS report retrieval for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
             )
             Left(InternalServerErr())
         }

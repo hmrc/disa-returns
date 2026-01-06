@@ -32,19 +32,17 @@ import scala.concurrent.Future
 
 class NPSServiceSpec extends BaseUnitSpec {
 
-  val service = new NPSService(mockNPSConnector, mockAppConfig)
-
-  val isaManagerReference = "Z1234"
-  val reportingNilReturn  = false
+  val service            = new NPSService(mockNPSConnector, mockAppConfig)
+  val reportingNilReturn = false
 
   "NPSService.notification" should {
 
     "return Right(HttpResponse) when connector returns a 204" in {
       val httpResponse = HttpResponse(204, "")
-      when(mockNPSConnector.sendNotification(isaManagerReference, reportingNilReturn))
+      when(mockNPSConnector.sendNotification(validZReference, reportingNilReturn))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result = service.notification(isaManagerReference, reportingNilReturn).value.futureValue
+      val result = service.notification(validZReference, reportingNilReturn).value.futureValue
 
       result shouldBe Right(httpResponse)
     }
@@ -57,10 +55,10 @@ class NPSServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockNPSConnector.sendNotification(isaManagerReference, reportingNilReturn))
+      when(mockNPSConnector.sendNotification(validZReference, reportingNilReturn))
         .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      val result = service.notification(isaManagerReference, reportingNilReturn).value.futureValue
+      val result = service.notification(validZReference, reportingNilReturn).value.futureValue
 
       result shouldBe Left(UnauthorisedErr)
     }
@@ -71,11 +69,11 @@ class NPSServiceSpec extends BaseUnitSpec {
     "return Right(()) when connector responds with 204 NO_CONTENT" in {
       val httpResponse: HttpResponse = HttpResponse(NO_CONTENT, "")
 
-      when(mockNPSConnector.submit(validZRef, Seq.empty[IsaAccount]))
+      when(mockNPSConnector.submit(validZReference, Seq.empty[IsaAccount]))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
       val result: Either[ErrorResponse, Unit] =
-        service.submitIsaAccounts(validZRef, Seq.empty).futureValue
+        service.submitIsaAccounts(validZReference, Seq.empty).futureValue
 
       result shouldBe Right(())
     }
@@ -88,11 +86,11 @@ class NPSServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockNPSConnector.submit(validZRef, Seq.empty[IsaAccount]))
+      when(mockNPSConnector.submit(validZReference, Seq.empty[IsaAccount]))
         .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
       val result: Either[ErrorResponse, Unit] =
-        service.submitIsaAccounts(validZRef, Seq.empty).futureValue
+        service.submitIsaAccounts(validZReference, Seq.empty).futureValue
 
       result shouldBe Left(UnauthorisedErr)
     }
@@ -100,11 +98,11 @@ class NPSServiceSpec extends BaseUnitSpec {
     "return Left(InternalServerErr) when a non-204 success status is returned (e.g. 200 OK)" in {
       val httpResponse: HttpResponse = HttpResponse(OK, "ignored body")
 
-      when(mockNPSConnector.submit(validZRef, Seq.empty[IsaAccount]))
+      when(mockNPSConnector.submit(validZReference, Seq.empty[IsaAccount]))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
       val result: Either[ErrorResponse, Unit] =
-        service.submitIsaAccounts(validZRef, Seq.empty).futureValue
+        service.submitIsaAccounts(validZReference, Seq.empty).futureValue
 
       result shouldBe Left(InternalServerErr())
     }
@@ -133,13 +131,13 @@ class NPSServiceSpec extends BaseUnitSpec {
 
       when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
-      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
       val pageIndex = 0
 
       val result: Either[ErrorResponse, ReconciliationReportPage] =
-        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+        service.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, pageIndex).futureValue
 
       result shouldBe Right(
         ReconciliationReportPage(
@@ -162,13 +160,13 @@ class NPSServiceSpec extends BaseUnitSpec {
 
       when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
-      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
       val pageIndex = 0
 
       val result: Either[ErrorResponse, ReconciliationReportPage] =
-        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+        service.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, pageIndex).futureValue
 
       result shouldBe Left(ReportPageNotFoundErr(pageIndex))
     }
@@ -178,13 +176,13 @@ class NPSServiceSpec extends BaseUnitSpec {
 
       when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
-      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
         .thenReturn(EitherT.leftT[Future, HttpResponse](errorResponse))
 
       val pageIndex = 0
 
       val result: Either[ErrorResponse, ReconciliationReportPage] =
-        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+        service.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, pageIndex).futureValue
 
       result shouldBe Left(ReportPageNotFoundErr(pageIndex))
     }
@@ -194,13 +192,13 @@ class NPSServiceSpec extends BaseUnitSpec {
 
       when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
-      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
         .thenReturn(EitherT.leftT[Future, HttpResponse](errorResponse))
 
       val pageIndex = 0
 
       val result: Either[ErrorResponse, ReconciliationReportPage] =
-        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+        service.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, pageIndex).futureValue
 
       result shouldBe Left(ReportNotFoundErr)
     }
@@ -222,13 +220,13 @@ class NPSServiceSpec extends BaseUnitSpec {
 
       when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
-      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
       val pageIndex = 0
 
       val result: Either[ErrorResponse, ReconciliationReportPage] =
-        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+        service.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, pageIndex).futureValue
 
       result shouldBe Left(InternalServerErr())
     }
@@ -250,13 +248,13 @@ class NPSServiceSpec extends BaseUnitSpec {
 
       when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
-      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
       val pageIndex = 0
 
       val result: Either[ErrorResponse, ReconciliationReportPage] =
-        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+        service.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, pageIndex).futureValue
 
       result shouldBe Left(InternalServerErr())
     }
@@ -266,13 +264,13 @@ class NPSServiceSpec extends BaseUnitSpec {
 
       when(mockAppConfig.returnResultsRecordsPerPage).thenReturn(returnResultsPerPage)
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(numberOfPages)
-      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZRef), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
+      when(mockNPSConnector.retrieveReconciliationReportPage(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(0), eqTo(3))(any))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
       val pageIndex = 0
 
       val result: Either[ErrorResponse, ReconciliationReportPage] =
-        service.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonth, pageIndex).futureValue
+        service.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, pageIndex).futureValue
 
       result                    shouldBe a[Left[InternalServerErr, ReconciliationReportPage]]
       result.swap.value.message shouldBe InternalServerErr().message

@@ -24,16 +24,17 @@ import uk.gov.hmrc.auth.core.retrieve.Retrieval
 
 import scala.concurrent.Future
 
-trait MockAuthConnector extends TestData {
+trait MockAuthConnector { self: TestData =>
 
   val mockAuthConnector: AuthConnector = mock[AuthConnector]
 
   def stubEnrolments(
     enrolmentKey:  String = "HMRC-DISA-ORG",
     identifierKey: Option[String] = Some("ZREF"),
-    zRef:          String = validZRef,
+    zRef:          String = validZReference,
     state:         String = "Activated"
   ): Unit = {
+
     val enrolment = Enrolments(
       Set(
         Enrolment(
@@ -48,7 +49,7 @@ trait MockAuthConnector extends TestData {
       .thenReturn(Future.successful(enrolment))
   }
 
-  def authorizationForZRef(zRef: String = validZRef): Unit = stubEnrolments(zRef = zRef)
+  def authorizationForZRef(zRef: String = validZReference): Unit = stubEnrolments(zRef = zRef)
 
   def unauthorized(authException: Exception = InsufficientEnrolments("")): Unit =
     when(mockAuthConnector.authorise[Unit](any(), any())(any(), any()))

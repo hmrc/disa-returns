@@ -23,9 +23,9 @@ import play.api.http.Status.OK
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
 
-trait CommonStubs {
+trait CommonStubs { self: TestData =>
 
-  def stubAuth(zRef: String = "Z1234"): Unit = {
+  def stubAuth(zRef: String = validZReference): Unit = {
     val validEnrolment = s"""{
       "authorisedEnrolments": [{
         "key": "HMRC-DISA-ORG",
@@ -58,14 +58,14 @@ trait CommonStubs {
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
     )
 
-  def stubEtmpObligation(status: Int, body: JsObject, isaManagerRef: String): Unit =
+  def stubEtmpObligation(status: Int, body: JsObject, zReference: String): Unit =
     stubFor(
-      get(urlEqualTo(s"/etmp/check-obligation-status/$isaManagerRef"))
+      get(urlEqualTo(s"/etmp/check-obligation-status/$zReference"))
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
     )
-  def stubCloseEtmpObligation(status: Int, body: JsObject, isaManagerRef: String): Unit =
+  def stubCloseEtmpObligation(status: Int, body: JsObject, zReference: String): Unit =
     stubFor(
-      post(urlEqualTo(s"/etmp/close-obligation-status/$isaManagerRef"))
+      post(urlEqualTo(s"/etmp/close-obligation-status/$zReference"))
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
     )
 
@@ -75,39 +75,39 @@ trait CommonStubs {
         .willReturn(ok(boxResponseJson))
     )
 
-  def stubETMPDeclaration(status: ResponseDefinitionBuilder, isaManagerRef: String): Unit =
+  def stubETMPDeclaration(status: ResponseDefinitionBuilder, zReference: String): Unit =
     stubFor(
-      post(urlEqualTo(s"/etmp/declaration/$isaManagerRef"))
+      post(urlEqualTo(s"/etmp/declaration/$zReference"))
         .willReturn(status)
     )
 
   def stubNPSNotification(
-    status:        ResponseDefinitionBuilder,
-    isaManagerRef: String,
-    nilReturn:     Boolean = false
+    status:     ResponseDefinitionBuilder,
+    zReference: String,
+    nilReturn:  Boolean = false
   ): Unit =
     stubFor(
-      post(urlEqualTo(s"/nps/declaration/$isaManagerRef"))
+      post(urlEqualTo(s"/nps/declaration/$zReference"))
         .withRequestBody(equalToJson(Json.toJson(ReportingNilReturn(nilReturn)).toString()))
         .willReturn(status)
     )
 
-  def stubNpsSubmission(status: Int, isaManagerRef: String): Unit =
+  def stubNpsSubmission(status: Int, zReference: String): Unit =
     stubFor(
-      post(urlEqualTo(s"/nps/submit/$isaManagerRef"))
+      post(urlEqualTo(s"/nps/submit/$zReference"))
         .willReturn(aResponse().withStatus(status))
     )
 
   def stubNpsSubmissionWithBodyAssert(
     status:             Int,
-    isaManagerRef:      String,
+    zReference:         String,
     expectedJsonObject: String
   ): Unit = {
     val jsObj             = Json.parse(expectedJsonObject)
     val jsArray           = Json.arr(jsObj)
     val expectedArrayJson = Json.stringify(jsArray)
     stubFor(
-      post(urlEqualTo(s"/nps/submit/$isaManagerRef"))
+      post(urlEqualTo(s"/nps/submit/$zReference"))
         .withRequestBody(equalToJson(expectedArrayJson, true, false))
         .willReturn(aResponse().withStatus(status))
     )

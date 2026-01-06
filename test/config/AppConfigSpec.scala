@@ -27,7 +27,7 @@ class AppConfigSpec extends BaseUnitSpec {
   private val configMap: Map[String, Any] = Map(
     "microservice.services.etmp.host" -> "etmp",
     "microservice.services.etmp.port" -> "1204",
-    "urls.returnResultsLocation"      -> "/monthly/{isaManagerReference}/{taxYear}/{month}/results",
+    "urls.returnResultsLocation"      -> "/monthly/{zReference}/{taxYear}/{month}/results",
     "mongodb.timeToLive"              -> 30,
     "returnResultsRecordsPerPage"     -> 10
   )

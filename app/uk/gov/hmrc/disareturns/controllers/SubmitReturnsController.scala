@@ -52,13 +52,13 @@ class SubmitReturnsController @Inject() (
 
   private def ignoreBodyParser: BodyParser[Source[ByteString, _]] = BodyParser(_ => Accumulator.done(Right(Source.empty[ByteString])))
 
-  def submit(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[Source[ByteString, _]] =
-    ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
+  def submit(zReference: String, taxYear: String, month: String): Action[Source[ByteString, _]] =
+    ValidationHelper.validateParams(zReference, taxYear, month) match {
       case Left(errors) => Action.async(ignoreBodyParser)(_ => Future.successful(BadRequest(Json.toJson(errors))))
-      case Right((isaManagerReferenceNumber, _, _, _)) =>
-        (Action andThen authAction(isaManagerReferenceNumber)).async(streamingParser) { implicit request =>
+      case Right((zReference, _, _, _)) =>
+        (Action andThen authAction(zReference)).async(streamingParser) { implicit request =>
           etmpService
-            .validateEtmpSubmissionEligibility(isaManagerReferenceNumber)
+            .validateEtmpSubmissionEligibility(zReference)
             .flatMap {
               case Right(_) =>
                 streamingParserService.processSource(request.body).flatMap {
@@ -66,12 +66,12 @@ class SubmitReturnsController @Inject() (
                     error match {
                       case FirstLevelValidationFailure(err) =>
                         logger.warn(
-                          s"Submission had first level validation error for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] with error: [$error]"
+                          s"Submission had first level validation error for IM ref: [$zReference] for [$month][$taxYear] with error: [$error]"
                         )
                         Future.successful(BadRequest(Json.toJson(err)))
                       case SecondLevelValidationFailure(errors) =>
                         logger.warn(
-                          s"Submission had second level validation errors for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] with error: [$error]"
+                          s"Submission had second level validation errors for IM ref: [$zReference] for [$month][$taxYear] with error: [$error]"
                         )
                         Future.successful(BadRequest(Json.toJson(SecondLevelValidationResponse(errors = errors))))
                       case err =>
@@ -79,14 +79,14 @@ class SubmitReturnsController @Inject() (
                         Future.successful(InternalServerError(Json.toJson(InternalServerErr())))
                     }
                   case Right(subscriptions: Seq[IsaAccount]) =>
-                    npsService.submitIsaAccounts(isaManagerReferenceNumber, subscriptions) map {
+                    npsService.submitIsaAccounts(zReference, subscriptions) map {
                       case Left(error) =>
                         logger.error(
-                          s"Submission of data to NPS for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
+                          s"Submission of data to NPS for IM ref: [$zReference] for [$month][$taxYear] has failed with the error: [$error]"
                         )
                         HttpHelper.toHttpError(error)
                       case Right(_) =>
-                        logger.info(s"Data submitted successfully for IM ref: [$isaManagerReferenceNumber] for: [$month][$taxYear]")
+                        logger.info(s"Data submitted successfully for IM ref: [$zReference] for: [$month][$taxYear]")
                         NoContent
                     }
                 }
@@ -94,11 +94,11 @@ class SubmitReturnsController @Inject() (
                 error match {
                   case _: InternalServerErr =>
                     logger.error(
-                      s"Submission eligibility failed for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
+                      s"Submission eligibility failed for IM ref: [$zReference] for [$month][$taxYear] has failed with the error: [$error]"
                     )
                   case _ =>
                     logger.warn(
-                      s"Submission eligibility failed for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] has failed with the error: [$error]"
+                      s"Submission eligibility failed for IM ref: [$zReference] for [$month][$taxYear] has failed with the error: [$error]"
                     )
                 }
 
