@@ -34,7 +34,7 @@ class NotificationContextRepository @Inject() (mc: MongoComponent, appConfig: Ap
       domainFormat = NotificationContext.mongoFormat,
       indexes = Seq(
         IndexModel(
-          keys = Indexes.ascending("isaManagerReference"),
+          keys = Indexes.ascending("zReference"),
           indexOptions = IndexOptions().unique(true).name("notificationContextIdx")
         ),
         IndexModel(
@@ -43,16 +43,17 @@ class NotificationContextRepository @Inject() (mc: MongoComponent, appConfig: Ap
             .name("updatedAtTtlIdx")
             .expireAfter(appConfig.timeToLive, TimeUnit.DAYS)
         )
-      )
+      ),
+      replaceIndexes = true
     ) {
 
-  def findNotificationContext(isaManagerReference: String): Future[Option[NotificationContext]] =
-    collection.find(Filters.eq("isaManagerReference", isaManagerReference)).headOption()
+  def findNotificationContext(zReference: String): Future[Option[NotificationContext]] =
+    collection.find(Filters.eq("zReference", zReference)).headOption()
 
   def insertNotificationContext(notificationContext: NotificationContext): Future[Unit] =
     collection
       .replaceOne(
-        filter = Filters.eq("isaManagerReference", notificationContext.isaManagerReference),
+        filter = Filters.eq("zReference", notificationContext.zReference),
         replacement = notificationContext,
         options = ReplaceOptions().upsert(true)
       )

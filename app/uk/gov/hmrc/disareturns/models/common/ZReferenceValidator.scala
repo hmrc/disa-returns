@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
-package utils
+package uk.gov.hmrc.disareturns.models.common
 
-trait TestMocks {}
+import scala.util.matching.Regex
+
+object ZReferenceValidator {
+  private val zRefRegex: Regex = "^[z|Z][0-9]{4}$".r
+
+  def isValid(ref: String): Boolean =
+    zRefRegex.pattern.matcher(ref).matches()
+}

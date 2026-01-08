@@ -25,22 +25,20 @@ import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 
 class NPSConnectorISpec extends BaseIntegrationSpec {
 
-  private val testIsaManagerReferenceNumber = "Z1234"
-  private val sendNotificationUrl           = s"/nps/declaration/$testIsaManagerReferenceNumber"
-  private val isaManagerReferenceNumber     = "Z1234"
-  private val taxYear                       = "2026-27"
-  private val month                         = Month.JAN
+  private val sendNotificationUrl = s"/nps/declaration/$validZReference"
+  private val taxYear             = "2026-27"
+  private val month               = Month.JAN
   private val connector: NPSConnector = app.injector.instanceOf[NPSConnector]
 
   "NPSConnector.submit" should {
 
-    val submitUrl = s"/nps/submit/$isaManagerReferenceNumber"
+    val submitUrl = s"/nps/submit/$validZReference"
 
     "return Right(HttpResponse) when NPS returns 204 NO_CONTENT" in {
       stubPost(submitUrl, NO_CONTENT, "")
 
       val Right(response) =
-        await(connector.submit(isaManagerReferenceNumber, Nil).value)
+        await(connector.submit(validZReference, Nil).value)
 
       response.status shouldBe NO_CONTENT
       response.body   shouldBe ""
@@ -50,7 +48,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
       stubPost(submitUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
 
       val Left(err) =
-        await(connector.submit(isaManagerReferenceNumber, Nil).value)
+        await(connector.submit(validZReference, Nil).value)
 
       err.statusCode shouldBe UNAUTHORIZED
       err.message      should include("Not authorised")
@@ -71,7 +69,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
       stubPost(sendNotificationUrl, NO_CONTENT, "")
 
       val Right(response) =
-        await(connector.sendNotification(testIsaManagerReferenceNumber, nilReturnReported = true).value)
+        await(connector.sendNotification(validZReference, nilReturnReported = true).value)
 
       response.status shouldBe NO_CONTENT
       response.body   shouldBe ""
@@ -81,7 +79,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
       stubPost(sendNotificationUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
 
       val Left(err) =
-        await(connector.sendNotification(testIsaManagerReferenceNumber, nilReturnReported = false).value)
+        await(connector.sendNotification(validZReference, nilReturnReported = false).value)
     }
   }
 
@@ -89,7 +87,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
 
     val pageIndex          = 0
     val pageSize           = 2
-    val reportRetrievalUrl = s"/monthly/$isaManagerReferenceNumber/$taxYear/${month.toString}/results?pageIndex=$pageIndex&pageSize=$pageSize"
+    val reportRetrievalUrl = s"/monthly/$validZReference/$taxYear/${month.toString}/results?pageIndex=$pageIndex&pageSize=$pageSize"
     val reconciliationReport =
       """
             |{
@@ -109,7 +107,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
       stubGet(reportRetrievalUrl, OK, reconciliationReport)
 
       val Right(response) =
-        await(connector.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, pageIndex, pageSize).value)
+        await(connector.retrieveReconciliationReportPage(validZReference, taxYear, month, pageIndex, pageSize).value)
 
       response.status shouldBe OK
       response.body   shouldBe reconciliationReport
@@ -119,7 +117,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
       stubGet(reportRetrievalUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
 
       val Left(err) =
-        await(connector.retrieveReconciliationReportPage(isaManagerReferenceNumber, taxYear, month, pageIndex, pageSize).value)
+        await(connector.retrieveReconciliationReportPage(validZReference, taxYear, month, pageIndex, pageSize).value)
 
       err.statusCode shouldBe UNAUTHORIZED
       err.message      should include("Not authorised")

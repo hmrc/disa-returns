@@ -28,50 +28,50 @@ import scala.concurrent.Future
 
 class NotificationContextServiceSpec extends BaseUnitSpec {
 
-  private val service = new NotificationContextService(notificationContextRepository)
+  private val service = new NotificationContextService(mockNotificationContextRepository)
 
   private val clientId = "client-123"
   private val boxId    = Some("box-456")
-  private val metaData = NotificationContext(clientId, boxId, validZRef)
+  private val metaData = NotificationContext(clientId, boxId, validZReference)
 
-  override def beforeEach(): Unit = reset(notificationContextRepository)
+  override def beforeEach(): Unit = reset(mockNotificationContextRepository)
 
   "NotificationContextService#saveContext" should {
 
     "return Right when notificationContext is stored successfully" in {
-      when(notificationContextRepository.insertNotificationContext(any[NotificationContext]))
+      when(mockNotificationContextRepository.insertNotificationContext(any[NotificationContext]))
         .thenReturn(Future.successful(Right(())))
 
-      val result = await(service.saveContext(clientId, boxId, validZRef))
+      val result = await(service.saveContext(clientId, boxId, validZReference))
 
-      verify(notificationContextRepository).insertNotificationContext(metaData)
+      verify(mockNotificationContextRepository).insertNotificationContext(metaData)
       result shouldBe Right(())
     }
 
     "return InternalServerErr if mongo repository throws an exception" in {
-      when(notificationContextRepository.insertNotificationContext(any[NotificationContext]))
+      when(mockNotificationContextRepository.insertNotificationContext(any[NotificationContext]))
         .thenReturn(Future.failed(new Exception("fail")))
-      await(service.saveContext(clientId, boxId, validZRef)) shouldBe Left(InternalServerErr())
+      await(service.saveContext(clientId, boxId, validZReference)) shouldBe Left(InternalServerErr())
 
     }
   }
 
   "NotificationContextService#retrieveContext" should {
     "return Some(notificationContext) when found" in {
-      when(notificationContextRepository.findNotificationContext(validZRef)).thenReturn(Future.successful(Some(metaData)))
+      when(mockNotificationContextRepository.findNotificationContext(validZReference)).thenReturn(Future.successful(Some(metaData)))
 
-      val result = await(service.retrieveContext(validZRef))
+      val result = await(service.retrieveContext(validZReference))
 
-      verify(notificationContextRepository).findNotificationContext(validZRef)
+      verify(mockNotificationContextRepository).findNotificationContext(validZReference)
       result shouldBe Some(metaData)
     }
 
     "return None when not found" in {
-      when(notificationContextRepository.findNotificationContext(validZRef)).thenReturn(Future.successful(None))
+      when(mockNotificationContextRepository.findNotificationContext(validZReference)).thenReturn(Future.successful(None))
 
-      val result = await(service.retrieveContext(validZRef))
+      val result = await(service.retrieveContext(validZReference))
 
-      verify(notificationContextRepository).findNotificationContext(validZRef)
+      verify(mockNotificationContextRepository).findNotificationContext(validZReference)
       result shouldBe None
     }
   }

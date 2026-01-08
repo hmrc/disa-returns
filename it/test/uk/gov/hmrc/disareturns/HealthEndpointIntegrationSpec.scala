@@ -32,7 +32,7 @@ class HealthEndpointIntegrationSpec extends AnyWordSpec with Matchers with Scala
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .configure(
-        Map("urls.returnResultsSummaryLocation" -> "/monthly/{isaManagerReference}/{returnId}/results/summary")
+        Map("urls.returnResultsSummaryLocation" -> "/monthly/{zReference}/{returnId}/results/summary")
       )
       .build()
 

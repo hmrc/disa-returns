@@ -28,9 +28,9 @@ import scala.concurrent.{ExecutionContext, Future}
 class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
 
   def getReturnsObligationStatus(
-    isaManagerReferenceNumber: String
-  )(implicit hc:               HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.etmpBaseUrl}/etmp/check-obligation-status/$isaManagerReferenceNumber"
+    zReference:  String
+  )(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+    val url = s"${appConfig.etmpBaseUrl}/etmp/check-obligation-status/$zReference"
     read(
       http
         .get(url"$url")
@@ -39,9 +39,9 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implici
     )
   }
   def sendDeclaration(
-    isaManagerReferenceNumber: String
-  )(implicit hc:               HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.etmpBaseUrl}/etmp/declaration/$isaManagerReferenceNumber"
+    zReference:  String
+  )(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+    val url = s"${appConfig.etmpBaseUrl}/etmp/declaration/$zReference"
     read(
       http
         .post(url"$url")

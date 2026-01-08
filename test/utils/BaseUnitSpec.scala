@@ -17,6 +17,7 @@
 package utils
 
 import org.mockito.Mockito
+import org.mockito.Mockito.reset
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
@@ -49,30 +50,40 @@ abstract class BaseUnitSpec
     with DefaultAwaitTimeout
     with GuiceOneAppPerSuite
     with TestMocks
-    with TestData
-    with MockAuthConnector {
+    with MockAuthConnector
+    with TestData {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   implicit val hc: HeaderCarrier    = HeaderCarrier()
 
-  override def beforeEach(): Unit = Mockito.reset()
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(
+      mockAuthConnector,
+      mockETMPService,
+      mockNPSService,
+      mockPPNSService,
+      mockNotificationContextService,
+      mockReturnsSummaryService
+    )
+  }
 
   //MOCKS
-  val mockHttpClient:                HttpClientV2                    = mock[HttpClientV2]
-  val mockAppConfig:                 AppConfig                       = mock[AppConfig]
-  val mockRequestBuilder:            RequestBuilder                  = mock[RequestBuilder]
-  val mockPPNSService:               PPNSService                     = mock[PPNSService]
-  val mockPPNSConnector:             PPNSConnector                   = mock[PPNSConnector]
-  val mockETMPConnector:             ETMPConnector                   = mock[ETMPConnector]
-  val mockETMPService:               ETMPService                     = mock[ETMPService]
-  val mockBaseConnector:             BaseConnector                   = mock[BaseConnector]
-  val mockStreamingParserService:    StreamingParserService          = mock[StreamingParserService]
-  val mockReturnsSummaryService:     ReturnsSummaryService           = mock[ReturnsSummaryService]
-  val mockReturnsSummaryRepository:  MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
-  val mockNPSConnector:              NPSConnector                    = mock[NPSConnector]
-  val mockNPSService:                NPSService                      = mock[NPSService]
-  val notificationContextRepository: NotificationContextRepository   = mock[NotificationContextRepository]
-  val notificationContextService:    NotificationContextService      = mock[NotificationContextService]
+  val mockHttpClient:                    HttpClientV2                    = mock[HttpClientV2]
+  val mockAppConfig:                     AppConfig                       = mock[AppConfig]
+  val mockRequestBuilder:                RequestBuilder                  = mock[RequestBuilder]
+  val mockPPNSService:                   PPNSService                     = mock[PPNSService]
+  val mockPPNSConnector:                 PPNSConnector                   = mock[PPNSConnector]
+  val mockETMPConnector:                 ETMPConnector                   = mock[ETMPConnector]
+  val mockETMPService:                   ETMPService                     = mock[ETMPService]
+  val mockBaseConnector:                 BaseConnector                   = mock[BaseConnector]
+  val mockStreamingParserService:        StreamingParserService          = mock[StreamingParserService]
+  val mockReturnsSummaryService:         ReturnsSummaryService           = mock[ReturnsSummaryService]
+  val mockReturnsSummaryRepository:      MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
+  val mockNPSConnector:                  NPSConnector                    = mock[NPSConnector]
+  val mockNPSService:                    NPSService                      = mock[NPSService]
+  val mockNotificationContextRepository: NotificationContextRepository   = mock[NotificationContextRepository]
+  val mockNotificationContextService:    NotificationContextService      = mock[NotificationContextService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .overrides(
@@ -84,7 +95,7 @@ abstract class BaseUnitSpec
       bind[ReturnsSummaryService].toInstance(mockReturnsSummaryService),
       bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository),
       bind[NPSService].toInstance(mockNPSService),
-      bind[NotificationContextService].toInstance(notificationContextService)
+      bind[NotificationContextService].toInstance(mockNotificationContextService)
     )
     .build()
 

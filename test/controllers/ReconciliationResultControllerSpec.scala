@@ -51,70 +51,70 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
   "controller.retieveReconciliationReportPage" should {
 
     "return 200 with a page of results" in {
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=$validPageIndex")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=$validPageIndex")
 
       authorizationForZRef()
       when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any)).thenReturn(Future.successful(Right(reconciliationReportPage)))
 
-      val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonthStr, validPageIndex).apply(req)
+      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, validPageIndex).apply(req)
 
       status(res) mustBe OK
       contentAsJson(res) shouldBe Json.toJson(reconciliationReportPage)
     }
 
     "return 400 with a validation error when a parameter is invalid" in {
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=-1")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=-1")
 
       authorizationForZRef()
 
-      val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonthStr, "-1").apply(req)
+      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, "-1").apply(req)
 
       status(res) mustBe BAD_REQUEST
       contentAsJson(res).as[ErrorResponse] shouldBe InvalidPageErr
     }
 
     "return 400 with multiple validation errors when more than one parameter is invalid" in {
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=-1")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=-1")
 
       authorizationForZRef()
 
-      val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, "month", "-1").apply(req)
+      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, "month", "-1").apply(req)
 
       status(res) mustBe BAD_REQUEST
       contentAsJson(res) shouldBe Json.toJson(MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidMonth, InvalidPageErr)))
     }
 
     "return 404 with an error when the report page is not found" in {
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=$validPageIndex")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=$validPageIndex")
 
       authorizationForZRef()
       when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any))
         .thenReturn(Future.successful(Left(ReportPageNotFoundErr(validPageIndex))))
 
-      val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonthStr, validPageIndex).apply(req)
+      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, validPageIndex).apply(req)
 
       status(res) mustBe NOT_FOUND
       contentAsJson(res) shouldBe Json.toJson(ReportPageNotFoundErr(validPageIndex))
     }
 
     "return 401 with an error when auth fails" in {
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=$validPageIndex")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=$validPageIndex")
 
       when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.failed(InvalidBearerToken()))
 
-      val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonthStr, validPageIndex).apply(req)
+      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, validPageIndex).apply(req)
 
       status(res) mustBe UNAUTHORIZED
       contentAsJson(res).as[ErrorResponse] shouldBe UnauthorisedErr
     }
 
     "return 500 with an error whens something unexpected occurs" in {
-      val req = FakeRequest(GET, s"/monthly/$validZRef/$validTaxYear/$validMonth/results?page=$validPageIndex")
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=$validPageIndex")
 
       authorizationForZRef()
       when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any)).thenReturn(Future.successful(Left(InternalServerErr())))
 
-      val res = controller.retrieveReconciliationReportPage(validZRef, validTaxYear, validMonthStr, validPageIndex).apply(req)
+      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, validPageIndex).apply(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       contentAsJson(res) shouldBe Json.toJson(InternalServerErr())

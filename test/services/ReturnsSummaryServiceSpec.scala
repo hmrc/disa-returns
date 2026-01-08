@@ -39,32 +39,32 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
   "ReturnsSummaryService#retrieveReturnSummary" should {
 
     "return a ReturnSummaryResults object when a matching summary is found" in {
-      val returnSummaryResults = MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, 1)
+      val returnSummaryResults = MonthlyReturnsSummary(validZReference, validTaxYear, validMonth, 1)
       when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(Some(1))
       when(mockAppConfig.selfHost).thenReturn("localhost")
 
-      val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
+      val result = await(service.retrieveReturnSummary(validZReference, validTaxYear, validMonth))
 
       verify(mockAppConfig).getNoOfPagesForReturnResults(any)
 
-      result mustBe Right(ReturnSummaryResults("localhost/monthly/Z1234/2026-27/SEP/results?page=0", 1, 1))
+      result mustBe Right(ReturnSummaryResults(s"localhost/monthly/$validZReference/2026-27/SEP/results?page=0", 1, 1))
     }
 
     "return a ReturnNotFound error when no summary is found" in {
       when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(None))
 
-      val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
+      val result = await(service.retrieveReturnSummary(validZReference, validTaxYear, validMonth))
 
-      result mustBe Left(ReturnNotFoundErr("No return found for Z1234 for SEP 2026-27"))
+      result mustBe Left(ReturnNotFoundErr(s"No return found for $validZReference for SEP 2026-27"))
     }
 
     "return a InternalServerErr when NPS sends back an invalid number of records" in {
-      val returnSummaryResults = MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, -1)
+      val returnSummaryResults = MonthlyReturnsSummary(validZReference, validTaxYear, validMonth, -1)
       when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(None)
 
-      val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
+      val result = await(service.retrieveReturnSummary(validZReference, validTaxYear, validMonth))
 
       result mustBe Left(InternalServerErr())
     }
@@ -72,7 +72,7 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
     "return a InternalServerErr when something goes wrong on the server" in {
       when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.failed(new Exception("fubar")))
 
-      val result = await(service.retrieveReturnSummary(validZRef, validTaxYear, validMonth))
+      val result = await(service.retrieveReturnSummary(validZReference, validTaxYear, validMonth))
 
       result mustBe Left(InternalServerErr())
     }
@@ -83,11 +83,11 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
     "return Saved when repository upsert succeeds" in {
       when(mockReturnsSummaryRepository.upsert(any[MonthlyReturnsSummary])).thenReturn(Future.successful(()))
 
-      val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, totalRecords)))
+      val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZReference, validTaxYear, validMonth, totalRecords)))
 
       result mustBe Right(())
       verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
-        summary.zRef == validZRef &&
+        summary.zRef == validZReference &&
         summary.taxYear == validTaxYear &&
         summary.month == validMonth &&
         summary.totalRecords == totalRecords
@@ -98,11 +98,11 @@ class ReturnsSummaryServiceSpec extends BaseUnitSpec {
       when(mockReturnsSummaryRepository.upsert(any[MonthlyReturnsSummary]))
         .thenReturn(Future.failed(new Exception("fail")))
 
-      val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZRef, validTaxYear, validMonth, totalRecords)))
+      val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZReference, validTaxYear, validMonth, totalRecords)))
 
       result mustBe Left(InternalServerErr())
       verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
-        summary.zRef == validZRef &&
+        summary.zRef == validZReference &&
         summary.taxYear == validTaxYear &&
         summary.month == validMonth &&
         summary.totalRecords == totalRecords

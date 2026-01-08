@@ -48,7 +48,7 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
 
-      val result = authAction(validZRef).invokeBlock(request, testBlock)
+      val result = authAction(validZReference).invokeBlock(request, testBlock)
 
       status(result)          shouldBe OK
       contentAsString(result) shouldBe "Success"
@@ -92,22 +92,22 @@ class AuthActionSpec extends BaseUnitSpec {
     }
 
     "return UNAUTHORISED when zRef does not match that retrieved from enrolment" in {
-      authorizationForZRef("Z1235")
+      authorizationForZRef(zRef = "MISMATCH")
 
       val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
 
-      val result = authAction(validZRef).invokeBlock(request, testBlock)
+      val result = authAction(validZReference).invokeBlock(request, testBlock)
 
       status(result)        shouldBe UNAUTHORIZED
       contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
     }
 
     "return UNAUTHORISED when enrolment key does not match" in {
-      stubEnrolments(enrolmentKey = "HMRC-HELLO")
+      stubEnrolments(enrolmentKey = "HMRC-HELLO", zRef = validZReference)
 
       val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
 
-      val result = authAction(validZRef).invokeBlock(request, testBlock)
+      val result = authAction(validZReference).invokeBlock(request, testBlock)
 
       status(result)        shouldBe UNAUTHORIZED
       contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
@@ -118,7 +118,7 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
 
-      val result = authAction(validZRef).invokeBlock(request, testBlock)
+      val result = authAction(validZReference).invokeBlock(request, testBlock)
 
       status(result)        shouldBe UNAUTHORIZED
       contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
@@ -129,7 +129,7 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
 
-      val result = authAction(validZRef).invokeBlock(request, testBlock)
+      val result = authAction(validZReference).invokeBlock(request, testBlock)
 
       status(result)        shouldBe UNAUTHORIZED
       contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
@@ -140,7 +140,7 @@ class AuthActionSpec extends BaseUnitSpec {
 
       val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
 
-      val result = authAction(validZRef).invokeBlock(request, testBlock)
+      val result = authAction(validZReference).invokeBlock(request, testBlock)
 
       status(result)        shouldBe INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.toJson(InternalServerErr())

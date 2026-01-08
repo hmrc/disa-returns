@@ -16,60 +16,58 @@
 
 package models.helpers
 
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.disareturns.models.common.Month._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
+import utils.BaseUnitSpec
 
-class ValidationHelperSpec extends AnyWordSpec with Matchers {
+class ValidationHelperSpec extends BaseUnitSpec {
 
   "ValidationHelper.validateParams" should {
 
-    "return Right for valid isaManagerNumber(lowercase), taxYear and month" in {
-      val result = ValidationHelper.validateParams("z1234", "2023-24", "FEB")
-      result shouldBe Right("Z1234", "2023-24", Month.FEB, None)
+    "return Right for valid zReference(lowercase), taxYear and month" in {
+      val result = ValidationHelper.validateParams(validZReference.toLowerCase, validTaxYear, validMonthStr)
+      result shouldBe Right(validZReference, validTaxYear, validMonth, None)
     }
 
-    "return Right for valid isaManagerNumber(uppercase), taxYear and month" in {
-      val result = ValidationHelper.validateParams("Z1234", "2023-24", "FEB")
-      result shouldBe Right(("Z1234", "2023-24", FEB, None))
+    "return Right for valid zReference(uppercase), taxYear and month" in {
+      val result = ValidationHelper.validateParams(validZReference, validTaxYear, validMonthStr)
+      result shouldBe Right((validZReference, validTaxYear, validMonth, None))
     }
 
-    "return Right for valid isaManagerNumber(uppercase), taxYear, month and page" in {
-      val result = ValidationHelper.validateParams("Z1234", "2023-24", "FEB", Some("1"))
-      result shouldBe Right(("Z1234", "2023-24", FEB, Some(1)))
+    "return Right for valid zReference(uppercase), taxYear, month and page" in {
+      val result = ValidationHelper.validateParams(validZReference, validTaxYear, validMonthStr, Some("1"))
+      result shouldBe Right((validZReference, validTaxYear, validMonth, Some(1)))
     }
 
-    "return InvalidIsaManagerRef when ISA Manager Reference Number is invalid" in {
-      val result = ValidationHelper.validateParams("Invalid", "2023-24", "JAN")
-      result shouldBe Left(InvalidIsaManagerRef)
+    "return InvalidZReference when ISA Manager Reference Number is invalid" in {
+      val result = ValidationHelper.validateParams("Invalid", validTaxYear, validMonthStr)
+      result shouldBe Left(InvalidZReference)
     }
 
     "return InvalidTaxYear when tax year is invalid" in {
-      val result = ValidationHelper.validateParams("Z1234", "20-24", "MAY")
+      val result = ValidationHelper.validateParams(validZReference, "20-24", validMonthStr)
       result shouldBe Left(InvalidTaxYear)
     }
 
     "return InvalidMonth when month is invalid" in {
-      val result = ValidationHelper.validateParams("Z1234", "2023-24", "13")
+      val result = ValidationHelper.validateParams(validZReference, validTaxYear, "13")
       result shouldBe Left(InvalidMonth)
     }
 
     "return InvalidPageErr when page is invalid" in {
-      val result = ValidationHelper.validateParams("Z1234", "2023-24", "SEP", Some("-1"))
+      val result = ValidationHelper.validateParams(validZReference, validTaxYear, validMonthStr, Some("-1"))
       result shouldBe Left(InvalidPageErr)
     }
 
     "return MultipleErrorResponse when all parameters are invalid" in {
       val result = ValidationHelper.validateParams("1234", "20-24", "13", Some("-12"))
       result.left.get shouldBe
-        MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear, InvalidMonth, InvalidPageErr))
+        MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear, InvalidMonth, InvalidPageErr))
     }
 
     "return MultipleErrorResponse when two parameters are invalid" in {
       val result = ValidationHelper.validateParams("Invalid", "20-24", "MAY")
-      result.left.get shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidIsaManagerRef, InvalidTaxYear))
+      result.left.get shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear))
     }
   }
 }

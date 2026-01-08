@@ -31,9 +31,9 @@ class ErrorResponseSpec extends BaseUnitSpec {
       )
 
       val result = Json.fromJson[ErrorResponse](json)
-
       result shouldBe JsSuccess(ObligationClosed)
     }
+
     "deserialize a unauthorised error" in {
       val json = Json.obj(
         "code"    -> UnauthorisedErr.code,
@@ -41,7 +41,6 @@ class ErrorResponseSpec extends BaseUnitSpec {
       )
 
       val result = Json.fromJson[ErrorResponse](json)
-
       result shouldBe JsSuccess(UnauthorisedErr)
     }
 
@@ -52,7 +51,6 @@ class ErrorResponseSpec extends BaseUnitSpec {
       )
 
       val result = Json.fromJson[ErrorResponse](json)
-
       result shouldBe JsSuccess(EmptyPayload)
     }
 

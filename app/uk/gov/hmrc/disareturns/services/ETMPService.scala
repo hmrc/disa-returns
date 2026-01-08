@@ -46,11 +46,11 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
     }
   }
 
-  def getObligationStatus(isaManagerReferenceNumber: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] = {
-    logger.info(s"Getting obligation status for IM ref: [$isaManagerReferenceNumber]")
+  def getObligationStatus(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] = {
+    logger.info(s"Getting obligation status for IM ref: [$zReference]")
 
     EitherT {
-      connector.getReturnsObligationStatus(isaManagerReferenceNumber).value.map {
+      connector.getReturnsObligationStatus(zReference).value.map {
         case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
         case Right(response) =>
           response.json
@@ -64,11 +64,11 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
   }
 
   def validateEtmpSubmissionEligibility(
-    isaManagerReferenceNumber: String
-  )(implicit hc:               HeaderCarrier, ec: ExecutionContext): Future[Either[ErrorResponse, (EtmpReportingWindow, EtmpObligations)]] =
+    zReference:  String
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[ErrorResponse, (EtmpReportingWindow, EtmpObligations)]] =
     for {
       reportingWindowEither <- getReportingWindowStatus().value
-      obligationsEither     <- getObligationStatus(isaManagerReferenceNumber).value
+      obligationsEither     <- getObligationStatus(zReference).value
     } yield for {
       reportingWindow <- reportingWindowEither
       obligations     <- obligationsEither
@@ -86,9 +86,9 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
       }
     } yield (reportingWindow, obligations)
 
-  def declaration(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
-    logger.info(s"Submitting declaration for IM ref: [$isaManagerReference]")
-    connector.sendDeclaration(isaManagerReference).leftMap(mapToErrorResponse)
+  def declaration(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
+    logger.info(s"Submitting declaration for IM ref: [$zReference]")
+    connector.sendDeclaration(zReference).leftMap(mapToErrorResponse)
   }
 
 }

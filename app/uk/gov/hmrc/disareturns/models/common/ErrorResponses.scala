@@ -80,9 +80,9 @@ case object MalformedJsonFailureErr extends ErrorResponse {
   val message = "One of the NDJson lines contains malformed JSON"
 }
 
-case object InvalidIsaManagerRef extends ErrorResponse {
-  val code    = "INVALID_ISA_MANAGER_REFERENCE"
-  val message = "ISA manager reference is not formatted correctly"
+case object InvalidZReference extends ErrorResponse {
+  val code    = "INVALID_Z_REFERENCE"
+  val message = "Z reference is not formatted correctly"
 }
 
 case object InvalidTaxYear extends ErrorResponse {
@@ -124,7 +124,7 @@ object ErrorResponse {
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
     MalformedJsonFailureErr.code    -> MalformedJsonFailureErr,
-    InvalidIsaManagerRef.code       -> InvalidIsaManagerRef,
+    InvalidZReference.code          -> InvalidZReference,
     InvalidTaxYear.code             -> InvalidTaxYear,
     InvalidMonth.code               -> InvalidMonth,
     InvalidPageErr.code             -> InvalidPageErr,

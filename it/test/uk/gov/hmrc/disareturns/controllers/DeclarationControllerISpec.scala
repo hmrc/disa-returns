@@ -26,11 +26,10 @@ import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 class DeclarationControllerISpec extends BaseIntegrationSpec {
 
-  val isaManagerRef  = "Z1234"
   val taxYear        = "2025-26"
   val month          = "FEB"
   val boxId          = "boxId1"
-  val declarationUrl = s"/monthly/$isaManagerRef/$taxYear/$month/declaration"
+  val declarationUrl = s"/monthly/$validZReference/$taxYear/$month/declaration"
 
   val boxResponseJson: String =
     s"""
@@ -44,37 +43,37 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
        |}
        |""".stripMargin
 
-  "POST /monthly/:isaManagerRef/:taxYear/:month/declaration" should {
+  "POST /monthly/:zReference/:taxYear/:month/declaration" should {
 
     "return 200 OK when the declaration is successful and a boxId has been retrieved from PPNS" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
-      stubETMPDeclaration(ok, isaManagerRef)
-      stubNPSNotification(ok, isaManagerRef)
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+      stubETMPDeclaration(ok, validZReference)
+      stubNPSNotification(ok, validZReference)
       stubPPNSBoxId(boxResponseJson, testClientId)
 
-      val result = declarationRequest(isaManagerRef, taxYear, month)
+      val result = declarationRequest(validZReference, taxYear, month)
 
       result.status                                           shouldBe OK
-      (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$isaManagerRef/$taxYear/$month/results/summary")
+      (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$validZReference/$taxYear/$month/results/summary")
       (result.json \ "boxId").as[String]                      shouldBe boxId
     }
   }
 
   "return 200 OK when the declaration is successful and no boxId has been retrieved from PPNS" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
-    stubETMPDeclaration(ok, isaManagerRef)
-    stubNPSNotification(ok, isaManagerRef)
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+    stubETMPDeclaration(ok, validZReference)
+    stubNPSNotification(ok, validZReference)
     stubFor(
       get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"))
         .willReturn(notFound())
     )
 
-    val result = declarationRequest(isaManagerRef, taxYear, month)
+    val result = declarationRequest(validZReference, taxYear, month)
 
     result.status                                           shouldBe OK
-    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$isaManagerRef/$taxYear/$month/results/summary")
+    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$validZReference/$taxYear/$month/results/summary")
   }
 
   "return 200 OK when an explicit nil return declaration is submitted" in {
@@ -86,15 +85,15 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
         |""".stripMargin
 
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
-    stubETMPDeclaration(ok, isaManagerRef)
-    stubNPSNotification(ok, isaManagerRef, nilReturn = true)
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+    stubETMPDeclaration(ok, validZReference)
+    stubNPSNotification(ok, validZReference, nilReturn = true)
     stubPPNSBoxId(boxResponseJson, testClientId)
 
-    val result = declarationRequest(isaManagerRef, taxYear, month, body = nilReturnBody)
+    val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
 
     result.status                                           shouldBe OK
-    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$isaManagerRef/$taxYear/$month/results/summary")
+    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$validZReference/$taxYear/$month/results/summary")
     (result.json \ "boxId").as[String]                      shouldBe boxId
   }
 
@@ -107,40 +106,40 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
         |""".stripMargin
 
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
-    stubETMPDeclaration(ok, isaManagerRef)
-    stubNPSNotification(ok, isaManagerRef)
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+    stubETMPDeclaration(ok, validZReference)
+    stubNPSNotification(ok, validZReference)
     stubPPNSBoxId(boxResponseJson, testClientId)
 
-    val result = declarationRequest(isaManagerRef, taxYear, month, body = nilReturnBody)
+    val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
 
     result.status                                           shouldBe OK
-    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$isaManagerRef/$taxYear/$month/results/summary")
+    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$validZReference/$taxYear/$month/results/summary")
     (result.json \ "boxId").as[String]                      shouldBe boxId
   }
 
   "return 400 Bad Request for invalid taxYear" in {
     val invalidTaxYear = "2025"
-    val result         = declarationRequest(isaManagerRef, invalidTaxYear, month)
+    val result         = declarationRequest(validZReference, invalidTaxYear, month)
 
     result.status shouldBe BAD_REQUEST
-    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(isaManagerRef, invalidTaxYear, month).left.toOption.get)
+    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(validZReference, invalidTaxYear, month).left.toOption.get)
   }
 
   "return 400 Bad Request for invalid month" in {
     val invalidMonth = "April"
-    val result       = declarationRequest(isaManagerRef, taxYear, invalidMonth)
+    val result       = declarationRequest(validZReference, taxYear, invalidMonth)
 
     result.status shouldBe BAD_REQUEST
-    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(isaManagerRef, taxYear, invalidMonth).left.toOption.get)
+    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(validZReference, taxYear, invalidMonth).left.toOption.get)
   }
 
-  "return 400 Bad Request for invalid isaManagerRef" in {
-    val invalidIsaManagerRef = "z65803"
-    val result               = declarationRequest(invalidIsaManagerRef, taxYear, month)
+  "return 400 Bad Request for invalid zReference" in {
+    val invalidZReference = "z65803"
+    val result            = declarationRequest(invalidZReference, taxYear, month)
 
     result.status shouldBe BAD_REQUEST
-    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(invalidIsaManagerRef, taxYear, month).left.toOption.get)
+    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(invalidZReference, taxYear, month).left.toOption.get)
 
   }
 
@@ -152,7 +151,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
     stubAuth()
     val result = await(
-      ws.url(s"http://localhost:$port/monthly/$isaManagerRef/$taxYear/$month/declaration")
+      ws.url(s"http://localhost:$port/monthly/$validZReference/$taxYear/$month/declaration")
         .withHttpHeaders(headers: _*)
         .post("")
     )
@@ -165,9 +164,9 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
   "return 400 Bad Request when an invalid nil return request body is submitted" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
-    stubETMPDeclaration(ok, isaManagerRef)
-    stubNPSNotification(ok, isaManagerRef)
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+    stubETMPDeclaration(ok, validZReference)
+    stubNPSNotification(ok, validZReference)
     stubPPNSBoxId(boxResponseJson, testClientId)
 
     val nilReturnBody =
@@ -177,7 +176,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
         |}
         |""".stripMargin
 
-    val result = declarationRequest(isaManagerRef, taxYear, month, body = nilReturnBody)
+    val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
 
     val json = result.json
     (json \ "code").as[String]    shouldBe "MALFORMED_JSON"
@@ -186,8 +185,8 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
   "return 403 Forbidden when the reporting window is closed" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
-    val result = declarationRequest(isaManagerRef, taxYear, month)
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+    val result = declarationRequest(validZReference, taxYear, month)
 
     result.status shouldBe FORBIDDEN
     val json = result.json
@@ -197,8 +196,8 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
   "return 403 Forbidden when the obligation is closed" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), isaManagerRef = isaManagerRef)
-    val result = declarationRequest(isaManagerRef, taxYear, month)
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), zReference = validZReference)
+    val result = declarationRequest(validZReference, taxYear, month)
 
     result.status shouldBe FORBIDDEN
     val json = result.json
@@ -208,9 +207,9 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
   "return 500 Internal Server Error when the call to nps declaration fails" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), isaManagerRef = isaManagerRef)
-    stubETMPDeclaration(serverError, isaManagerRef)
-    val result = declarationRequest(isaManagerRef, taxYear, month)
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+    stubETMPDeclaration(serverError, validZReference)
+    val result = declarationRequest(validZReference, taxYear, month)
 
     result.status shouldBe INTERNAL_SERVER_ERROR
     val json = result.json
@@ -219,16 +218,16 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   }
 
   def declarationRequest(
-    isaManagerRef: String,
-    taxYear:       String,
-    month:         String,
-    headers:       Seq[(String, String)] = testHeaders,
-    body:          String = ""
+    zReference: String,
+    taxYear:    String,
+    month:      String,
+    headers:    Seq[(String, String)] = testHeaders,
+    body:       String = ""
   ): WSResponse = {
     stubAuth()
     await(
       ws.url(
-        s"http://localhost:$port/monthly/$isaManagerRef/$taxYear/$month/declaration"
+        s"http://localhost:$port/monthly/$zReference/$taxYear/$month/declaration"
       ).withHttpHeaders(headers: _*)
         .post(body)
     )

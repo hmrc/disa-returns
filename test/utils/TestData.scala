@@ -16,13 +16,91 @@
 
 package utils
 
+import org.scalacheck.Gen
+import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 
 trait TestData {
-  val validZRef:            String               = "Z1234"
+
+  val zReferenceGen: Gen[String] =
+    Gen.listOfN(4, Gen.numChar).map(digits => s"Z${digits.mkString}")
+
+  val validZReference:      String               = zReferenceGen.sample.get
   val validTaxYear:         String               = "2026-27"
   val validMonth:           Month.Value          = Month.SEP
   val validMonthStr:        String               = "SEP"
   val returnSummaryResults: ReturnSummaryResults = ReturnSummaryResults(returnResultsLocation = "some-location", totalRecords = 20, numberOfPages = 2)
+
+  val lifetimeIsaSubscriptionJson: JsObject = Json.obj(
+    "accountNumber"                       -> "STD000001",
+    "nino"                                -> "AB000001C",
+    "firstName"                           -> "First1",
+    "middleName"                          -> "Middle1",
+    "lastName"                            -> "Last1",
+    "dateOfBirth"                         -> "1980-01-02",
+    "isaType"                             -> "LIFETIME",
+    "amountTransferredIn"                 -> 2500.11,
+    "amountTransferredOut"                -> 2500.11,
+    "dateOfFirstSubscription"             -> "2025-06-01",
+    "dateOfLastSubscription"              -> "2025-06-01",
+    "totalCurrentYearSubscriptionsToDate" -> 2500.11,
+    "marketValueOfAccount"                -> 10000.11,
+    "lisaQualifyingAddition"              -> -5000.11,
+    "lisaBonusClaim"                      -> 5000.11
+  )
+
+  val lifetimeIsaClosureJson: JsObject = Json.obj(
+    "accountNumber"                       -> "STD000001",
+    "nino"                                -> "AB000001C",
+    "firstName"                           -> "First1",
+    "middleName"                          -> "Middle1",
+    "lastName"                            -> "Last1",
+    "dateOfBirth"                         -> "1980-01-02",
+    "isaType"                             -> "LIFETIME",
+    "amountTransferredIn"                 -> 2500.11,
+    "amountTransferredOut"                -> 2500.11,
+    "dateOfFirstSubscription"             -> "2025-06-01",
+    "dateOfLastSubscription"              -> "2025-06-01",
+    "totalCurrentYearSubscriptionsToDate" -> 2500.11,
+    "marketValueOfAccount"                -> 10000.11,
+    "lisaQualifyingAddition"              -> 5000.11,
+    "lisaBonusClaim"                      -> -5000.11,
+    "reasonForClosure"                    -> "CANCELLED",
+    "closureDate"                         -> "2025-06-01"
+  )
+
+  val standardIsaSubscriptionJson: JsObject = Json.obj(
+    "accountNumber"                       -> "STD000001",
+    "nino"                                -> "AB000001C",
+    "firstName"                           -> "First1",
+    "middleName"                          -> "Middle1",
+    "lastName"                            -> "Last1",
+    "dateOfBirth"                         -> "1980-01-02",
+    "isaType"                             -> "STOCKS_AND_SHARES",
+    "amountTransferredIn"                 -> 2500.11,
+    "amountTransferredOut"                -> 2500.11,
+    "dateOfLastSubscription"              -> "2025-06-01",
+    "totalCurrentYearSubscriptionsToDate" -> 2500.11,
+    "marketValueOfAccount"                -> 10000.11,
+    "flexibleIsa"                         -> false
+  )
+
+  val standardIsaClosureJson: JsObject = Json.obj(
+    "accountNumber"                       -> "STD000001",
+    "nino"                                -> "AB000001C",
+    "firstName"                           -> "First1",
+    "middleName"                          -> "Middle1",
+    "lastName"                            -> "Last1",
+    "dateOfBirth"                         -> "1980-01-02",
+    "isaType"                             -> "STOCKS_AND_SHARES",
+    "amountTransferredIn"                 -> 2500.11,
+    "amountTransferredOut"                -> 2500.11,
+    "dateOfLastSubscription"              -> "2025-06-01",
+    "totalCurrentYearSubscriptionsToDate" -> 2500.11,
+    "marketValueOfAccount"                -> 10000.11,
+    "reasonForClosure"                    -> "CANCELLED",
+    "closureDate"                         -> "2025-06-01",
+    "flexibleIsa"                         -> false
+  )
 }

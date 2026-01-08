@@ -54,7 +54,8 @@ trait BaseIntegrationSpec
     with BeforeAndAfterAll
     with DefaultAwaitTimeout
     with WiremockHelper
-    with CommonStubs {
+    with CommonStubs
+    with TestData {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 

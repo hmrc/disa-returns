@@ -35,11 +35,11 @@ class MonthlyReturnsSummarySpec extends BaseUnitSpec {
     "write a case class to JSON with month as a string" in {
       val now = Instant.parse("2025-09-30T12:00:00Z")
       val model =
-        MonthlyReturnsSummary(zRef = "Z1234", taxYear = "2026-27", month = Month.SEP, totalRecords = 3, createdAt = now, updatedAt = now)
+        MonthlyReturnsSummary(zRef = validZReference, taxYear = "2026-27", month = Month.SEP, totalRecords = 3, createdAt = now, updatedAt = now)
 
       val js = Json.toJson(model)
 
-      (js \ "zRef").as[String] mustBe "Z1234"
+      (js \ "zRef").as[String] mustBe validZReference
       (js \ "taxYear").as[String] mustBe "2026-27"
       (js \ "month").as[String] mustBe "SEP"
       (js \ "totalRecords").as[Int] mustBe 3
@@ -51,7 +51,7 @@ class MonthlyReturnsSummarySpec extends BaseUnitSpec {
       val now = Instant.parse("2025-09-30T12:00:00Z")
 
       val js = Json.obj(
-        "zRef"         -> "Z5678",
+        "zRef"         -> validZReference,
         "taxYear"      -> "2027-28",
         "month"        -> "JAN",
         "totalRecords" -> 7,
@@ -61,7 +61,7 @@ class MonthlyReturnsSummarySpec extends BaseUnitSpec {
 
       val model = js.as[MonthlyReturnsSummary]
 
-      model.zRef mustBe "Z5678"
+      model.zRef mustBe validZReference
       model.taxYear mustBe "2027-28"
       model.month mustBe Month.JAN
       model.totalRecords mustBe 7
@@ -71,7 +71,7 @@ class MonthlyReturnsSummarySpec extends BaseUnitSpec {
 
     "round-trip successfully" in {
       val now   = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS)
-      val model = MonthlyReturnsSummary("Z9999", "2026-27", Month.DEC, 42, now, now)
+      val model = MonthlyReturnsSummary(validZReference, "2026-27", Month.DEC, 42, now, now)
 
       val js   = Json.toJson(model)
       val back = js.as[MonthlyReturnsSummary]
@@ -81,7 +81,7 @@ class MonthlyReturnsSummarySpec extends BaseUnitSpec {
 
     "fail reads when month string is invalid" in {
       val js = Json.obj(
-        "zRef"         -> "Z1234",
+        "zRef"         -> validZReference,
         "taxYear"      -> "2026-27",
         "month"        -> "NOPE",
         "totalRecords" -> 1,

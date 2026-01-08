@@ -42,47 +42,47 @@ class ReturnsSummaryController @Inject() (
     with Logging
     with WithJsonBodyWithBadRequest {
 
-  def retrieveReturnSummary(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[AnyContent] =
-    ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
+  def retrieveReturnSummary(zReference: String, taxYear: String, month: String): Action[AnyContent] =
+    ValidationHelper.validateParams(zReference, taxYear, month) match {
       case Left(errors) =>
         Action(_ => BadRequest(Json.toJson(errors)))
-      case Right((isaManagerReferenceNumber, taxYear, month, _)) =>
-        (Action andThen authAction(isaManagerReferenceNumber)).async { _ =>
-          returnsSummaryService.retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month).map {
+      case Right((zReference, taxYear, month, _)) =>
+        (Action andThen authAction(zReference)).async { _ =>
+          returnsSummaryService.retrieveReturnSummary(zReference, taxYear, month).map {
             case Left(e: InternalServerErr) =>
               InternalServerError(Json.toJson(e))
             case Left(e: ReturnNotFoundErr) =>
-              logger.warn(s"Return summary not found for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
+              logger.warn(s"Return summary not found for IM ref: [$zReference] for [$month][$taxYear]")
               NotFound(Json.toJson(e))
             case Right(summary) =>
-              logger.info(s"Retrieval of return summary successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
+              logger.info(s"Retrieval of return summary successful for IM ref: [$zReference] for [$month][$taxYear]")
               Ok(Json.toJson(summary))
           }
         }
     }
 
   def returnsSummaryCallback(
-    isaManagerReferenceNumber: String,
-    taxYear:                   String,
-    month:                     String
+    zReference: String,
+    taxYear:    String,
+    month:      String
   ): Action[JsValue] =
     Action.async(parse.json) { implicit request =>
       withJsonBody[MonthlyReturnsSummaryReq] { body =>
-        ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
+        ValidationHelper.validateParams(zReference, taxYear, month) match {
           case Left(errors) => Future.successful(BadRequest(Json.toJson(errors)))
-          case Right((isaManagerReferenceNumber, taxYear, month, _)) =>
-            val summary = MonthlyReturnsSummary(isaManagerReferenceNumber, taxYear, month, body.totalRecords)
+          case Right((zReference, taxYear, month, _)) =>
+            val summary = MonthlyReturnsSummary(zReference, taxYear, month, body.totalRecords)
             //TODO Should we consider doing the logic for the numberOfPages etc as part of saving the summary instead of doing it on retrieveReturnSummary???
             returnsSummaryService.saveReturnsSummary(summary).flatMap {
               case Left(err: InternalServerErr) =>
                 Future.successful(InternalServerError(Json.toJson(err)))
               case Right(_) =>
-                returnsSummaryService.retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month).flatMap {
+                returnsSummaryService.retrieveReturnSummary(zReference, taxYear, month).flatMap {
                   case Left(_) =>
                     Future.successful(NoContent)
                   case Right(returnSummaryResults) =>
-                    ppnsService.sendNotification(isaManagerReferenceNumber, returnSummaryResults).map { _ =>
-                      logger.info(s"Callback with return summary successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
+                    ppnsService.sendNotification(zReference, returnSummaryResults).map { _ =>
+                      logger.info(s"Callback with return summary successful for IM ref: [$zReference] for [$month][$taxYear]")
                       NoContent
                     }
                 }
@@ -90,5 +90,4 @@ class ReturnsSummaryController @Inject() (
         }
       }
     }
-
 }

@@ -49,31 +49,31 @@ class DeclarationController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def declare(isaManagerReferenceNumber: String, taxYear: String, month: String): Action[AnyContent] =
-    ValidationHelper.validateParams(isaManagerReferenceNumber, taxYear, month) match {
+  def declare(zReference: String, taxYear: String, month: String): Action[AnyContent] =
+    ValidationHelper.validateParams(zReference, taxYear, month) match {
       case Left(errors) =>
         Action(_ => BadRequest(Json.toJson(errors)))
-      case Right((isaManagerReferenceNumber, _, _, _)) =>
-        (Action andThen authAction(isaManagerReferenceNumber) andThen clientIdAction andThen nilReturnAction).async { implicit request =>
+      case Right((zReference, _, _, _)) =>
+        (Action andThen authAction(zReference) andThen clientIdAction andThen nilReturnAction).async { implicit request =>
           val result: EitherT[Future, ErrorResponse, Option[String]] = for {
-            _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(isaManagerReferenceNumber))
-            _             <- etmpService.declaration(isaManagerReferenceNumber)
-            _             <- npsService.notification(isaManagerReferenceNumber, request.nilReturnReported)
+            _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(zReference))
+            _             <- etmpService.declaration(zReference)
+            _             <- npsService.notification(zReference, request.nilReturnReported)
             boxIdResponse <- EitherT(ppnsService.getBoxId(request.clientId))
           } yield boxIdResponse
           result.value.flatMap {
             case Left(error) =>
-              logger.error(s"Failed to declare return for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear] with error: [$error]")
+              logger.error(s"Failed to declare return for IM ref: [$zReference] for [$month][$taxYear] with error: [$error]")
               Future.successful(HttpHelper.toHttpError(error))
             case Right(optBoxId) =>
-              notificationContextService.saveContext(request.clientId, optBoxId, isaManagerReferenceNumber).map {
+              notificationContextService.saveContext(request.clientId, optBoxId, zReference).map {
                 case Left(error) =>
-                  logger.error(s"Failed to save notification context for IM ref: [$isaManagerReferenceNumber], error: [$error]")
+                  logger.error(s"Failed to save notification context for IM ref: [$zReference], error: [$error]")
                   HttpHelper.toHttpError(error)
                 case Right(_) =>
-                  logger.info(s"Declaration of return successful for IM ref: [$isaManagerReferenceNumber] for [$month][$taxYear]")
+                  logger.info(s"Declaration of return successful for IM ref: [$zReference] for [$month][$taxYear]")
                   val returnResultsSummaryLocation =
-                    config.selfHost + routes.ReturnsSummaryController.retrieveReturnSummary(isaManagerReferenceNumber, taxYear, month).url
+                    config.selfHost + routes.ReturnsSummaryController.retrieveReturnSummary(zReference, taxYear, month).url
                   Ok(Json.toJson(DeclarationSuccessfulResponse(returnResultsSummaryLocation, optBoxId)))
               }
           }
