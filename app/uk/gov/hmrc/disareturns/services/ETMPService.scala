@@ -86,9 +86,9 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
       }
     } yield (reportingWindow, obligations)
 
-  def declaration(isaManagerReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
-    logger.info(s"Submitting declaration for IM ref: [$isaManagerReference]")
-    connector.sendDeclaration(isaManagerReference).leftMap(mapToErrorResponse)
+  def declaration(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
+    logger.info(s"Submitting declaration for IM ref: [$zReference]")
+    connector.sendDeclaration(zReference).leftMap(mapToErrorResponse)
   }
 
 }
