@@ -17,6 +17,7 @@
 package controllers
 
 import cats.data.EitherT
+import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import play.api.libs.json.Json
@@ -35,7 +36,8 @@ import scala.concurrent.Future
 
 class DeclarationControllerSpec extends BaseUnitSpec {
 
-  val controller: DeclarationController = app.injector.instanceOf[DeclarationController]
+  val controller:            DeclarationController = app.injector.instanceOf[DeclarationController]
+  implicit val materializer: Materializer          = app.materializer
 
   val clientId = "client-999"
   val boxId    = "box-123"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,8 @@ package uk.gov.hmrc.disareturns.controllers.actionBuilders
 import com.google.inject.Inject
 import jakarta.inject.Singleton
 import play.api.Logging
-import play.api.libs.json.{JsError, Json}
-import play.api.mvc.Results.BadRequest
-import play.api.mvc.{ActionRefiner, AnyContent, Result}
+import play.api.libs.json.{JsError, JsValue, Json}
+import play.api.mvc._
 import uk.gov.hmrc.disareturns.models.common.{DeclarationRequest, MalformedJsonFailureErr}
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
 
@@ -32,28 +31,27 @@ class NilReturnAction @Inject() (implicit ec: ExecutionContext) extends ActionRe
 
   override protected def executionContext: ExecutionContext = ec
 
-  override def refine[A](request: DeclarationRequest[A]): Future[Either[Result, DeclarationRequest[A]]] = {
-    val nilReturnEither: Either[Result, Boolean] = request.body match {
-      case anyContent: AnyContent =>
-        anyContent.asJson
-          .map { json =>
-            json
-              .validate[ReportingNilReturn]
+  override def refine[A](request: DeclarationRequest[A]): Future[Either[Result, DeclarationRequest[A]]] = Future {
+
+    val nilReturnReported: Either[Result, Boolean] = request.body match {
+      case jsOpt: Option[play.api.libs.json.JsValue] =>
+        jsOpt match {
+          case Some(js: JsValue) =>
+            js.validate[ReportingNilReturn]
               .fold(
                 errors => {
                   logger.warn(s"Failed to parse NilReturn JSON: ${JsError.toJson(errors)}")
-                  Left(BadRequest(Json.toJson(MalformedJsonFailureErr)))
+                  Left(Results.BadRequest(Json.toJson(MalformedJsonFailureErr)))
                 },
-                nilReturnObj => Right(nilReturnObj.nilReturn)
+                model => Right(model.nilReturn)
               )
-          }
-          .getOrElse(Right(false))
+          case None =>
+            Right(false) // No JSON body → default
+        }
       case _ =>
-        Right(false)
+        Right(false) // Should not happen if body parser is used
     }
 
-    Future.successful(
-      nilReturnEither.map(nr => request.copy(nilReturnReported = nr))
-    )
+    nilReturnReported.map(nr => request.copy(nilReturnReported = nr))
   }
 }

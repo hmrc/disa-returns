@@ -104,6 +104,11 @@ case object InvalidPageErr extends ErrorResponse {
   val message = "Invalid page index parameter provided"
 }
 
+case object DuplicateNilReturnField extends ErrorResponse {
+  val code    = "DUPLICATE_FIELD"
+  val message = "Duplicate Nil Return field provided"
+}
+
 object ErrorResponse {
 
   implicit val returnNotFoundErrReads:     Reads[ReturnNotFoundErr]     = Json.reads[ReturnNotFoundErr]
@@ -128,7 +133,8 @@ object ErrorResponse {
     InvalidTaxYear.code             -> InvalidTaxYear,
     InvalidMonth.code               -> InvalidMonth,
     InvalidPageErr.code             -> InvalidPageErr,
-    EmptyPayload.code               -> EmptyPayload
+    EmptyPayload.code               -> EmptyPayload,
+    DuplicateNilReturnField.code    -> DuplicateNilReturnField
   )
 
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {

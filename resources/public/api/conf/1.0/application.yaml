@@ -1005,6 +1005,7 @@ components:
           description: Code indicating the type of error.
           enum:
             - MALFORMED_JSON
+            - DUPLICATE_FIELD
         message:
           title: Detailed Message
           type: string

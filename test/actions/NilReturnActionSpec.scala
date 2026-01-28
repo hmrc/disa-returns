@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package actions
 
-import play.api.libs.json.Json
-import play.api.mvc.{AnyContent, AnyContentAsJson}
+import play.api.http.Status.BAD_REQUEST
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.{contentAsJson, status}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.NilReturnAction
 import uk.gov.hmrc.disareturns.models.common.{DeclarationRequest, MalformedJsonFailureErr}
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
@@ -32,14 +32,14 @@ class NilReturnActionSpec extends BaseUnitSpec {
   private val testClientId = "client-123"
   private val action       = new NilReturnAction()
 
-  private def buildRequest(body: AnyContent = AnyContent("")): DeclarationRequest[AnyContent] =
-    DeclarationRequest(FakeRequest().withBody(body), clientId = testClientId)
+  private def buildRequest(jsOpt: Option[JsValue] = None): DeclarationRequest[Option[JsValue]] =
+    DeclarationRequest(FakeRequest().withBody(jsOpt), clientId = testClientId)
 
   "NilReturnAction.refine" should {
 
     "overwrite nilReturnReported to true when JSON reports nil return" in {
       val json    = Json.toJson(ReportingNilReturn(nilReturn = true))
-      val request = buildRequest(AnyContentAsJson(json))
+      val request = buildRequest(Some(json))
 
       whenReady(action.refine(request)) { result =>
         result.isRight                        shouldBe true
@@ -49,7 +49,7 @@ class NilReturnActionSpec extends BaseUnitSpec {
 
     "overwrite nilReturnReported to false when JSON reports no nil return" in {
       val json    = Json.toJson(ReportingNilReturn(nilReturn = false))
-      val request = buildRequest(AnyContentAsJson(json)).copy(nilReturnReported = true)
+      val request = buildRequest(Some(json)).copy(nilReturnReported = true)
 
       whenReady(action.refine(request)) { result =>
         result.isRight                        shouldBe true
@@ -59,7 +59,7 @@ class NilReturnActionSpec extends BaseUnitSpec {
 
     "return BadRequest when JSON is malformed" in {
       val invalidJson = Json.obj("invalid" -> "field")
-      val request     = buildRequest(AnyContentAsJson(invalidJson))
+      val request     = buildRequest(Some(invalidJson))
 
       whenReady(action.refine(request)) { result =>
         result.isLeft shouldBe true
@@ -69,8 +69,8 @@ class NilReturnActionSpec extends BaseUnitSpec {
       }
     }
 
-    "keep nilReturnReported as false when body is not JSON" in {
-      val request = buildRequest()
+    "keep nilReturnReported as false when body is None" in {
+      val request = buildRequest(None)
 
       whenReady(action.refine(request)) { result =>
         result.isRight                        shouldBe true
