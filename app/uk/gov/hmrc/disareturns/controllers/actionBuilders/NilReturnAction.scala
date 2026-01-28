@@ -45,13 +45,10 @@ class NilReturnAction @Inject() (implicit ec: ExecutionContext) extends ActionRe
                 },
                 model => Right(model.nilReturn)
               )
-          case None =>
-            Right(false) // No JSON body → default
+          case None => Right(false)
         }
-      case _ =>
-        Right(false) // Should not happen if body parser is used
+      case _ => Right(false)
     }
-
     nilReturnReported.map(nr => request.copy(nilReturnReported = nr))
   }
 }

@@ -54,9 +54,8 @@ class StrictOptionalJsonBodyParserSpec extends AnyWordSpec with Matchers with Sc
       val requestHeader = FakeRequest("POST", "/")
         .withHeaders("Content-Type" -> "application/json")
 
-      // Run the parser with a source of bytes
-      val acc = parser(requestHeader)
-      val result = await(acc.run(bytes)) // ← pass the bytes explicitly
+      val acc    = parser(requestHeader)
+      val result = await(acc.run(bytes))
 
       result match {
         case Right(Some(js)) =>
@@ -66,13 +65,11 @@ class StrictOptionalJsonBodyParserSpec extends AnyWordSpec with Matchers with Sc
       }
     }
 
-
     "return BadRequest when JSON has duplicate fields" in {
       val rawJson = """{ "nilReturn": true, "nilReturn": false }"""
       val bytes   = ByteString(rawJson)
       val requestHeader = FakeRequest("POST", "/")
         .withHeaders("Content-Type" -> "application/json")
-
 
       val acc    = parser.apply(requestHeader)
       val result = await(acc.run(bytes))

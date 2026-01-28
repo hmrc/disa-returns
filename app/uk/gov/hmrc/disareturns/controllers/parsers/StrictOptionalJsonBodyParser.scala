@@ -32,14 +32,12 @@ import uk.gov.hmrc.disareturns.models.common.DuplicateNilReturnField
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class StrictOptionalJsonBodyParser @Inject()()(implicit ec: ExecutionContext)
-  extends BodyParser[Option[JsValue]] with Logging {
+class StrictOptionalJsonBodyParser @Inject() ()(implicit ec: ExecutionContext) extends BodyParser[Option[JsValue]] with Logging {
 
   private val mapper: ObjectMapper =
     new ObjectMapper(new JsonFactory().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION))
 
-  override def apply(request: RequestHeader): Accumulator[ByteString, Either[Result, Option[JsValue]]] = {
-
+  override def apply(request: RequestHeader): Accumulator[ByteString, Either[Result, Option[JsValue]]] =
     Accumulator(Sink.fold[ByteString, ByteString](ByteString.empty)(_ ++ _)).map { bytes =>
       if (bytes.isEmpty)
         Right(None)
@@ -55,5 +53,4 @@ class StrictOptionalJsonBodyParser @Inject()()(implicit ec: ExecutionContext)
         }
       }
     }
-  }
 }
