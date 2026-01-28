@@ -20,6 +20,7 @@ import com.google.inject.Inject
 import jakarta.inject.Singleton
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
+import play.api.mvc.Results.BadRequest
 import play.api.mvc._
 import uk.gov.hmrc.disareturns.models.common.{DeclarationRequest, MalformedJsonFailureErr}
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
@@ -34,14 +35,13 @@ class NilReturnAction @Inject() (implicit ec: ExecutionContext) extends ActionRe
   override def refine[A](request: DeclarationRequest[A]): Future[Either[Result, DeclarationRequest[A]]] = Future {
 
     val nilReturnReported: Either[Result, Boolean] = request.body match {
-      case jsOpt: Option[play.api.libs.json.JsValue] =>
+      case jsOpt: Option[JsValue] =>
         jsOpt match {
           case Some(js: JsValue) =>
             js.validate[ReportingNilReturn]
               .fold(
                 errors => {
-                  logger.warn(s"Failed to parse NilReturn JSON: ${JsError.toJson(errors)}")
-                  Left(Results.BadRequest(Json.toJson(MalformedJsonFailureErr)))
+                  Left(BadRequest(Json.toJson(MalformedJsonFailureErr)))
                 },
                 model => Right(model.nilReturn)
               )
