@@ -19,7 +19,7 @@ package uk.gov.hmrc.disareturns.controllers.actionBuilders
 import com.google.inject.Inject
 import jakarta.inject.Singleton
 import play.api.Logging
-import play.api.libs.json.{JsError, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.BadRequest
 import play.api.mvc._
 import uk.gov.hmrc.disareturns.models.common.{DeclarationRequest, MalformedJsonFailureErr}
@@ -40,9 +40,7 @@ class NilReturnAction @Inject() (implicit ec: ExecutionContext) extends ActionRe
           case Some(js: JsValue) =>
             js.validate[ReportingNilReturn]
               .fold(
-                errors => {
-                  Left(BadRequest(Json.toJson(MalformedJsonFailureErr)))
-                },
+                errors => Left(BadRequest(Json.toJson(MalformedJsonFailureErr))),
                 model => Right(model.nilReturn)
               )
           case None => Right(false)
