@@ -65,7 +65,7 @@ class NilReturnActionSpec extends BaseUnitSpec {
         result.isLeft shouldBe true
         val response = result.left.get
         status(Future.successful(response))        shouldBe BAD_REQUEST
-        contentAsJson(Future.successful(response)) shouldBe Json.toJson(MalformedJsonFailureErr)
+        contentAsJson(Future.successful(response)) shouldBe Json.toJson(MalformedJsonFailureErr(message = "Request body contains malformed JSON"))
       }
     }
 

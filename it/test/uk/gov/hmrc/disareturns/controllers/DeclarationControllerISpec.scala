@@ -163,12 +163,6 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   }
 
   "return 400 Bad Request when an invalid nil return request body is submitted" in {
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(ok, validZReference)
-    stubNPSNotification(ok, validZReference)
-    stubPPNSBoxId(boxResponseJson, testClientId)
-
     val nilReturnBody =
       """
         |{
@@ -180,7 +174,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
     val json = result.json
     (json \ "code").as[String]    shouldBe "MALFORMED_JSON"
-    (json \ "message").as[String] shouldBe "One of the NDJson lines contains malformed JSON"
+    (json \ "message").as[String] shouldBe "Request body contains malformed JSON"
   }
 
   "return 400 BadRequest when duplicate nilReturn fields provided in request body" in {
@@ -191,12 +185,6 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
         |  "nilReturn": true
         |}
         |""".stripMargin
-
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(ok, validZReference)
-    stubNPSNotification(ok, validZReference, nilReturn = true)
-    stubPPNSBoxId(boxResponseJson, testClientId)
 
     val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
 

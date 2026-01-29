@@ -1318,7 +1318,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val result = submitMonthlyReturnRequest(invalidJson)
 
       result.status                 shouldBe BAD_REQUEST
-      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
+      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr(message = "One of the NDJson lines contains malformed JSON")
     }
 
     "return 400 with correct error response when payload NDJSON lines are not separated by a newline delimiter " in {
@@ -1327,7 +1327,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(validStandardIsaClosure + validStandardIsaSubscription)
       result.status                 shouldBe BAD_REQUEST
-      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
+      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr(message = "One of the NDJson lines contains malformed JSON")
     }
 
     "return 400 with correct error response when payload NDJSON lines have non-whitespace trailing tokens" in {
@@ -1336,7 +1336,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(validStandardIsaClosure + ";dlafj")
       result.status                 shouldBe BAD_REQUEST
-      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr
+      result.json.as[ErrorResponse] shouldBe MalformedJsonFailureErr(message = "One of the NDJson lines contains malformed JSON")
     }
 
     "return 400 with correct error response body when NDJSON payload is empty" in {

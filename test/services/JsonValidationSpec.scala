@@ -94,21 +94,21 @@ class JsonValidationSpec extends AnyWordSpec with Matchers {
       val line   = ""
       val result = JsonValidation.ensureValidNDJson(line)
 
-      result shouldBe Left(MalformedJsonFailureErr)
+      result shouldBe Left(MalformedJsonFailureErr(message = "One of the NDJson lines contains malformed JSON"))
     }
 
     "return Left[MalformedJsonErr] when there are concatenated NDJson lines" in {
       val line   = """{"accountNumber":"STD000001","nino":"AB000001C"}{"accountNumber":"STD000001","nino":"AB000001C"}"""
       val result = JsonValidation.ensureValidNDJson(line)
 
-      result shouldBe Left(MalformedJsonFailureErr)
+      result shouldBe Left(MalformedJsonFailureErr(message = "One of the NDJson lines contains malformed JSON"))
     }
 
     "return Left[MalformedJsonErr] when there are trailing non-whitespace tokens" in {
       val line   = """{"accountNumber":"STD000001","nino":"AB000001C"}09vfd"""
       val result = JsonValidation.ensureValidNDJson(line)
 
-      result shouldBe Left(MalformedJsonFailureErr)
+      result shouldBe Left(MalformedJsonFailureErr(message = "One of the NDJson lines contains malformed JSON"))
     }
   }
 

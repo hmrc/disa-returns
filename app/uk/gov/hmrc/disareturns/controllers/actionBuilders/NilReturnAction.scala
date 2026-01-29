@@ -40,7 +40,7 @@ class NilReturnAction @Inject() (implicit ec: ExecutionContext) extends ActionRe
           case Some(js: JsValue) =>
             js.validate[ReportingNilReturn]
               .fold(
-                errors => Left(BadRequest(Json.toJson(MalformedJsonFailureErr))),
+                errors => Left(BadRequest(Json.toJson(MalformedJsonFailureErr(message = "Request body contains malformed JSON")))),
                 model => Right(model.nilReturn)
               )
           case None => Right(false)
