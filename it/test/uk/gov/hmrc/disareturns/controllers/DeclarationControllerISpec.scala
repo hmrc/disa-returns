@@ -163,12 +163,6 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   }
 
   "return 400 Bad Request when an invalid nil return request body is submitted" in {
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(ok, validZReference)
-    stubNPSNotification(ok, validZReference)
-    stubPPNSBoxId(boxResponseJson, testClientId)
-
     val nilReturnBody =
       """
         |{
@@ -180,7 +174,23 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
     val json = result.json
     (json \ "code").as[String]    shouldBe "MALFORMED_JSON"
-    (json \ "message").as[String] shouldBe "One of the NDJson lines contains malformed JSON"
+    (json \ "message").as[String] shouldBe "Request body contains malformed JSON"
+  }
+
+  "return 400 BadRequest when duplicate nilReturn fields provided in request body" in {
+    val nilReturnBody =
+      """
+        |{
+        |  "nilReturn": true,
+        |  "nilReturn": true
+        |}
+        |""".stripMargin
+
+    val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
+
+    result.status                        shouldBe BAD_REQUEST
+    (result.json \ "code").as[String]    shouldBe "DUPLICATE_FIELD"
+    (result.json \ "message").as[String] shouldBe "Duplicate Nil Return field provided"
   }
 
   "return 403 Forbidden when the reporting window is closed" in {

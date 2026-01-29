@@ -54,7 +54,7 @@ object JsonValidation extends Logging {
       case Success(value) => Right(value)
       case Failure(ex) =>
         logger.info(s"Unable to parse: [$s] as valid NDJson with exception: [$ex]")
-        Left(MalformedJsonFailureErr)
+        Left(MalformedJsonFailureErr(message = "One of the NDJson lines contains malformed JSON"))
     }
   }
 

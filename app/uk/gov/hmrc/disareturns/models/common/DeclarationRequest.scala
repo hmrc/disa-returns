@@ -16,6 +16,12 @@
 
 package uk.gov.hmrc.disareturns.models.common
 
+import play.api.libs.json.JsValue
 import play.api.mvc.{Request, WrappedRequest}
 
-case class DeclarationRequest[A](request: Request[A], clientId: String, nilReturnReported: Boolean = false) extends WrappedRequest[A](request)
+case class DeclarationRequest[A](
+  request:           Request[A],
+  clientId:          String,
+  nilReturnReported: Boolean = false,
+  parsedJson:        Option[JsValue] = None
+) extends WrappedRequest[A](request)

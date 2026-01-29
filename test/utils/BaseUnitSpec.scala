@@ -16,7 +16,6 @@
 
 package utils
 
-import org.mockito.Mockito
 import org.mockito.Mockito.reset
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures

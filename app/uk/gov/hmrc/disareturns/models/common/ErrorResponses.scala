@@ -75,9 +75,8 @@ case object NinoOrAccountNumInvalidErr extends ErrorResponse {
   val message = "All models sent must include a valid account number and nino in order to process correctly"
 }
 
-case object MalformedJsonFailureErr extends ErrorResponse {
-  val code    = "MALFORMED_JSON"
-  val message = "One of the NDJson lines contains malformed JSON"
+case class MalformedJsonFailureErr(override val message: String) extends ErrorResponse {
+  val code = "MALFORMED_JSON"
 }
 
 case object InvalidZReference extends ErrorResponse {
@@ -104,11 +103,17 @@ case object InvalidPageErr extends ErrorResponse {
   val message = "Invalid page index parameter provided"
 }
 
+case object DuplicateNilReturnField extends ErrorResponse {
+  val code    = "DUPLICATE_FIELD"
+  val message = "Duplicate Nil Return field provided"
+}
+
 object ErrorResponse {
 
-  implicit val returnNotFoundErrReads:     Reads[ReturnNotFoundErr]     = Json.reads[ReturnNotFoundErr]
-  implicit val reportPageNotFoundErrReads: Reads[ReportPageNotFoundErr] = Json.reads[ReportPageNotFoundErr]
-  implicit val badRequestErrReads:         Reads[BadRequestErr]         = Json.reads[BadRequestErr]
+  implicit val returnNotFoundErrReads:       Reads[ReturnNotFoundErr]       = Json.reads[ReturnNotFoundErr]
+  implicit val reportPageNotFoundErrReads:   Reads[ReportPageNotFoundErr]   = Json.reads[ReportPageNotFoundErr]
+  implicit val malformedJsonFailureErrReads: Reads[MalformedJsonFailureErr] = Json.reads[MalformedJsonFailureErr]
+  implicit val badRequestErrReads:           Reads[BadRequestErr]           = Json.reads[BadRequestErr]
 
   implicit val internalServerErrReads: Reads[InternalServerErr] =
     (JsPath \ "message")
@@ -123,12 +128,12 @@ object ErrorResponse {
     UnauthorisedErr.code            -> UnauthorisedErr,
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
-    MalformedJsonFailureErr.code    -> MalformedJsonFailureErr,
     InvalidZReference.code          -> InvalidZReference,
     InvalidTaxYear.code             -> InvalidTaxYear,
     InvalidMonth.code               -> InvalidMonth,
     InvalidPageErr.code             -> InvalidPageErr,
-    EmptyPayload.code               -> EmptyPayload
+    EmptyPayload.code               -> EmptyPayload,
+    DuplicateNilReturnField.code    -> DuplicateNilReturnField
   )
 
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {
@@ -146,6 +151,7 @@ object ErrorResponse {
         case "INTERNAL_SERVER_ERROR"           => internalServerErrReads.reads(json)
         case "RETURN_NOT_FOUND"                => returnNotFoundErrReads.reads(json)
         case "PAGE_NOT_FOUND"                  => reportPageNotFoundErrReads.reads(json)
+        case "MALFORMED_JSON"                  => malformedJsonFailureErrReads.reads(json)
         case code if singletons.contains(code) => JsSuccess(singletons(code))
         case other                             => JsError(s"Unknown error code: $other")
       }
