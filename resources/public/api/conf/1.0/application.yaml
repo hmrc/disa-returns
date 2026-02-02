@@ -5,12 +5,12 @@ info:
   title: ISA Returns API
   description: |
     # Overview
-    Use this API to submit monthly reports of current-year ISA subscription data. 
+    Use this API to submit monthly reports of current tax year ISA subscription data. 
     During the Alpha phase, your organisation must be approved by HMRC as an ISA manager to access the API. 
     From the Beta phase onwards, your organisation must also be enrolled for digital ISA reporting.
 
     # Supported use cases
-    - Submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals.
+    - Submit monthly reports with a cumulative total made up of current tax year subscription data, including transfers and withdrawals.
     - Check the status of submitted reports to confirm they have been processed.
     - Retrieve reconciliation results using batch pagination.
 
@@ -39,7 +39,7 @@ tags:
       2. Mark the report as complete after all account records have been submitted.
       
       Both steps must be completed in order. 
-      A report is considered submitted only after it has been marked as complete, and it cannot be amended after submission.
+      A report is considered submitted only after a declaration has been submitted, and it cannot be amended after declaration.
 
   - name: Check report results
     description: |
@@ -290,7 +290,7 @@ paths:
                   type: boolean
                   description: |
                    If `true`, this indicates a nil return: there is no data to report for the period. 
-                   It acts as a declaration alongside the general declaration and will override any previous submission for the same period. 
+                   A declaration of a nil return is final and will override any previous submission for the same period.
                    If `false`, or if the field is omitted, the API expects data records to be submitted separately before completion.
               required: [ nilReturn ]
       responses:
@@ -780,7 +780,7 @@ components:
         totalCurrentYearSubscriptionsToDate:
           type: number
           format: double
-          description: Total value of current-year subscriptions to the ISA account.
+          description: Total value of current tax year subscriptions to the ISA account.
           example: 5000.00
           pattern: ^\d+\.\d{2}$
         marketValueOfAccount:
