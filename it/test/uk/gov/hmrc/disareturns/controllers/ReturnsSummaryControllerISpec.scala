@@ -85,8 +85,9 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
       val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), taxYear = invalidTaxYear)
 
       res.status mustBe BAD_REQUEST
-      res.json
-        .as[ErrorResponse] shouldBe InvalidTaxYear
+      res.status                        shouldBe BAD_REQUEST
+      (res.json \ "code").as[String]    shouldBe "INVALID_TAX_YEAR"
+      (res.json \ "message").as[String] shouldBe "Tax year is not formatted correctly"
     }
 
     "return 400 with correct error response when an invalid month is provided" in {

@@ -85,7 +85,7 @@ case object InvalidZReference extends ErrorResponse {
 }
 
 case object InvalidTaxYear extends ErrorResponse {
-  val code    = "INVALID_YEAR"
+  val code    = "INVALID_TAX_YEAR"
   val message = "Tax year is not formatted correctly"
 }
 
