@@ -986,7 +986,7 @@ components:
           enum:
             - MISSING_NINO_OR_ACC_NUM
             - INVALID_NINO_OR_ACC_NUM
-            - INVALID_YEAR
+            - INVALID_TAX_YEAR
             - INVALID_MONTH
             - INVALID_Z_REFERENCE
             - MALFORMED_JSON
