@@ -62,7 +62,7 @@ If your access is approved, you will receive a confirmation email, and your soft
 If you are not signed in, or access has not yet been granted, the Endpoints section will not display a link. You may see 'Not applicable' or 'Sign in to request access' instead.
 
 ### Download required fields for submission ###
-You can download a [list of the required fields for the POST submission endpoint](/api-documentation/docs/api/download/disa-returns/1.0/ISA_Returns_Monthly_Reporting_Required_Data_Items.ods). This lets you review the submission structure without needing access to the full API schema.
+You can download a [list of the required fields for the POST submission endpoint](https://github.com/hmrc/disa-returns/raw/refs/heads/main/resources/public/api/conf/1.0/ISA_Returns_Monthly_Reporting_Required_Data_Items.ods). This lets you review the submission structure without needing access to the full API schema.
 
 The file is in .ODS (OpenDocument Spreadsheet) format, which you can open using Google Sheets, LibreOffice, or Microsoft Excel.
 
