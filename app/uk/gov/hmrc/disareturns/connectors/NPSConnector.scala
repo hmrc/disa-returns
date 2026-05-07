@@ -61,7 +61,7 @@ class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(im
   def retrieveReconciliationReportPage(zReference: String, taxYear: String, month: Month, pageIndex: Int, pageSize: Int)(implicit
     hc:                                            HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.npsBaseUrl}/monthly/$zReference/$taxYear/${month.toString}/results?pageIndex=$pageIndex&pageSize=$pageSize"
+    val url = s"${appConfig.npsBaseUrl}/monthly/$zReference/$taxYear/${month.toString}/results?skip=$pageIndex&take=$pageSize"
     read(
       httpClient
         .get(url"$url")
