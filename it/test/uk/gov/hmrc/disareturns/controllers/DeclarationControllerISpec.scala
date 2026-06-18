@@ -28,6 +28,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
   val taxYear        = "2025-26"
   val month          = "FEB"
+  val monthInt       = 2
   val boxId          = "boxId1"
   val declarationUrl = s"/monthly/$validZReference/$taxYear/$month/declaration"
 
@@ -48,8 +49,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     "return 200 OK when the declaration is successful and a boxId has been retrieved from PPNS" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubETMPDeclaration(ok, validZReference)
-      stubNPSNotification(ok, validZReference)
+      stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
       stubPPNSBoxId(boxResponseJson, testClientId)
 
       val result = declarationRequest(validZReference, taxYear, month)
@@ -63,8 +63,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   "return 200 OK when the declaration is successful and no boxId has been retrieved from PPNS" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(ok, validZReference)
-    stubNPSNotification(ok, validZReference)
+    stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
     stubFor(
       get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"))
         .willReturn(notFound())
@@ -86,8 +85,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(ok, validZReference)
-    stubNPSNotification(ok, validZReference, nilReturn = true)
+    stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt, nilReturn = true)
     stubPPNSBoxId(boxResponseJson, testClientId)
 
     val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
@@ -107,8 +105,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(ok, validZReference)
-    stubNPSNotification(ok, validZReference)
+    stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
     stubPPNSBoxId(boxResponseJson, testClientId)
 
     val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
@@ -215,10 +212,10 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     (json \ "message").as[String] shouldBe "Obligation closed"
   }
 
-  "return 500 Internal Server Error when the call to nps declaration fails" in {
+  "return 500 Internal Server Error when the call to disa-returns-submission fails" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(serverError, validZReference)
+    stubSubmissionDeclaration(serverError, validZReference, taxYear, monthInt)
     val result = declarationRequest(validZReference, taxYear, month)
 
     result.status shouldBe INTERNAL_SERVER_ERROR

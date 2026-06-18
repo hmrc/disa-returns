@@ -29,7 +29,7 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, NPSConnector, PPNSConnector}
+import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, NPSConnector, PPNSConnector, SubmissionConnector}
 import uk.gov.hmrc.disareturns.repositories.{MonthlyReturnsSummaryRepository, NotificationContextRepository}
 import uk.gov.hmrc.disareturns.services._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -62,6 +62,7 @@ abstract class BaseUnitSpec
       mockETMPService,
       mockNPSService,
       mockPPNSService,
+      mockSubmissionService,
       mockNotificationContextService,
       mockReturnsSummaryService
     )
@@ -81,6 +82,8 @@ abstract class BaseUnitSpec
   val mockReturnsSummaryRepository:      MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
   val mockNPSConnector:                  NPSConnector                    = mock[NPSConnector]
   val mockNPSService:                    NPSService                      = mock[NPSService]
+  val mockSubmissionConnector:           SubmissionConnector             = mock[SubmissionConnector]
+  val mockSubmissionService:             SubmissionService               = mock[SubmissionService]
   val mockNotificationContextRepository: NotificationContextRepository   = mock[NotificationContextRepository]
   val mockNotificationContextService:    NotificationContextService      = mock[NotificationContextService]
 
@@ -94,6 +97,7 @@ abstract class BaseUnitSpec
       bind[ReturnsSummaryService].toInstance(mockReturnsSummaryService),
       bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository),
       bind[NPSService].toInstance(mockNPSService),
+      bind[SubmissionService].toInstance(mockSubmissionService),
       bind[NotificationContextService].toInstance(mockNotificationContextService)
     )
     .build()

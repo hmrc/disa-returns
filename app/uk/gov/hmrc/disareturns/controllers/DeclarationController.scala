@@ -29,7 +29,7 @@ import uk.gov.hmrc.disareturns.controllers.parsers.StrictOptionalJsonBodyParser
 import uk.gov.hmrc.disareturns.models.common.DeclarationRequest
 import uk.gov.hmrc.disareturns.models.declaration.DeclarationSuccessfulResponse
 import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
-import uk.gov.hmrc.disareturns.services.{ETMPService, NPSService, NotificationContextService, PPNSService}
+import uk.gov.hmrc.disareturns.services.{ETMPService, NotificationContextService, PPNSService, SubmissionService}
 import uk.gov.hmrc.disareturns.utils.HttpHelper
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -40,7 +40,7 @@ class DeclarationController @Inject() (
   cc:                           ControllerComponents,
   etmpService:                  ETMPService,
   ppnsService:                  PPNSService,
-  npsService:                   NPSService,
+  submissionService:            SubmissionService,
   notificationContextService:   NotificationContextService,
   authAction:                   AuthAction,
   clientIdAction:               ClientIdAction,
@@ -59,7 +59,7 @@ class DeclarationController @Inject() (
           BadRequest(Json.toJson(errors))
         }
 
-      case Right((zReference, _, _, _)) =>
+      case Right((zReference, validTaxYear, validMonth, _)) =>
         (
           Action(strictOptionalJsonBodyParser)
             andThen authAction(zReference)
@@ -68,8 +68,7 @@ class DeclarationController @Inject() (
         ).async { implicit request: DeclarationRequest[Option[JsValue]] =>
           val result = for {
             _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(zReference))
-            _             <- etmpService.declaration(zReference)
-            _             <- npsService.notification(zReference, request.nilReturnReported)
+            _             <- submissionService.declare(zReference, validTaxYear, validMonth, request.nilReturnReported)
             boxIdResponse <- EitherT(ppnsService.getBoxId(request.clientId))
           } yield boxIdResponse
 
