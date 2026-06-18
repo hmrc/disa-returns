@@ -29,10 +29,10 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
 
   trait TestSetup {
 
-    val connector       = new SubmissionConnector(mockHttpClient, mockAppConfig)
+    val connector         = new SubmissionConnector(mockHttpClient, mockAppConfig)
     val nilReturnReported = false
-    val testUrl         = "http://localhost:12103"
-    val monthInt        = validMonth.id + 1
+    val testUrl           = "http://localhost:12103"
+    val monthInt          = validMonth.id + 1
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 

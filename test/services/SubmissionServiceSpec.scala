@@ -27,7 +27,7 @@ import scala.concurrent.Future
 
 class SubmissionServiceSpec extends BaseUnitSpec {
 
-  val service          = new SubmissionService(mockSubmissionConnector)
+  val service           = new SubmissionService(mockSubmissionConnector)
   val nilReturnReported = false
 
   "SubmissionService.declare" should {
