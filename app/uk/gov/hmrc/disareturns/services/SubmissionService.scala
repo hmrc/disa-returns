@@ -31,9 +31,11 @@ import scala.concurrent.{ExecutionContext, Future}
 class SubmissionService @Inject() (connector: SubmissionConnector)(implicit ec: ExecutionContext) extends Logging {
 
   def declare(zReference: String, taxYear: String, month: Month, nilReturnReported: Boolean)(implicit
-    hc:                    HeaderCarrier
+    hc:                   HeaderCarrier
   ): EitherT[Future, ErrorResponse, HttpResponse] = {
-    logger.info(s"Sending declaration to disa-returns-submission for IM ref: [$zReference], taxYear: [$taxYear], month: [$month], nilReturn: [$nilReturnReported]")
+    logger.info(
+      s"Sending declaration to disa-returns-submission for IM ref: [$zReference], taxYear: [$taxYear], month: [$month], nilReturn: [$nilReturnReported]"
+    )
     connector.sendDeclaration(zReference, taxYear, month, nilReturnReported).leftMap(mapToErrorResponse)
   }
 }

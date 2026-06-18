@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
 
   def sendDeclaration(zReference: String, taxYear: String, month: Month, nilReturnReported: Boolean)(implicit
-    hc:                            HeaderCarrier
+    hc:                           HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val monthInt = month.id + 1
     val url      = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/declarations"
