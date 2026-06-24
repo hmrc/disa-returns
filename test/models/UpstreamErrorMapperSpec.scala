@@ -19,7 +19,7 @@ package models
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.mvc.Http.Status
-import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr, UpstreamErrorMapper}
+import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, MonthlyReturnNotSubmitted, UnauthorisedErr, UpstreamErrorMapper}
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
@@ -48,6 +48,12 @@ class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
       val err    = UpstreamErrorResponse("Service Unavailable", Status.SERVICE_UNAVAILABLE, Status.SERVICE_UNAVAILABLE)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
       result shouldBe InternalServerErr()
+    }
+
+    "map 422 response to MonthlyReturnNotSubmitted" in {
+      val err    = UpstreamErrorResponse("Unprocessable Entity", 422, 422)
+      val result = UpstreamErrorMapper.mapToErrorResponse(err)
+      result shouldBe MonthlyReturnNotSubmitted
     }
 
     "map other 4xx errors to InternalServerErr" in {

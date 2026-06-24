@@ -27,6 +27,9 @@ object UpstreamErrorMapper extends Logging {
       case UpstreamErrorResponse(_, 401, _, _) =>
         logger.info("Mapping 401 to Unauthorised")
         UnauthorisedErr
+      case UpstreamErrorResponse(_, 422, _, _) =>
+        logger.warn("Mapping 422 to MonthlyReturnNotSubmitted")
+        MonthlyReturnNotSubmitted
       case UpstreamErrorResponse(_, 500, _, _) | UpstreamErrorResponse(_, 502, _, _) | UpstreamErrorResponse(_, 503, _, _) =>
         logger.error(s"Mapping ${err.statusCode} to InternalServerError")
         InternalServerErr()

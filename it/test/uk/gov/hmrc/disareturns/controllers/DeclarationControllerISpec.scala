@@ -17,7 +17,7 @@
 package uk.gov.hmrc.disareturns.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, OK}
+import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, OK, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
@@ -150,7 +150,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     val result = await(
       ws.url(s"http://localhost:$port/monthly/$validZReference/$taxYear/$month/declaration")
         .withHttpHeaders(headers: _*)
-        .post("")
+        .post("""{"nilReturn": false}""")
     )
 
     result.status shouldBe BAD_REQUEST
@@ -169,6 +169,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
     val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
 
+    result.status shouldBe BAD_REQUEST
     val json = result.json
     (json \ "code").as[String]    shouldBe "MALFORMED_JSON"
     (json \ "message").as[String] shouldBe "Request body contains malformed JSON"
@@ -212,6 +213,18 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     (json \ "message").as[String] shouldBe "Obligation closed"
   }
 
+  "return 422 Unprocessable Entity when no monthly return data has been submitted" in {
+    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+    stubSubmissionDeclaration(aResponse().withStatus(422), validZReference, taxYear, monthInt)
+    val result = declarationRequest(validZReference, taxYear, month)
+
+    result.status shouldBe UNPROCESSABLE_ENTITY
+    val json = result.json
+    (json \ "code").as[String]    shouldBe "MONTHLY_RETURN_NOT_SUBMITTED"
+    (json \ "message").as[String] shouldBe "Cannot declare with nilReturn as false when no monthly return data has been submitted"
+  }
+
   "return 500 Internal Server Error when the call to disa-returns-submission fails" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
@@ -229,7 +242,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     taxYear:    String,
     month:      String,
     headers:    Seq[(String, String)] = testHeaders,
-    body:       String = ""
+    body:       String = """{"nilReturn": false}"""
   ): WSResponse = {
     stubAuth()
     await(
