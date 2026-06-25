@@ -27,25 +27,25 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.libs.streams.Accumulator
 import play.api.mvc.Results.BadRequest
 import play.api.mvc._
-import uk.gov.hmrc.disareturns.models.common.DuplicateNilReturnField
+import uk.gov.hmrc.disareturns.models.common.{DuplicateNilReturnField, MissingNilReturn}
 
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class StrictOptionalJsonBodyParser @Inject() ()(implicit ec: ExecutionContext) extends BodyParser[Option[JsValue]] with Logging {
+class StrictJsonBodyParser @Inject() ()(implicit ec: ExecutionContext) extends BodyParser[JsValue] with Logging {
 
   private val mapper: ObjectMapper =
     new ObjectMapper(new JsonFactory().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION))
 
-  override def apply(request: RequestHeader): Accumulator[ByteString, Either[Result, Option[JsValue]]] =
+  override def apply(request: RequestHeader): Accumulator[ByteString, Either[Result, JsValue]] =
     Accumulator(Sink.fold[ByteString, ByteString](ByteString.empty)(_ ++ _)).map { bytes =>
       if (bytes.isEmpty)
-        Right(None)
+        Left(BadRequest(Json.toJson(MissingNilReturn)))
       else {
         val raw = bytes.toArray
         try {
           mapper.readTree(raw)
-          Right(Some(Json.parse(raw)))
+          Right(Json.parse(raw))
         } catch {
           case _: JsonParseException =>
             logger.warn("Duplicate NilReturn Field Detected")

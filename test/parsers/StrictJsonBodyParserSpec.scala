@@ -25,30 +25,33 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test._
-import uk.gov.hmrc.disareturns.controllers.parsers.StrictOptionalJsonBodyParser
-import uk.gov.hmrc.disareturns.models.common.DuplicateNilReturnField
+import uk.gov.hmrc.disareturns.controllers.parsers.StrictJsonBodyParser
+import uk.gov.hmrc.disareturns.models.common.{DuplicateNilReturnField, MissingNilReturn}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class StrictOptionalJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutures {
+class StrictJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutures {
 
-  implicit val system:       ActorSystem      = ActorSystem("StrictOptionalJsonBodyParserSpec")
+  implicit val system:       ActorSystem      = ActorSystem("StrictJsonBodyParserSpec")
   implicit val materializer: Materializer     = SystemMaterializer(system).materializer
   implicit val ec:           ExecutionContext = system.dispatcher
 
-  private val parser = new StrictOptionalJsonBodyParser()
+  private val parser = new StrictJsonBodyParser()
 
-  "StrictOptionalJsonBodyParser" should {
+  "StrictJsonBodyParser" should {
 
-    "return None when request body is empty" in {
+    "return BadRequest with MissingNilReturn when request body is empty" in {
       val request = FakeRequest("POST", "/").withHeaders("Content-Type" -> "application/json")
       val acc     = parser.apply(request)
 
       val result = await(acc.run())
-      result shouldBe Right(None)
+      result.isLeft shouldBe true
+      val badRequestResult = result.left.get
+      status(Future.successful(badRequestResult))        shouldBe BAD_REQUEST
+      contentAsJson(Future.successful(badRequestResult)) shouldBe Json.toJson(MissingNilReturn)
     }
 
-    "parse valid JSON into Some(JsValue)" in {
+    "parse valid JSON into JsValue" in {
       val rawJson = """{ "nilReturn": true }"""
       val bytes   = ByteString(rawJson)
       val requestHeader = FakeRequest("POST", "/")
@@ -58,10 +61,10 @@ class StrictOptionalJsonBodyParserSpec extends AnyWordSpec with Matchers with Sc
       val result = await(acc.run(bytes))
 
       result match {
-        case Right(Some(js)) =>
+        case Right(js) =>
           (js \ "nilReturn").as[Boolean] shouldBe true
         case other =>
-          fail(s"Expected Right(Some(JsValue)) but got $other")
+          fail(s"Expected Right(JsValue) but got $other")
       }
     }
 
@@ -89,19 +92,22 @@ class StrictOptionalJsonBodyParserSpec extends AnyWordSpec with Matchers with Sc
       val result = await(acc.run(bytes))
 
       result match {
-        case Right(Some(js)) =>
+        case Right(js) =>
           (js \ "nilReturn").as[Boolean] shouldBe true
           (js \ "extraField").as[String] shouldBe "value"
         case other =>
-          fail(s"Expected Right(Some(JsValue)) but got $other")
+          fail(s"Expected Right(JsValue) but got $other")
       }
     }
 
-    "return None when Content-Type is not JSON and body is empty" in {
+    "return BadRequest with MissingNilReturn when Content-Type is not JSON and body is empty" in {
       val request = FakeRequest("POST", "/")
       val acc     = parser.apply(request)
       val result  = await(acc.run())
-      result shouldBe Right(None)
+      result.isLeft shouldBe true
+      val badRequestResult = result.left.get
+      status(Future.successful(badRequestResult))        shouldBe BAD_REQUEST
+      contentAsJson(Future.successful(badRequestResult)) shouldBe Json.toJson(MissingNilReturn)
     }
   }
 }

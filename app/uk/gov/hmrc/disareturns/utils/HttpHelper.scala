@@ -18,6 +18,8 @@ package uk.gov.hmrc.disareturns.utils
 
 import play.api.libs.json.Json
 import play.api.mvc.Result
+import play.api.http.Status.UNPROCESSABLE_ENTITY
+import play.api.mvc.Results
 import play.api.mvc.Results.{BadRequest, Forbidden, InternalServerError, NotFound, Unauthorized}
 import uk.gov.hmrc.disareturns.models.common._
 
@@ -32,5 +34,6 @@ object HttpHelper {
     case ObligationClosed                         => Forbidden(Json.toJson(error))
     case ReportingWindowClosed                    => Forbidden(Json.toJson(error))
     case MultipleErrorResponse("FORBIDDEN", _, _) => Forbidden(Json.toJson(error))
+    case MonthlyReturnNotSubmitted                => Results.Status(UNPROCESSABLE_ENTITY)(Json.toJson(error))
   }
 }

@@ -92,6 +92,19 @@ trait CommonStubs { self: TestData =>
         .willReturn(status)
     )
 
+  def stubSubmissionDeclaration(
+    status:     ResponseDefinitionBuilder,
+    zReference: String,
+    taxYear:    String,
+    monthInt:   Int,
+    nilReturn:  Boolean = false
+  ): Unit =
+    stubFor(
+      post(urlEqualTo(s"/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/declarations"))
+        .withRequestBody(equalToJson(Json.toJson(ReportingNilReturn(nilReturn)).toString()))
+        .willReturn(status)
+    )
+
   def stubNpsSubmission(status: Int, zReference: String): Unit =
     stubFor(
       post(urlEqualTo(s"/nps/submit/$zReference"))

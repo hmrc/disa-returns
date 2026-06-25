@@ -17,7 +17,7 @@
 package uk.gov.hmrc.disareturns.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, OK}
+import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, OK, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
@@ -28,6 +28,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
   val taxYear        = "2025-26"
   val month          = "FEB"
+  val monthInt       = 2
   val boxId          = "boxId1"
   val declarationUrl = s"/monthly/$validZReference/$taxYear/$month/declaration"
 
@@ -48,8 +49,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     "return 200 OK when the declaration is successful and a boxId has been retrieved from PPNS" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubETMPDeclaration(ok, validZReference)
-      stubNPSNotification(ok, validZReference)
+      stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
       stubPPNSBoxId(boxResponseJson, testClientId)
 
       val result = declarationRequest(validZReference, taxYear, month)
@@ -63,8 +63,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   "return 200 OK when the declaration is successful and no boxId has been retrieved from PPNS" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(ok, validZReference)
-    stubNPSNotification(ok, validZReference)
+    stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
     stubFor(
       get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"))
         .willReturn(notFound())
@@ -86,8 +85,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(ok, validZReference)
-    stubNPSNotification(ok, validZReference, nilReturn = true)
+    stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt, nilReturn = true)
     stubPPNSBoxId(boxResponseJson, testClientId)
 
     val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
@@ -107,8 +105,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(ok, validZReference)
-    stubNPSNotification(ok, validZReference)
+    stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
     stubPPNSBoxId(boxResponseJson, testClientId)
 
     val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
@@ -153,7 +150,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     val result = await(
       ws.url(s"http://localhost:$port/monthly/$validZReference/$taxYear/$month/declaration")
         .withHttpHeaders(headers: _*)
-        .post("")
+        .post("""{"nilReturn": false}""")
     )
 
     result.status shouldBe BAD_REQUEST
@@ -172,6 +169,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
     val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
 
+    result.status shouldBe BAD_REQUEST
     val json = result.json
     (json \ "code").as[String]    shouldBe "MALFORMED_JSON"
     (json \ "message").as[String] shouldBe "Request body contains malformed JSON"
@@ -215,10 +213,32 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     (json \ "message").as[String] shouldBe "Obligation closed"
   }
 
-  "return 500 Internal Server Error when the call to nps declaration fails" in {
+  "return 422 Unprocessable Entity when no monthly return data has been submitted" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubETMPDeclaration(serverError, validZReference)
+    stubSubmissionDeclaration(
+      aResponse()
+        .withStatus(UNPROCESSABLE_ENTITY)
+        .withHeader("Content-Type", "application/json")
+        .withBody(
+          """{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""
+        ),
+      validZReference,
+      taxYear,
+      monthInt
+    )
+    val result = declarationRequest(validZReference, taxYear, month)
+
+    result.status shouldBe UNPROCESSABLE_ENTITY
+    val json = result.json
+    (json \ "code").as[String]    shouldBe "MONTHLY_RETURN_NOT_SUBMITTED"
+    (json \ "message").as[String] shouldBe "Cannot declare with nilReturn as false when no monthly return data has been submitted"
+  }
+
+  "return 500 Internal Server Error when the call to disa-returns-submission fails" in {
+    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+    stubSubmissionDeclaration(serverError, validZReference, taxYear, monthInt)
     val result = declarationRequest(validZReference, taxYear, month)
 
     result.status shouldBe INTERNAL_SERVER_ERROR
@@ -232,7 +252,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     taxYear:    String,
     month:      String,
     headers:    Seq[(String, String)] = testHeaders,
-    body:       String = ""
+    body:       String = """{"nilReturn": false}"""
   ): WSResponse = {
     stubAuth()
     await(

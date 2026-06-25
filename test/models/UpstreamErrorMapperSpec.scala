@@ -18,8 +18,9 @@ package models
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import play.api.http.Status.{MULTI_STATUS, UNPROCESSABLE_ENTITY}
 import play.mvc.Http.Status
-import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr, UpstreamErrorMapper}
+import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, MonthlyReturnNotSubmitted, UnauthorisedErr, UpstreamErrorMapper}
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
@@ -50,6 +51,20 @@ class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
       result shouldBe InternalServerErr()
     }
 
+    "map 422 response with NO_SUBMISSION_DATA code to MonthlyReturnNotSubmitted" in {
+      val body   = """{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""
+      val err    = UpstreamErrorResponse(body, UNPROCESSABLE_ENTITY, UNPROCESSABLE_ENTITY)
+      val result = UpstreamErrorMapper.mapToErrorResponse(err)
+      result shouldBe MonthlyReturnNotSubmitted
+    }
+
+    "map 422 response without NO_SUBMISSION_DATA code to InternalServerErr" in {
+      val body   = """{"ERROR":"This monthly return was already declared"}"""
+      val err    = UpstreamErrorResponse(body, UNPROCESSABLE_ENTITY, UNPROCESSABLE_ENTITY)
+      val result = UpstreamErrorMapper.mapToErrorResponse(err)
+      result shouldBe InternalServerErr()
+    }
+
     "map other 4xx errors to InternalServerErr" in {
       val err    = UpstreamErrorResponse("Bad Request", Status.BAD_REQUEST, Status.BAD_REQUEST)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
@@ -57,7 +72,7 @@ class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
     }
 
     "map unknown status codes to InternalServerErr" in {
-      val err    = UpstreamErrorResponse("Some weird status", 207, 207)
+      val err    = UpstreamErrorResponse("Some weird status", MULTI_STATUS, MULTI_STATUS)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
       result shouldBe InternalServerErr()
     }

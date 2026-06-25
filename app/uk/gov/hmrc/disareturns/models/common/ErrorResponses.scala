@@ -108,6 +108,16 @@ case object DuplicateNilReturnField extends ErrorResponse {
   val message = "Duplicate Nil Return field provided"
 }
 
+case object MissingNilReturn extends ErrorResponse {
+  val code    = "MISSING_NIL_RETURN"
+  val message = "Nil return field is missing from the request body"
+}
+
+case object MonthlyReturnNotSubmitted extends ErrorResponse {
+  val code    = "MONTHLY_RETURN_NOT_SUBMITTED"
+  val message = "Cannot declare with nilReturn as false when no monthly return data has been submitted"
+}
+
 object ErrorResponse {
 
   implicit val returnNotFoundErrReads:       Reads[ReturnNotFoundErr]       = Json.reads[ReturnNotFoundErr]
@@ -133,7 +143,9 @@ object ErrorResponse {
     InvalidMonth.code               -> InvalidMonth,
     InvalidPageErr.code             -> InvalidPageErr,
     EmptyPayload.code               -> EmptyPayload,
-    DuplicateNilReturnField.code    -> DuplicateNilReturnField
+    DuplicateNilReturnField.code    -> DuplicateNilReturnField,
+    MissingNilReturn.code           -> MissingNilReturn,
+    MonthlyReturnNotSubmitted.code  -> MonthlyReturnNotSubmitted
   )
 
   implicit val format: Format[ErrorResponse] = new Format[ErrorResponse] {

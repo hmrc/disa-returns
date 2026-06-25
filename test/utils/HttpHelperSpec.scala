@@ -102,6 +102,16 @@ class HttpHelperSpec extends AnyWordSpec with Matchers {
       contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
     }
 
+    "return UnprocessableEntity (422) for MonthlyReturnNotSubmitted" in {
+      val err    = MonthlyReturnNotSubmitted
+      val result = HttpHelper.toHttpError(err)
+
+      result.header.status shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(Future.successful(result))
+      (json \ "code").as[String]    shouldBe "MONTHLY_RETURN_NOT_SUBMITTED"
+      (json \ "message").as[String] shouldBe "Cannot declare with nilReturn as false when no monthly return data has been submitted"
+    }
+
     "return Forbidden (403) for MultipleErrorResponse with code FORBIDDEN" in {
       val err    = MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ObligationClosed, ReportingWindowClosed))
       val result = HttpHelper.toHttpError(err)

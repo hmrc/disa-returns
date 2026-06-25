@@ -17,6 +17,8 @@
 package uk.gov.hmrc.disareturns.models.common
 
 import play.api.Logging
+import play.api.http.Status.{BAD_GATEWAY, BAD_REQUEST, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
+import play.api.libs.json.Json
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 object UpstreamErrorMapper extends Logging {
@@ -24,14 +26,25 @@ object UpstreamErrorMapper extends Logging {
   def mapToErrorResponse(err: UpstreamErrorResponse): ErrorResponse = {
     logger.warn(s"Received upstream error: status=${err.statusCode}, message='${err.message}'")
     err match {
-      case UpstreamErrorResponse(_, 401, _, _) =>
+      case UpstreamErrorResponse(_, UNAUTHORIZED, _, _) =>
         logger.info("Mapping 401 to Unauthorised")
         UnauthorisedErr
-      case UpstreamErrorResponse(_, 500, _, _) | UpstreamErrorResponse(_, 502, _, _) | UpstreamErrorResponse(_, 503, _, _) =>
+      case UpstreamErrorResponse(message, UNPROCESSABLE_ENTITY, _, _) =>
+        val code = (Json.parse(message) \ "code").asOpt[String]
+        code match {
+          case Some("NO_SUBMISSION_DATA") =>
+            logger.warn("Mapping 422 (NO_SUBMISSION_DATA) to MonthlyReturnNotSubmitted")
+            MonthlyReturnNotSubmitted
+          case _ =>
+            logger.error(s"Unhandled 422 error code: ${code.getOrElse("none")}, mapping to InternalServerError")
+            InternalServerErr()
+        }
+      case UpstreamErrorResponse(_, INTERNAL_SERVER_ERROR, _, _) | UpstreamErrorResponse(_, BAD_GATEWAY, _, _) |
+          UpstreamErrorResponse(_, SERVICE_UNAVAILABLE, _, _) =>
         logger.error(s"Mapping ${err.statusCode} to InternalServerError")
         InternalServerErr()
 
-      case UpstreamErrorResponse(_, statusCode, _, _) if statusCode >= 400 =>
+      case UpstreamErrorResponse(_, statusCode, _, _) if statusCode >= BAD_REQUEST =>
         logger.error(s"Unhandled upstream error with status=$statusCode, mapping to InternalServerError")
         InternalServerErr()
 

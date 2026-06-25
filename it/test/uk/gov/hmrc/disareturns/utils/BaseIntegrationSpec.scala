@@ -65,18 +65,20 @@ trait BaseIntegrationSpec
 
   def config: Map[String, String] =
     Map(
-      "auditing.enabled"                -> "false",
-      "microservice.services.etmp.host" -> wiremockHost,
-      "microservice.services.etmp.port" -> wiremockPort.toString,
-      "microservice.services.ppns.host" -> wiremockHost,
-      "microservice.services.ppns.port" -> wiremockPort.toString,
-      "microservice.services.auth.host" -> wiremockHost,
-      "microservice.services.auth.port" -> wiremockPort.toString,
-      "microservice.services.nps.host"  -> wiremockHost,
-      "microservice.services.nps.port"  -> wiremockPort.toString,
-      "microservice.services.self.host" -> wiremockHost,
-      "microservice.services.self.port" -> wiremockPort.toString,
-      "returnResultsRecordsPerPage"     -> "2"
+      "auditing.enabled"                                   -> "false",
+      "microservice.services.etmp.host"                    -> wiremockHost,
+      "microservice.services.etmp.port"                    -> wiremockPort.toString,
+      "microservice.services.ppns.host"                    -> wiremockHost,
+      "microservice.services.ppns.port"                    -> wiremockPort.toString,
+      "microservice.services.auth.host"                    -> wiremockHost,
+      "microservice.services.auth.port"                    -> wiremockPort.toString,
+      "microservice.services.nps.host"                     -> wiremockHost,
+      "microservice.services.nps.port"                     -> wiremockPort.toString,
+      "microservice.services.disa-returns-submission.host" -> wiremockHost,
+      "microservice.services.disa-returns-submission.port" -> wiremockPort.toString,
+      "microservice.services.self.host"                    -> wiremockHost,
+      "microservice.services.self.port"                    -> wiremockPort.toString,
+      "returnResultsRecordsPerPage"                        -> "2"
     )
 
   override def beforeAll(): Unit = {

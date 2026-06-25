@@ -280,7 +280,7 @@ paths:
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
@@ -289,9 +289,9 @@ paths:
                 nilReturn:
                   type: boolean
                   description: |
-                   If `true`, this indicates a nil return: there is no data to report for the period. 
-                   It acts as a declaration alongside the general declaration and will override any previous submission for the same period. 
-                   If `false`, or if the field is omitted, the API expects data records to be submitted separately before completion.
+                   If `true`, this indicates a nil return: there is no data to report for the period.
+                   It acts as a declaration alongside the general declaration and will override any previous submission for the same period.
+                   If `false`, the API expects data records to have been submitted separately before completion.
               required: [ nilReturn ]
       responses:
         200:
@@ -343,6 +343,22 @@ paths:
                 oneOf:
                   - $ref: '#/components/schemas/forbiddenSingleError'
                   - $ref: '#/components/schemas/forbiddenMultipleErrors'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    title: Error Code Type
+                    type: string
+                    description: Error Code
+                    enum:
+                      - MONTHLY_RETURN_NOT_SUBMITTED
+                  message:
+                    type: string
+                    example: "Cannot declare with nilReturn as false when no monthly return data has been submitted"
         500:
           description: Internal Server Error
           content:
@@ -1006,6 +1022,7 @@ components:
           enum:
             - MALFORMED_JSON
             - DUPLICATE_FIELD
+            - MISSING_NIL_RETURN
         message:
           title: Detailed Message
           type: string
