@@ -218,7 +218,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
     stubSubmissionDeclaration(
       aResponse()
-        .withStatus(422)
+        .withStatus(UNPROCESSABLE_ENTITY)
         .withHeader("Content-Type", "application/json")
         .withBody(
           """{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""

@@ -17,12 +17,13 @@
 package services
 
 import cats.data.EitherT
+import org.mockito.Mockito._
+import play.api.http.Status._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.services.SubmissionService
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
-import org.mockito.Mockito._
 import scala.concurrent.Future
 
 class SubmissionServiceSpec extends BaseUnitSpec {
@@ -33,7 +34,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
   "SubmissionService.declare" should {
 
     "return Right(HttpResponse) when the connector returns a successful response" in {
-      val httpResponse = HttpResponse(200, "")
+      val httpResponse = HttpResponse(OK, "")
       when(mockSubmissionConnector.sendDeclaration(validZReference, validTaxYear, validMonth, nilReturnReported))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
@@ -45,8 +46,8 @@ class SubmissionServiceSpec extends BaseUnitSpec {
     "return Left(UnauthorisedErr) when the connector returns a 401 UpstreamErrorResponse" in {
       val exception: UpstreamErrorResponse = UpstreamErrorResponse(
         message = "Not authorised to access this service",
-        statusCode = 401,
-        reportAs = 401,
+        statusCode = UNAUTHORIZED,
+        reportAs = UNAUTHORIZED,
         headers = Map.empty
       )
 
@@ -61,8 +62,8 @@ class SubmissionServiceSpec extends BaseUnitSpec {
     "return Left(InternalServerErr) when the connector returns a 500 UpstreamErrorResponse" in {
       val exception: UpstreamErrorResponse = UpstreamErrorResponse(
         message = "Internal server error",
-        statusCode = 500,
-        reportAs = 500,
+        statusCode = INTERNAL_SERVER_ERROR,
+        reportAs = INTERNAL_SERVER_ERROR,
         headers = Map.empty
       )
 

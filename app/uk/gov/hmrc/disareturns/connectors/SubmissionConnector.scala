@@ -18,6 +18,7 @@ package uk.gov.hmrc.disareturns.connectors
 
 import cats.data.EitherT
 import play.api.Logging
+import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR}
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.Month.Month
@@ -34,7 +35,7 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
   def sendDeclaration(zReference: String, taxYear: String, month: Month, nilReturnReported: Boolean)(implicit
     hc:                           HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val monthInt = month.id + 1
+    val monthInt = month.id + 1 // Enum IDs are zero-based; add 1 to align with month numbers
     val url      = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/declarations"
     EitherT(
       httpClient
@@ -42,7 +43,7 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
         .withBody(Json.toJson(ReportingNilReturn(nilReturn = nilReturnReported)))
         .execute[HttpResponse]
         .map { response =>
-          if (response.status >= 400) {
+          if (response.status >= BAD_REQUEST) {
             logger.warn(s"[SubmissionConnector: sendDeclaration] Received error status ${response.status} with body: ${response.body}")
             Left(UpstreamErrorResponse(response.body, response.status, response.status))
           } else {
@@ -51,7 +52,7 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
         }
         .recover { case ex =>
           logger.error(s"[SubmissionConnector: sendDeclaration] Unexpected error: ${ex.getMessage}", ex)
-          Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", 500, 500))
+          Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
         }
     )
   }

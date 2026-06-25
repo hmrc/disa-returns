@@ -45,7 +45,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
   "SubmissionConnector.sendDeclaration" should {
 
     "return Right(HttpResponse) when the POST is successful" in new TestSetup {
-      val httpResponse: HttpResponse = HttpResponse(200, "")
+      val httpResponse: HttpResponse = HttpResponse(OK, "")
 
       when(mockRequestBuilder.execute[HttpResponse](any(), any()))
         .thenReturn(Future.successful(httpResponse))
@@ -58,7 +58,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
 
     "return Left(UpstreamErrorResponse) with raw body when the POST returns a 422" in new TestSetup {
       val body = """{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""
-      val httpResponse = HttpResponse(422, body)
+      val httpResponse = HttpResponse(UNPROCESSABLE_ENTITY, body)
 
       when(mockRequestBuilder.execute[HttpResponse](any(), any()))
         .thenReturn(Future.successful(httpResponse))
@@ -68,14 +68,14 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
 
       result match {
         case Left(err) =>
-          err.statusCode shouldBe 422
+          err.statusCode shouldBe UNPROCESSABLE_ENTITY
           err.message    shouldBe body
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
     }
 
     "return Left(UpstreamErrorResponse) when the POST returns a 500" in new TestSetup {
-      val httpResponse = HttpResponse(500, "Internal Server Error")
+      val httpResponse = HttpResponse(INTERNAL_SERVER_ERROR, "Internal Server Error")
 
       when(mockRequestBuilder.execute[HttpResponse](any(), any()))
         .thenReturn(Future.successful(httpResponse))
@@ -85,7 +85,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
 
       result match {
         case Left(err) =>
-          err.statusCode shouldBe 500
+          err.statusCode shouldBe INTERNAL_SERVER_ERROR
           err.message    shouldBe "Internal Server Error"
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
