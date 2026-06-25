@@ -17,6 +17,7 @@
 package uk.gov.hmrc.disareturns.connectors
 
 import cats.data.EitherT
+import play.api.Logging
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.Month.Month
@@ -28,19 +29,30 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, Upstream
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
+class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends Logging {
 
   def sendDeclaration(zReference: String, taxYear: String, month: Month, nilReturnReported: Boolean)(implicit
     hc:                           HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val monthInt = month.id + 1
     val url      = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/declarations"
-    read(
+    EitherT(
       httpClient
         .post(url"$url")
         .withBody(Json.toJson(ReportingNilReturn(nilReturn = nilReturnReported)))
-        .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = "SubmissionConnector: sendDeclaration"
+        .execute[HttpResponse]
+        .map { response =>
+          if (response.status >= 400) {
+            logger.warn(s"[SubmissionConnector: sendDeclaration] Received error status ${response.status} with body: ${response.body}")
+            Left(UpstreamErrorResponse(response.body, response.status, response.status))
+          } else {
+            Right(response)
+          }
+        }
+        .recover { case ex =>
+          logger.error(s"[SubmissionConnector: sendDeclaration] Unexpected error: ${ex.getMessage}", ex)
+          Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", 500, 500))
+        }
     )
   }
 }

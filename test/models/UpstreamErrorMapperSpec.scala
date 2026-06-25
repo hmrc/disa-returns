@@ -50,10 +50,18 @@ class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
       result shouldBe InternalServerErr()
     }
 
-    "map 422 response to MonthlyReturnNotSubmitted" in {
-      val err    = UpstreamErrorResponse("Unprocessable Entity", 422, 422)
+    "map 422 response with NO_SUBMISSION_DATA code to MonthlyReturnNotSubmitted" in {
+      val body   = """{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""
+      val err    = UpstreamErrorResponse(body, 422, 422)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)
       result shouldBe MonthlyReturnNotSubmitted
+    }
+
+    "map 422 response without NO_SUBMISSION_DATA code to InternalServerErr" in {
+      val body   = """{"ERROR":"This monthly return was already declared"}"""
+      val err    = UpstreamErrorResponse(body, 422, 422)
+      val result = UpstreamErrorMapper.mapToErrorResponse(err)
+      result shouldBe InternalServerErr()
     }
 
     "map other 4xx errors to InternalServerErr" in {

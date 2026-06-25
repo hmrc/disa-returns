@@ -17,6 +17,7 @@
 package uk.gov.hmrc.disareturns.models.common
 
 import play.api.Logging
+import play.api.libs.json.Json
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 object UpstreamErrorMapper extends Logging {
@@ -27,9 +28,16 @@ object UpstreamErrorMapper extends Logging {
       case UpstreamErrorResponse(_, 401, _, _) =>
         logger.info("Mapping 401 to Unauthorised")
         UnauthorisedErr
-      case UpstreamErrorResponse(_, 422, _, _) =>
-        logger.warn("Mapping 422 to MonthlyReturnNotSubmitted")
-        MonthlyReturnNotSubmitted
+      case UpstreamErrorResponse(message, 422, _, _) =>
+        val code = (Json.parse(message) \ "code").asOpt[String]
+        code match {
+          case Some("NO_SUBMISSION_DATA") =>
+            logger.warn("Mapping 422 (NO_SUBMISSION_DATA) to MonthlyReturnNotSubmitted")
+            MonthlyReturnNotSubmitted
+          case _ =>
+            logger.error(s"Unhandled 422 error code: ${code.getOrElse("none")}, mapping to InternalServerError")
+            InternalServerErr()
+        }
       case UpstreamErrorResponse(_, 500, _, _) | UpstreamErrorResponse(_, 502, _, _) | UpstreamErrorResponse(_, 503, _, _) =>
         logger.error(s"Mapping ${err.statusCode} to InternalServerError")
         InternalServerErr()

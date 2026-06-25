@@ -216,7 +216,17 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   "return 422 Unprocessable Entity when no monthly return data has been submitted" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubSubmissionDeclaration(aResponse().withStatus(422), validZReference, taxYear, monthInt)
+    stubSubmissionDeclaration(
+      aResponse()
+        .withStatus(422)
+        .withHeader("Content-Type", "application/json")
+        .withBody(
+          """{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""
+        ),
+      validZReference,
+      taxYear,
+      monthInt
+    )
     val result = declarationRequest(validZReference, taxYear, month)
 
     result.status shouldBe UNPROCESSABLE_ENTITY
