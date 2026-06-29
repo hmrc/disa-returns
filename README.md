@@ -1,8 +1,7 @@
 
 # disa-returns
 
-This application is responsible for receiving monthly and annual returns from ISA Managers to enable the fulfilment
-of their legal obligations, in effect from April 2027.
+This application is responsible for receiving monthly and annual returns from ISA Managers.
 
 This application acts as a protected zone service to support the frontend UI journey where ISA Managers can upload their
 returns using Upscan, as well as providing API platforms endpoints for ISA Managers who have chosen to integrate with
