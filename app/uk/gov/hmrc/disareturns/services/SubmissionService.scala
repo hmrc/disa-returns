@@ -48,7 +48,9 @@ class SubmissionService @Inject() (connector: SubmissionConnector)(implicit ec: 
     logger.info(s"Sending monthly return to disa-returns-submission for IM ref: [$zReference], taxYear: [$taxYear], month: [$month]")
     connector.createMonthlyReturn(zReference, taxYear, month, nilReturn = false).flatMap {
       case Left(UpstreamErrorResponse(_, CONFLICT, _, _)) =>
-        logger.info(s"Monthly return already exists for IM ref: [$zReference], taxYear: [$taxYear], month: [$month] - proceeding to store submission data")
+        logger.info(
+          s"Monthly return already exists for IM ref: [$zReference], taxYear: [$taxYear], month: [$month] - proceeding to store submission data"
+        )
         storeSubmission(zReference, taxYear, month, path)
       case Left(upstreamError) => Future.successful(Left(mapToErrorResponse(upstreamError)))
       case Right(())           => storeSubmission(zReference, taxYear, month, path)
@@ -56,7 +58,7 @@ class SubmissionService @Inject() (connector: SubmissionConnector)(implicit ec: 
   }
 
   private def storeSubmission(zReference: String, taxYear: String, month: Month, path: Path)(implicit
-    hc: HeaderCarrier
+    hc:                                   HeaderCarrier
   ): Future[Either[ErrorResponse, Unit]] =
     connector.sendMonthlyReturn(zReference, taxYear, month, FileIO.fromPath(path)).map {
       case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))

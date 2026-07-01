@@ -106,9 +106,11 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
           Right(())
         }
       }
-      .recover { case ex =>
-        logger.error(s"[SubmissionConnector: sendMonthlyReturn] Unexpected error: ${ex.getMessage}", ex)
-        Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
+      .recover {
+        case upstream: UpstreamErrorResponse => Left(upstream)
+        case ex =>
+          logger.error(s"[SubmissionConnector: sendMonthlyReturn] Unexpected error: ${ex.getMessage}", ex)
+          Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
       }
   }
 }
