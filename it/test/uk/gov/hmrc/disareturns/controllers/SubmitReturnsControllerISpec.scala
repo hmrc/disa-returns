@@ -48,7 +48,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - LifetimeIsaSubscription" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubNpsSubmissionWithBodyAssert(NO_CONTENT, validZReference, validLifetimeIsaSubscription)
+      stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+      stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validLifetimeIsaSubscription)
 
       val result = submitMonthlyReturnRequest(validLifetimeIsaSubscription)
       result.status shouldBe NO_CONTENT
@@ -57,7 +58,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - LifetimeIsaClosure" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubNpsSubmissionWithBodyAssert(NO_CONTENT, validZReference, validLifetimeIsaClosure)
+      stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+      stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validLifetimeIsaClosure)
 
       val result = submitMonthlyReturnRequest(validLifetimeIsaClosure)
       result.status shouldBe NO_CONTENT
@@ -66,7 +68,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaSubscription" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubNpsSubmissionWithBodyAssert(NO_CONTENT, validZReference, validStandardIsaSubscription)
+      stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+      stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validStandardIsaSubscription)
 
       val result = submitMonthlyReturnRequest(validStandardIsaSubscription)
       result.status shouldBe NO_CONTENT
@@ -75,7 +78,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaClosure" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubNpsSubmissionWithBodyAssert(NO_CONTENT, validZReference, validStandardIsaClosure)
+      stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+      stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validStandardIsaClosure)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
       result.status shouldBe NO_CONTENT
@@ -84,12 +88,11 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaClosure when middleName is null" in {
       val validStandardIsaClosureMiddleNameNull =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First4","middleName": null,"lastName":"Last4","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.99,"amountTransferredOut": 2500.99,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.99,"marketValueOfAccount":10000.99,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
-      val validStandardIsaClosureOutbound =
-        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First4","lastName":"Last4","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.99,"amountTransferredOut": 2500.99,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.99,"marketValueOfAccount":10000.99,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
 
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubNpsSubmissionWithBodyAssert(NO_CONTENT, validZReference, validStandardIsaClosureOutbound)
+      stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+      stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validStandardIsaClosureMiddleNameNull)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosureMiddleNameNull)
       result.status shouldBe NO_CONTENT
@@ -99,7 +102,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
   "return 204 for NDJSON payload with trailing newline at the end of the payload" in {
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubNpsSubmission(NO_CONTENT, validZReference)
+    stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+    stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 9)
 
     val payload = validStandardIsaSubscription + "\n" + validStandardIsaClosure + "\n"
     val result  = submitMonthlyReturnRequest(payload)
@@ -111,7 +115,8 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     stubAuth()
     stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubNpsSubmission(NO_CONTENT, validZReference)
+    stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 1)
+    stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 1)
 
     val result = await(
       ws.url(
@@ -1403,30 +1408,24 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       result.json   shouldBe Json.toJson(InternalServerErr())
     }
 
-    "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from NPS" in {
+    "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from disa-returns-submission" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubFor(
-        post(urlEqualTo(s"/nps/submit/$validZReference"))
-          .willReturn(serverError)
-      )
+      stubCreateMonthlyReturn(SERVICE_UNAVAILABLE, validZReference, testTaxYear, 9)
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
 
       result.status shouldBe INTERNAL_SERVER_ERROR
       result.json   shouldBe Json.toJson(InternalServerErr())
     }
 
-    "return 500 Internal Server Error when upstream unexpected status returned from NPS" in {
+    "return 204 when upstream 409 conflict returned from create (monthly return already exists for this period)" in {
       stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubFor(
-        post(urlEqualTo(s"/nps/submit/$validZReference"))
-          .willReturn(created)
-      )
+      stubCreateMonthlyReturn(CONFLICT, validZReference, testTaxYear, 9)
+      stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 9)
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
 
-      result.status shouldBe INTERNAL_SERVER_ERROR
-      result.json   shouldBe Json.toJson(InternalServerErr())
+      result.status shouldBe NO_CONTENT
     }
   }
 

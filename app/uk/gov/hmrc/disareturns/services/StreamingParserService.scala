@@ -17,7 +17,7 @@
 package uk.gov.hmrc.disareturns.services
 
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
+import org.apache.pekko.stream.scaladsl.{Framing, Source}
 import org.apache.pekko.util.ByteString
 import play.api.Logging
 import play.api.libs.json._
@@ -27,37 +27,31 @@ import uk.gov.hmrc.disareturns.utils.JsonErrorMapper.jsErrorToDomainError
 import uk.gov.hmrc.disareturns.utils.JsonValidation
 import uk.gov.hmrc.disareturns.utils.JsonValidation.findDuplicateFields
 
+import java.io.{BufferedWriter, FileWriter}
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Path}
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
-class StreamingParserService @Inject() (implicit val mat: Materializer) extends Logging {
+class StreamingParserService @Inject() (implicit val mat: Materializer, ec: ExecutionContext) extends Logging {
 
-  private def processStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] = {
-    val validated = validatedStream(source)
-    validated.prefixAndTail(1).flatMapConcat {
-      case (Seq(), _) =>
-        Source.single(Left(FirstLevelValidationFailure(EmptyPayload)))
-      case (Seq(first), tail) =>
-        tail.prepend(Source.single(first))
-    }
-  }
-
-  private def validateSecondLevel(line: String, jsValue: JsValue, nino: String, accountNumber: String): Either[ValidationError, IsaAccount] = {
+  private def validateSecondLevel(line: String, jsValue: JsValue, nino: String, accountNumber: String): Either[ValidationError, String] = {
     val combinedValidation: JsResult[IsaAccount] = findDuplicateFields(line).flatMap { _ =>
       jsValue.validate[IsaAccount]
     }
     combinedValidation match {
-      case JsSuccess(account, _) =>
-        Right(account)
+      case JsSuccess(_, _) =>
+        Right(line)
       case JsError(errors) =>
         val domainErrors = jsErrorToDomainError(errors, nino, accountNumber).headOption.toSeq
         Left(SecondLevelValidationFailure(domainErrors))
     }
   }
 
-  private def validatedStream(source: Source[ByteString, _]): Source[Either[ValidationError, IsaAccount], _] =
-    source
+  private def validatedLinesStream(source: Source[ByteString, _]): Source[Either[ValidationError, String], _] = {
+    val rawValidated = source
       .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = true))
       .map(_.utf8String.trim)
       .filter(_.nonEmpty)
@@ -75,28 +69,51 @@ class StreamingParserService @Inject() (implicit val mat: Materializer) extends 
         }
       }
 
-  def processSource(
-    source: Source[ByteString, _]
-  ): Future[Either[ValidationError, Seq[IsaAccount]]] =
-    //TODO: .grouped(27000) is not safe for a few reason, 1. loads everything into memory, 2. payload could have more than 27k records in a single request.
-    processStream(source)
-      .grouped(27000)
-      .map { batch =>
-        val (errors, validAccounts) = batch.partitionMap(identity)
-        logger.info(s"Processing the ISA accounts payload validation results")
-        if (errors.nonEmpty) {
-          val firstLevelErrors  = errors.collect { case FirstLevelValidationFailure(err) => err }
-          val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err }.flatten
+    rawValidated.prefixAndTail(1).flatMapConcat {
+      case (Seq(), _) =>
+        Source.single(Left(FirstLevelValidationFailure(EmptyPayload)))
+      case (Seq(first), tail) =>
+        tail.prepend(Source.single(first))
+    }
+  }
 
-          val failureException = if (firstLevelErrors.nonEmpty) {
-            FirstLevelValidationFailure(firstLevelErrors.head)
-          } else {
-            SecondLevelValidationFailure(secondLevelErrors.toList)
-          }
-          Left(failureException)
-        } else {
-          Right(validAccounts)
+  private def aggregateErrors(errors: List[ValidationError]): Left[ValidationError, Path] = {
+    val firstLevelErrors  = errors.collect { case FirstLevelValidationFailure(err) => err }
+    val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err }.flatten
+
+    if (firstLevelErrors.nonEmpty) Left(FirstLevelValidationFailure(firstLevelErrors.head))
+    else Left(SecondLevelValidationFailure(secondLevelErrors.toList))
+  }
+
+  def processToTempFile(source: Source[ByteString, _]): Future[Either[ValidationError, Path]] = {
+    val tempFile = Files.createTempFile("disa-returns-", ".ndjson")
+    val writer   = new BufferedWriter(new FileWriter(tempFile.toFile, StandardCharsets.UTF_8))
+
+    validatedLinesStream(source)
+      .runFold(List.empty[ValidationError]) { (errors, result) =>
+        result match {
+          case Left(err) => errors :+ err
+          case Right(line) =>
+            if (errors.isEmpty) {
+              writer.write(line)
+              writer.newLine()
+            }
+            errors
         }
       }
-      .runWith(Sink.head[Either[ValidationError, Seq[IsaAccount]]])
+      .map { errors =>
+        writer.close()
+        if (errors.nonEmpty) {
+          Files.deleteIfExists(tempFile)
+          aggregateErrors(errors)
+        } else {
+          Right(tempFile)
+        }
+      }
+      .recover { case ex =>
+        Try(writer.close())
+        Files.deleteIfExists(tempFile)
+        throw ex
+      }
+  }
 }

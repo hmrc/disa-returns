@@ -27,60 +27,38 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.controllers.SubmitReturnsController
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.etmp.{EtmpObligations, EtmpReportingWindow}
-import uk.gov.hmrc.disareturns.models.isaAccounts.{IsaType, StandardIsaSubscription}
 import utils.BaseUnitSpec
 
-import java.time.LocalDate
+import java.nio.file.Files
 import scala.concurrent.Future
 
 class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
   val controller: SubmitReturnsController = app.injector.instanceOf[SubmitReturnsController]
 
-  val boxId = "box-123"
   val obligation:      EtmpObligations     = EtmpObligations(false)
   val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
 
   val ndJsonLine =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
-  val standardIsaSubscription: StandardIsaSubscription = StandardIsaSubscription(
-    accountNumber = "STD000001",
-    nino = "AB000001C",
-    firstName = "First1",
-    middleName = None,
-    lastName = "Last1",
-    dateOfBirth = LocalDate.parse("1980-01-02"),
-    isaType = IsaType.STOCKS_AND_SHARES,
-    amountTransferredIn = 250.00,
-    amountTransferredOut = 250.00,
-    dateOfLastSubscription = LocalDate.parse("2025-06-01"),
-    totalCurrentYearSubscriptionsToDate = 2500.00,
-    marketValueOfAccount = 10000.00,
-    flexibleIsa = false
-  )
-
   def fakeRequestWithStream(ndJsonString: String = ndJsonLine): Request[Source[ByteString, _]] = FakeRequest()
     .withBody(Source.single(ByteString(ndJsonString + "\n")))
     .withHeaders("X-Client-ID" -> "client-999")
     .withHeaders("Content-Type" -> "application/x-ndjson")
 
-  val validSubmissionJson: JsValue = Json.obj(
-    "totalRecords"     -> 400,
-    "submissionPeriod" -> "JAN",
-    "taxYear"          -> LocalDate.now.getYear
-  )
-
   "ReturnsSubmissionController#submit" should {
 
     "return 204 when processing is successful" in {
+      val testPath = Files.createTempFile("test-submit", ".ndjson")
 
       authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processSource(any()))
-        .thenReturn(Future.successful(Right(Seq.empty)))
-      when(mockNPSService.submitIsaAccounts(any, any)(any)).thenReturn(Future.successful(Right(())))
+      when(mockStreamingParserService.processToTempFile(any()))
+        .thenReturn(Future.successful(Right(testPath)))
+      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(())))
 
       val result = controller.submit(validZReference, validTaxYear, validMonthStr)(fakeRequestWithStream())
 
@@ -93,7 +71,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processSource(any()))
+      when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Left(FirstLevelValidationFailure(NinoOrAccountNumMissingErr))))
 
       val result = controller.submit(validZReference, validTaxYear, validMonthStr).apply(fakeRequestWithStream(ndJsonLineError))
@@ -110,7 +88,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processSource(any()))
+      when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
           Future.successful(
             Left(
@@ -152,7 +130,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processSource(any()))
+      when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
           Future.successful(
             Left(
@@ -196,7 +174,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processSource(any()))
+      when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
           Future.successful(
             Left(
@@ -266,13 +244,16 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       (contentAsJson(result) \ "message").as[String] shouldBe "Obligation closed"
     }
 
-    "return 500 when NPS returns unexpected error" in {
+    "return 500 when submission returns unexpected error" in {
+      val testPath = Files.createTempFile("test-submit", ".ndjson")
+
       authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
-      when(mockStreamingParserService.processSource(any()))
-        .thenReturn(Future.successful(Right(Seq.empty)))
-      when(mockNPSService.submitIsaAccounts(any, any)(any)).thenReturn(Future.successful(Left(InternalServerErr())))
+      when(mockStreamingParserService.processToTempFile(any()))
+        .thenReturn(Future.successful(Right(testPath)))
+      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Left(InternalServerErr())))
 
       val result = controller.submit(validZReference, validTaxYear, validMonthStr)(fakeRequestWithStream())
 
@@ -285,7 +266,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(
-        mockStreamingParserService.processSource(any[Source[ByteString, _]])
+        mockStreamingParserService.processToTempFile(any[Source[ByteString, _]])
       ).thenReturn(Future.failed(new RuntimeException("boom")))
 
       val result = controller.submit(validZReference, validTaxYear, validMonthStr).apply(fakeRequestWithStream())

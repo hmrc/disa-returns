@@ -22,7 +22,6 @@ import org.mockito.Mockito._
 import play.api.http.Status.{NO_CONTENT, OK}
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.models.returnResults.{IssueWithMessage, ReconciliationReportPage, ReconciliationReportResponse, ReturnResults}
 import uk.gov.hmrc.disareturns.services.NPSService
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
@@ -61,50 +60,6 @@ class NPSServiceSpec extends BaseUnitSpec {
       val result = service.notification(validZReference, reportingNilReturn).value.futureValue
 
       result shouldBe Left(UnauthorisedErr)
-    }
-  }
-
-  "NPSService.submitIsaAccounts" should {
-
-    "return Right(()) when connector responds with 204 NO_CONTENT" in {
-      val httpResponse: HttpResponse = HttpResponse(NO_CONTENT, "")
-
-      when(mockNPSConnector.submit(validZReference, Seq.empty[IsaAccount]))
-        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
-
-      val result: Either[ErrorResponse, Unit] =
-        service.submitIsaAccounts(validZReference, Seq.empty).futureValue
-
-      result shouldBe Right(())
-    }
-
-    "return Left(UnauthorisedErr) when connector fails with 401 UpstreamErrorResponse" in {
-      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
-        message = "Not authorised to access this service",
-        statusCode = 401,
-        reportAs = 401,
-        headers = Map.empty
-      )
-
-      when(mockNPSConnector.submit(validZReference, Seq.empty[IsaAccount]))
-        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
-
-      val result: Either[ErrorResponse, Unit] =
-        service.submitIsaAccounts(validZReference, Seq.empty).futureValue
-
-      result shouldBe Left(UnauthorisedErr)
-    }
-
-    "return Left(InternalServerErr) when a non-204 success status is returned (e.g. 200 OK)" in {
-      val httpResponse: HttpResponse = HttpResponse(OK, "ignored body")
-
-      when(mockNPSConnector.submit(validZReference, Seq.empty[IsaAccount]))
-        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
-
-      val result: Either[ErrorResponse, Unit] =
-        service.submitIsaAccounts(validZReference, Seq.empty).futureValue
-
-      result shouldBe Left(InternalServerErr())
     }
   }
 
