@@ -29,7 +29,7 @@ import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.etmp.{EtmpObligations, EtmpReportingWindow}
 import utils.BaseUnitSpec
 
-import java.nio.file.Files
+import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
 import scala.concurrent.Future
 
 class SubmitReturnsControllerSpec extends BaseUnitSpec {
@@ -50,13 +50,13 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
   "ReturnsSubmissionController#submit" should {
 
     "return 204 when processing is successful" in {
-      val testPath = Files.createTempFile("test-submit", ".ndjson")
+      val tempFile: TemporaryFile = SingletonTemporaryFileCreator.create("test-submit-", ".ndjson")
 
       authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
-        .thenReturn(Future.successful(Right(testPath)))
+        .thenReturn(Future.successful(Right(tempFile)))
       when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
 
@@ -245,13 +245,13 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
     }
 
     "return 500 when submission returns unexpected error" in {
-      val testPath = Files.createTempFile("test-submit", ".ndjson")
+      val tempFile: TemporaryFile = SingletonTemporaryFileCreator.create("test-submit-", ".ndjson")
 
       authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
-        .thenReturn(Future.successful(Right(testPath)))
+        .thenReturn(Future.successful(Right(tempFile)))
       when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(InternalServerErr())))
 

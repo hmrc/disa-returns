@@ -32,7 +32,7 @@ import uk.gov.hmrc.disareturns.services.{ETMPService, StreamingParserService, Su
 import uk.gov.hmrc.disareturns.utils.HttpHelper
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.nio.file.Files
+import play.api.libs.Files.TemporaryFile
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -78,11 +78,11 @@ class SubmitReturnsController @Inject() (
                         logger.error(s"streamingParserService.processToTempFile has failed with the error: $err")
                         Future.successful(InternalServerError(Json.toJson(InternalServerErr())))
                     }
-                  case Right(path) =>
+                  case Right(tempFile: TemporaryFile) =>
                     submissionService
-                      .submitMonthlyReturn(zRef, validTaxYear, parsedMonth, path)
+                      .submitMonthlyReturn(zRef, validTaxYear, parsedMonth, tempFile.path)
                       .map { result =>
-                        Files.deleteIfExists(path)
+                        tempFile.delete()
                         result match {
                           case Left(error) =>
                             logger.error(
@@ -95,7 +95,7 @@ class SubmitReturnsController @Inject() (
                         }
                       }
                       .recover { case ex =>
-                        Files.deleteIfExists(path)
+                        tempFile.delete()
                         throw ex
                       }
                 }

@@ -29,7 +29,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
 
   private val taxYear  = "2026-27"
   private val month    = Month.SEP
-  private val monthInt = month.id + 1
+  private val monthInt = month.id
 
   private val declarationsUrl = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/declarations"
   private val createUrl       = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt"
@@ -54,7 +54,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
       val Left(err) = await(connector.sendDeclaration(validZReference, taxYear, month, nilReturnReported = false).value)
 
       err.statusCode shouldBe UNPROCESSABLE_ENTITY
-      err.message    should include(body)
+      err.message      should include(body)
     }
 
     "return Left(UpstreamErrorResponse) when disa-returns-submission returns 500" in {
@@ -91,20 +91,20 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     }
   }
 
-  "SubmissionConnector.sendMonthlyReturn" should {
+  "SubmissionConnector.sendSubmission" should {
 
     val ndjsonSource: Source[ByteString, _] = Source.single(ByteString("""{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n"))
 
     "return Right(()) when disa-returns-submission returns 200 OK" in {
       stubPost(submissionsUrl, OK, "")
 
-      val Right(()) = await(connector.sendMonthlyReturn(validZReference, taxYear, month, ndjsonSource))
+      val Right(()) = await(connector.sendSubmission(validZReference, taxYear, month, ndjsonSource))
     }
 
     "return Left(UpstreamErrorResponse) when disa-returns-submission returns 503" in {
       stubPost(submissionsUrl, SERVICE_UNAVAILABLE, "")
 
-      val Left(err) = await(connector.sendMonthlyReturn(validZReference, taxYear, month, ndjsonSource))
+      val Left(err) = await(connector.sendSubmission(validZReference, taxYear, month, ndjsonSource))
 
       err.statusCode shouldBe SERVICE_UNAVAILABLE
     }

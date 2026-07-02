@@ -17,9 +17,10 @@
 package uk.gov.hmrc.disareturns.services
 
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Framing, Source}
+import org.apache.pekko.stream.scaladsl.{FileIO, Flow, Framing, Keep, Sink, Source}
 import org.apache.pekko.util.ByteString
 import play.api.Logging
+import play.api.libs.Files.{TemporaryFile, TemporaryFileCreator}
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
@@ -27,15 +28,12 @@ import uk.gov.hmrc.disareturns.utils.JsonErrorMapper.jsErrorToDomainError
 import uk.gov.hmrc.disareturns.utils.JsonValidation
 import uk.gov.hmrc.disareturns.utils.JsonValidation.findDuplicateFields
 
-import java.io.{BufferedWriter, FileWriter}
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 @Singleton
-class StreamingParserService @Inject() (implicit val mat: Materializer, ec: ExecutionContext) extends Logging {
+class StreamingParserService @Inject() (temporaryFileCreator: TemporaryFileCreator)(implicit val mat: Materializer, ec: ExecutionContext)
+    extends Logging {
 
   private def validateSecondLevel(line: String, jsValue: JsValue, nino: String, accountNumber: String): Either[ValidationError, String] = {
     val combinedValidation: JsResult[IsaAccount] = findDuplicateFields(line).flatMap { _ =>
@@ -77,7 +75,7 @@ class StreamingParserService @Inject() (implicit val mat: Materializer, ec: Exec
     }
   }
 
-  private def aggregateErrors(errors: List[ValidationError]): Left[ValidationError, Path] = {
+  private def aggregateErrors(errors: Seq[ValidationError]): Left[ValidationError, TemporaryFile] = {
     val firstLevelErrors  = errors.collect { case FirstLevelValidationFailure(err) => err }
     val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err }.flatten
 
@@ -85,35 +83,33 @@ class StreamingParserService @Inject() (implicit val mat: Materializer, ec: Exec
     else Left(SecondLevelValidationFailure(secondLevelErrors.toList))
   }
 
-  def processToTempFile(source: Source[ByteString, _]): Future[Either[ValidationError, Path]] = {
-    val tempFile = Files.createTempFile("disa-returns-", ".ndjson")
-    val writer   = new BufferedWriter(new FileWriter(tempFile.toFile, StandardCharsets.UTF_8))
+  def processToTempFile(source: Source[ByteString, _]): Future[Either[ValidationError, TemporaryFile]] = {
+    val tempFile = temporaryFileCreator.create("disa-returns-", ".ndjson")
 
-    validatedLinesStream(source)
-      .runFold(List.empty[ValidationError]) { (errors, result) =>
-        result match {
-          case Left(err) => errors :+ err
-          case Right(line) =>
-            if (errors.isEmpty) {
-              writer.write(line)
-              writer.newLine()
-            }
-            errors
-        }
-      }
-      .map { errors =>
-        writer.close()
-        if (errors.nonEmpty) {
-          Files.deleteIfExists(tempFile)
-          aggregateErrors(errors)
-        } else {
-          Right(tempFile)
-        }
-      }
-      .recover { case ex =>
-        Try(writer.close())
-        Files.deleteIfExists(tempFile)
-        throw ex
-      }
+    val errorSink: Sink[Either[ValidationError, String], Future[Seq[ValidationError]]] =
+      Flow[Either[ValidationError, String]]
+        .collect { case Left(err) => err }
+        .toMat(Sink.seq)(Keep.right)
+
+    val (errorsFuture, ioResultFuture) =
+      validatedLinesStream(source)
+        .alsoToMat(errorSink)(Keep.right)
+        .collect { case Right(line) => ByteString(line + "\n") }
+        .toMat(FileIO.toPath(tempFile.path))(Keep.both)
+        .run()
+
+    (for {
+      errors <- errorsFuture
+      _      <- ioResultFuture
+    } yield
+      if (errors.nonEmpty) {
+        tempFile.delete()
+        aggregateErrors(errors)
+      } else {
+        Right(tempFile)
+      }).recover { case ex =>
+      tempFile.delete()
+      throw ex
+    }
   }
 }

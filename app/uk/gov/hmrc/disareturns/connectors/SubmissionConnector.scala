@@ -40,8 +40,7 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
   def sendDeclaration(zReference: String, taxYear: String, month: Month, nilReturnReported: Boolean)(implicit
     hc:                           HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val monthInt = month.id + 1 // Enum IDs are zero-based; add 1 to align with month numbers
-    val url      = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/declarations"
+    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}/declarations"
     EitherT(
       httpClient
         .post(url"$url")
@@ -67,8 +66,7 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
   def createMonthlyReturn(zReference: String, taxYear: String, month: Month, nilReturn: Boolean)(implicit
     hc:                               HeaderCarrier
   ): Future[Either[UpstreamErrorResponse, Unit]] = {
-    val monthInt = month.id + 1 // Enum IDs are zero-based; add 1 to align with month numbers
-    val url      = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt"
+    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}"
     httpClient
       .post(url"$url")
       .withBody(Json.toJson(ReportingNilReturn(nilReturn = nilReturn)))
@@ -89,18 +87,17 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
       }
   }
 
-  def sendMonthlyReturn(zReference: String, taxYear: String, month: Month, source: Source[ByteString, _])(implicit
-    hc:                             HeaderCarrier
+  def sendSubmission(zReference: String, taxYear: String, month: Month, source: Source[ByteString, _])(implicit
+    hc:                          HeaderCarrier
   ): Future[Either[UpstreamErrorResponse, Unit]] = {
-    val monthInt = month.id + 1 // Enum IDs are zero-based; add 1 to align with month numbers
-    val url      = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/submissions"
+    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}/submissions"
     httpClient
       .post(url"$url")
       .withBody(source)
       .execute[HttpResponse]
       .map { response =>
         if (response.status >= BAD_REQUEST) {
-          logger.warn(s"[SubmissionConnector: sendMonthlyReturn] Received error status ${response.status} with body: ${response.body}")
+          logger.warn(s"[SubmissionConnector: sendSubmission] Received error status ${response.status} with body: ${response.body}")
           Left(UpstreamErrorResponse(response.body, response.status, response.status))
         } else {
           Right(())
@@ -109,7 +106,7 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
       .recover {
         case upstream: UpstreamErrorResponse => Left(upstream)
         case ex =>
-          logger.error(s"[SubmissionConnector: sendMonthlyReturn] Unexpected error: ${ex.getMessage}", ex)
+          logger.error(s"[SubmissionConnector: sendSubmission] Unexpected error: ${ex.getMessage}", ex)
           Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
       }
   }

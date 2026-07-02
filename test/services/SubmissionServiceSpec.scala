@@ -96,7 +96,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
 
       when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
-      when(mockSubmissionConnector.sendMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
 
       val result = service.submitMonthlyReturn(validZReference, validTaxYear, validMonth, tempFile).futureValue
@@ -118,7 +118,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
 
       when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(conflict)))
-      when(mockSubmissionConnector.sendMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
 
       val result = service.submitMonthlyReturn(validZReference, validTaxYear, validMonth, tempFile).futureValue
@@ -147,7 +147,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
       result shouldBe Left(InternalServerErr())
     }
 
-    "return Left(UnauthorisedErr) when sendMonthlyReturn returns a 401 UpstreamErrorResponse" in {
+    "return Left(UnauthorisedErr) when sendSubmission returns a 401 UpstreamErrorResponse" in {
       val tempFile = Files.createTempFile("test-monthly-return", ".ndjson")
       Files.writeString(tempFile, """{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n")
 
@@ -160,7 +160,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
 
       when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
-      when(mockSubmissionConnector.sendMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(exception)))
 
       val result = service.submitMonthlyReturn(validZReference, validTaxYear, validMonth, tempFile).futureValue
@@ -169,7 +169,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
       result shouldBe Left(UnauthorisedErr)
     }
 
-    "return Left(InternalServerErr) when sendMonthlyReturn returns a 500 UpstreamErrorResponse" in {
+    "return Left(InternalServerErr) when sendSubmission returns a 500 UpstreamErrorResponse" in {
       val tempFile = Files.createTempFile("test-monthly-return", ".ndjson")
       Files.writeString(tempFile, """{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n")
 
@@ -182,7 +182,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
 
       when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
-      when(mockSubmissionConnector.sendMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(exception)))
 
       val result = service.submitMonthlyReturn(validZReference, validTaxYear, validMonth, tempFile).futureValue

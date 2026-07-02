@@ -34,7 +34,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     val connector         = new SubmissionConnector(mockHttpClient, mockAppConfig)
     val nilReturnReported = false
     val testUrl           = "http://localhost:12103"
-    val monthInt          = validMonth.id + 1
+    val monthInt          = validMonth.id
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -182,7 +182,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     }
   }
 
-  "SubmissionConnector.sendMonthlyReturn" should {
+  "SubmissionConnector.sendSubmission" should {
 
     val ndjsonSource: Source[ByteString, _] = Source.single(ByteString("""{"nino":"AB000001C"}"""))
 
@@ -193,7 +193,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(httpResponse))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendMonthlyReturn(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
 
       result shouldBe Right(())
     }
@@ -206,7 +206,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(httpResponse))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendMonthlyReturn(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
 
       result match {
         case Left(err) =>
@@ -223,7 +223,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(httpResponse))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendMonthlyReturn(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
 
       result match {
         case Left(err) =>
@@ -240,7 +240,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.failed(exception))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendMonthlyReturn(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
 
       result match {
         case Left(err) =>
