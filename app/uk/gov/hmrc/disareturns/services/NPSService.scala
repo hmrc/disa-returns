@@ -18,13 +18,12 @@ package uk.gov.hmrc.disareturns.services
 
 import cats.data.EitherT
 import play.api.Logging
-import play.api.http.Status.{NO_CONTENT, OK}
+import play.api.http.Status.OK
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReportNotFoundErr, ReportPageNotFoundErr}
-import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.models.returnResults.{ReconciliationReportPage, ReconciliationReportResponse}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
@@ -39,25 +38,6 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
   ): EitherT[Future, ErrorResponse, HttpResponse] = {
     logger.info(s"Sending notification to NPS for IM ref: [$zReference]")
     connector.sendNotification(zReference, nilReturnReported).leftMap(mapToErrorResponse)
-  }
-
-  def submitIsaAccounts(zReference: String, isaAccounts: Seq[IsaAccount])(implicit
-    hc:                             HeaderCarrier
-  ): Future[Either[ErrorResponse, Unit]] = {
-    logger.info(s"Submitting ISA Accounts to NPS for IM ref: [$zReference]")
-
-    connector.submit(zReference, isaAccounts).value.map {
-      case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
-      case Right(response) =>
-        response.status match {
-          case NO_CONTENT => Right(())
-          case otherStatus =>
-            logger.error(
-              s"Unexpected status: [$otherStatus] was received from submitting ISA Accounts to NPS for IM ref: [$zReference]"
-            )
-            Left(InternalServerErr())
-        }
-    }
   }
 
   def retrieveReconciliationReportPage(zReference: String, taxYear: String, month: Month, pageIndex: Int)(implicit

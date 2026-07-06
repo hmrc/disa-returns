@@ -16,6 +16,8 @@
 
 package connectors
 
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import play.api.test.Helpers._
@@ -32,12 +34,16 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     val connector         = new SubmissionConnector(mockHttpClient, mockAppConfig)
     val nilReturnReported = false
     val testUrl           = "http://localhost:12103"
-    val monthInt          = validMonth.id + 1
+    val monthInt          = validMonth.id
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     when(mockAppConfig.submissionBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.post(url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/declarations"))
+      .thenReturn(mockRequestBuilder)
+    when(mockHttpClient.post(url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt"))
+      .thenReturn(mockRequestBuilder)
+    when(mockHttpClient.post(url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions"))
       .thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
   }
@@ -99,6 +105,142 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
         connector.sendDeclaration(validZReference, validTaxYear, validMonth, nilReturnReported).value.futureValue
+
+      result match {
+        case Left(err) =>
+          err.statusCode shouldBe INTERNAL_SERVER_ERROR
+          err.message      should include("Unexpected error: Connection timeout")
+        case _ => fail("Expected Left(UpstreamErrorResponse)")
+      }
+    }
+  }
+
+  "SubmissionConnector.createMonthlyReturn" should {
+
+    "return Right(()) when the POST is successful" in new TestSetup {
+      val httpResponse: HttpResponse = HttpResponse(CREATED, "")
+
+      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+        .thenReturn(Future.successful(httpResponse))
+
+      val result: Either[UpstreamErrorResponse, Unit] =
+        connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
+
+      result shouldBe Right(())
+    }
+
+    "return Left(UpstreamErrorResponse) when the POST returns a 409" in new TestSetup {
+      val body         = """{"submissionId":"existing-id"}"""
+      val httpResponse = HttpResponse(CONFLICT, body)
+
+      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+        .thenReturn(Future.successful(httpResponse))
+
+      val result: Either[UpstreamErrorResponse, Unit] =
+        connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
+
+      result match {
+        case Left(err) =>
+          err.statusCode shouldBe CONFLICT
+          err.message    shouldBe body
+        case _ => fail("Expected Left(UpstreamErrorResponse)")
+      }
+    }
+
+    "return Left(UpstreamErrorResponse) when the POST returns a 500" in new TestSetup {
+      val httpResponse = HttpResponse(INTERNAL_SERVER_ERROR, "Internal Server Error")
+
+      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+        .thenReturn(Future.successful(httpResponse))
+
+      val result: Either[UpstreamErrorResponse, Unit] =
+        connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
+
+      result match {
+        case Left(err) =>
+          err.statusCode shouldBe INTERNAL_SERVER_ERROR
+          err.message    shouldBe "Internal Server Error"
+        case _ => fail("Expected Left(UpstreamErrorResponse)")
+      }
+    }
+
+    "return Left(UpstreamErrorResponse) when an unexpected exception occurs" in new TestSetup {
+      val exception = new RuntimeException("Connection timeout")
+
+      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+        .thenReturn(Future.failed(exception))
+
+      val result: Either[UpstreamErrorResponse, Unit] =
+        connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
+
+      result match {
+        case Left(err) =>
+          err.statusCode shouldBe INTERNAL_SERVER_ERROR
+          err.message      should include("Unexpected error: Connection timeout")
+        case _ => fail("Expected Left(UpstreamErrorResponse)")
+      }
+    }
+  }
+
+  "SubmissionConnector.sendSubmission" should {
+
+    val ndjsonSource: Source[ByteString, _] = Source.single(ByteString("""{"nino":"AB000001C"}"""))
+
+    "return Right(()) when the POST is successful" in new TestSetup {
+      val httpResponse: HttpResponse = HttpResponse(OK, "")
+
+      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+        .thenReturn(Future.successful(httpResponse))
+
+      val result: Either[UpstreamErrorResponse, Unit] =
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+
+      result shouldBe Right(())
+    }
+
+    "return Left(UpstreamErrorResponse) when the POST returns a 400" in new TestSetup {
+      val body         = """{"code":"VALIDATION_FAILURE","message":"Bad request"}"""
+      val httpResponse = HttpResponse(BAD_REQUEST, body)
+
+      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+        .thenReturn(Future.successful(httpResponse))
+
+      val result: Either[UpstreamErrorResponse, Unit] =
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+
+      result match {
+        case Left(err) =>
+          err.statusCode shouldBe BAD_REQUEST
+          err.message    shouldBe body
+        case _ => fail("Expected Left(UpstreamErrorResponse)")
+      }
+    }
+
+    "return Left(UpstreamErrorResponse) when the POST returns a 500" in new TestSetup {
+      val httpResponse = HttpResponse(INTERNAL_SERVER_ERROR, "Internal Server Error")
+
+      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+        .thenReturn(Future.successful(httpResponse))
+
+      val result: Either[UpstreamErrorResponse, Unit] =
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+
+      result match {
+        case Left(err) =>
+          err.statusCode shouldBe INTERNAL_SERVER_ERROR
+          err.message    shouldBe "Internal Server Error"
+        case _ => fail("Expected Left(UpstreamErrorResponse)")
+      }
+    }
+
+    "return Left(UpstreamErrorResponse) when an unexpected exception occurs" in new TestSetup {
+      val exception = new RuntimeException("Connection timeout")
+
+      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+        .thenReturn(Future.failed(exception))
+
+      val result: Either[UpstreamErrorResponse, Unit] =
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
 
       result match {
         case Left(err) =>

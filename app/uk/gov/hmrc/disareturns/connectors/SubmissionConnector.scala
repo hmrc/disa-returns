@@ -17,13 +17,15 @@
 package uk.gov.hmrc.disareturns.connectors
 
 import cats.data.EitherT
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import play.api.Logging
 import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR}
 import play.api.libs.json.Json
+import play.api.libs.ws.{BodyWritable, SourceBody}
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
-import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 
@@ -32,11 +34,13 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends Logging {
 
+  private implicit val ndjsonBodyWritable: BodyWritable[Source[ByteString, _]] =
+    BodyWritable(SourceBody(_), "application/x-ndjson")
+
   def sendDeclaration(zReference: String, taxYear: String, month: Month, nilReturnReported: Boolean)(implicit
     hc:                           HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val monthInt = month.id + 1 // Enum IDs are zero-based; add 1 to align with month numbers
-    val url      = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/declarations"
+    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}/declarations"
     EitherT(
       httpClient
         .post(url"$url")
@@ -50,10 +54,60 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
             Right(response)
           }
         }
-        .recover { case ex =>
-          logger.error(s"[SubmissionConnector: sendDeclaration] Unexpected error: ${ex.getMessage}", ex)
-          Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
+        .recover {
+          case upstream: UpstreamErrorResponse => Left(upstream)
+          case ex =>
+            logger.error(s"[SubmissionConnector: sendDeclaration] Unexpected error: ${ex.getMessage}", ex)
+            Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
         }
     )
+  }
+
+  def createMonthlyReturn(zReference: String, taxYear: String, month: Month, nilReturn: Boolean)(implicit
+    hc:                               HeaderCarrier
+  ): Future[Either[UpstreamErrorResponse, Unit]] = {
+    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}"
+    httpClient
+      .post(url"$url")
+      .withBody(Json.toJson(ReportingNilReturn(nilReturn = nilReturn)))
+      .execute[HttpResponse]
+      .map { response =>
+        if (response.status >= BAD_REQUEST) {
+          logger.warn(s"[SubmissionConnector: createMonthlyReturn] Received error status ${response.status} with body: ${response.body}")
+          Left(UpstreamErrorResponse(response.body, response.status, response.status))
+        } else {
+          Right(())
+        }
+      }
+      .recover {
+        case upstream: UpstreamErrorResponse => Left(upstream)
+        case ex =>
+          logger.error(s"[SubmissionConnector: createMonthlyReturn] Unexpected error: ${ex.getMessage}", ex)
+          Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
+      }
+  }
+
+  def sendSubmission(zReference: String, taxYear: String, month: Month, source: Source[ByteString, _])(implicit
+    hc:                          HeaderCarrier
+  ): Future[Either[UpstreamErrorResponse, Unit]] = {
+    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}/submissions"
+    httpClient
+      .post(url"$url")
+      .withBody(source)
+      .execute[HttpResponse]
+      .map { response =>
+        if (response.status >= BAD_REQUEST) {
+          logger.warn(s"[SubmissionConnector: sendSubmission] Received error status ${response.status} with body: ${response.body}")
+          Left(UpstreamErrorResponse(response.body, response.status, response.status))
+        } else {
+          Right(())
+        }
+      }
+      .recover {
+        case upstream: UpstreamErrorResponse => Left(upstream)
+        case ex =>
+          logger.error(s"[SubmissionConnector: sendSubmission] Unexpected error: ${ex.getMessage}", ex)
+          Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
+      }
   }
 }

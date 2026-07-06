@@ -22,18 +22,18 @@ object Month extends Enumeration {
 
   type Month = Value
 
-  val JAN: Value = Value("JAN")
-  val FEB: Value = Value("FEB")
-  val MAR: Value = Value("MAR")
-  val APR: Value = Value("APR")
-  val MAY: Value = Value("MAY")
-  val JUN: Value = Value("JUN")
-  val JUL: Value = Value("JUL")
-  val AUG: Value = Value("AUG")
-  val SEP: Value = Value("SEP")
-  val OCT: Value = Value("OCT")
-  val NOV: Value = Value("NOV")
-  val DEC: Value = Value("DEC")
+  val JAN: Value = Value(1, "JAN")
+  val FEB: Value = Value(2, "FEB")
+  val MAR: Value = Value(3, "MAR")
+  val APR: Value = Value(4, "APR")
+  val MAY: Value = Value(5, "MAY")
+  val JUN: Value = Value(6, "JUN")
+  val JUL: Value = Value(7, "JUL")
+  val AUG: Value = Value(8, "AUG")
+  val SEP: Value = Value(9, "SEP")
+  val OCT: Value = Value(10, "OCT")
+  val NOV: Value = Value(11, "NOV")
+  val DEC: Value = Value(12, "DEC")
 
   implicit val format: Format[Month.Value] = JsonUtils.enumFormat(Month)
 

@@ -30,39 +30,6 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
   private val month               = Month.JAN
   private val connector: NPSConnector = app.injector.instanceOf[NPSConnector]
 
-  "NPSConnector.submit" should {
-
-    val submitUrl = s"/nps/submit/$validZReference"
-
-    "return Right(HttpResponse) when NPS returns 204 NO_CONTENT" in {
-      stubPost(submitUrl, NO_CONTENT, "")
-
-      val Right(response) =
-        await(connector.submit(validZReference, Nil).value)
-
-      response.status shouldBe NO_CONTENT
-      response.body   shouldBe ""
-    }
-
-    "return Left(UpstreamErrorResponse) when NPS returns an error status (401)" in {
-      stubPost(submitUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
-
-      val Left(err) =
-        await(connector.submit(validZReference, Nil).value)
-
-      err.statusCode shouldBe UNAUTHORIZED
-      err.message      should include("Not authorised")
-    }
-
-    "return Left(UpstreamErrorResponse) when the call fails with an unexpected exception" in {
-      val Left(err) =
-        await(connector.submit("non-existent", Nil).value)
-
-      err.statusCode shouldBe NOT_FOUND
-      err.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")
-    }
-  }
-
   "NPSConnector.sendNotification" should {
 
     "return Right(HttpResponse) when NPS returns 204 NO_CONTENT" in {

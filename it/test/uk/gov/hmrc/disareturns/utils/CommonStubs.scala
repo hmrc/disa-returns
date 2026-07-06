@@ -105,26 +105,30 @@ trait CommonStubs { self: TestData =>
         .willReturn(status)
     )
 
-  def stubNpsSubmission(status: Int, zReference: String): Unit =
+  def stubCreateMonthlyReturn(status: Int, zReference: String, taxYear: String, monthInt: Int): Unit =
     stubFor(
-      post(urlEqualTo(s"/nps/submit/$zReference"))
+      post(urlEqualTo(s"/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt"))
         .willReturn(aResponse().withStatus(status))
     )
 
-  def stubNpsSubmissionWithBodyAssert(
-    status:             Int,
-    zReference:         String,
-    expectedJsonObject: String
-  ): Unit = {
-    val jsObj             = Json.parse(expectedJsonObject)
-    val jsArray           = Json.arr(jsObj)
-    val expectedArrayJson = Json.stringify(jsArray)
+  def stubStoreMonthlyReturn(status: Int, zReference: String, taxYear: String, monthInt: Int): Unit =
     stubFor(
-      post(urlEqualTo(s"/nps/submit/$zReference"))
-        .withRequestBody(equalToJson(expectedArrayJson, true, false))
+      post(urlEqualTo(s"/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/submissions"))
         .willReturn(aResponse().withStatus(status))
     )
-  }
+
+  def stubStoreMonthlyReturnWithBodyAssert(
+    status:             Int,
+    zReference:         String,
+    taxYear:            String,
+    monthInt:           Int,
+    expectedNdjsonLine: String
+  ): Unit =
+    stubFor(
+      post(urlEqualTo(s"/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/submissions"))
+        .withRequestBody(containing(expectedNdjsonLine))
+        .willReturn(aResponse().withStatus(status))
+    )
 
   val testClientId = "test-client-id"
   val testHeaders: Seq[(String, String)] = Seq(

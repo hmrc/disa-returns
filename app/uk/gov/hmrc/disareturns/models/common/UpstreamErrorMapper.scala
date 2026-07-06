@@ -21,6 +21,8 @@ import play.api.http.Status.{BAD_GATEWAY, BAD_REQUEST, INTERNAL_SERVER_ERROR, SE
 import play.api.libs.json.Json
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
+import scala.util.Try
+
 object UpstreamErrorMapper extends Logging {
 
   def mapToErrorResponse(err: UpstreamErrorResponse): ErrorResponse = {
@@ -30,7 +32,7 @@ object UpstreamErrorMapper extends Logging {
         logger.info("Mapping 401 to Unauthorised")
         UnauthorisedErr
       case UpstreamErrorResponse(message, UNPROCESSABLE_ENTITY, _, _) =>
-        val code = (Json.parse(message) \ "code").asOpt[String]
+        val code = extractCode(message)
         code match {
           case Some("NO_SUBMISSION_DATA") =>
             logger.warn("Mapping 422 (NO_SUBMISSION_DATA) to MonthlyReturnNotSubmitted")
@@ -51,6 +53,15 @@ object UpstreamErrorMapper extends Logging {
       case _ =>
         logger.error(s"Unhandled upstream error, mapping to InternalServerError")
         InternalServerErr()
+    }
+  }
+
+  private def extractCode(message: String): Option[String] = {
+    def parseCode(s: String) = Try(Json.parse(s)).toOption.flatMap(js => (js \ "code").asOpt[String])
+    parseCode(message).orElse {
+      val prefix = "Response body: '"
+      val idx    = message.lastIndexOf(prefix)
+      if (idx >= 0) parseCode(message.substring(idx + prefix.length).stripSuffix("'")) else None
     }
   }
 }

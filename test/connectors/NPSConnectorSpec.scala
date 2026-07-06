@@ -21,7 +21,6 @@ import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
-import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.models.returnResults.{IssueWithMessage, ReconciliationReportResponse, ReturnResults}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
@@ -35,13 +34,11 @@ class NPSConnectorSpec extends BaseUnitSpec {
     val connector          = new NPSConnector(mockHttpClient, mockAppConfig)
     val nilReturnSubmitted = false
     val testUrl            = "http://localhost:1204"
-    val testSubscriptions: Seq[IsaAccount] = Seq.empty
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     when(mockAppConfig.npsBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.post(url"$testUrl/nps/declaration/$validZReference")).thenReturn(mockRequestBuilder)
-    when(mockHttpClient.post(url"$testUrl/nps/submit/$validZReference")).thenReturn(mockRequestBuilder)
     when(mockHttpClient.get(url"$testUrl/monthly/$validZReference/$validTaxYear/$validMonthStr/results?pageIndex=0&pageSize=2"))
       .thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
@@ -85,52 +82,6 @@ class NPSConnectorSpec extends BaseUnitSpec {
           err.message      should include("Unexpected error: Connection timeout")
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
-    }
-  }
-
-  "NPSConnector.submit" should {
-
-    "return Right(HttpResponse) when the NPS submit call succeeds" in new TestSetup {
-      val mockHttpResponse: HttpResponse =
-        HttpResponse(status = 204, json = Json.toJson(testSubscriptions), headers = Map.empty)
-
-      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
-        .thenReturn(Future.successful(Right(mockHttpResponse)))
-
-      val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.submit(validZReference, testSubscriptions).value.futureValue
-
-      result shouldBe Right(mockHttpResponse)
-    }
-
-    "return Left(UpstreamErrorResponse) when NPS returns an upstream error" in new TestSetup {
-      val upstreamError: UpstreamErrorResponse = UpstreamErrorResponse(
-        message = "Not authorised to access this service",
-        statusCode = 401,
-        reportAs = 401,
-        headers = Map.empty
-      )
-
-      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
-        .thenReturn(Future.successful(Left(upstreamError)))
-
-      val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.submit(validZReference, testSubscriptions).value.futureValue
-
-      result shouldBe Left(upstreamError)
-    }
-
-    "return Left(UpstreamErrorResponse) when an unexpected Throwable occurs" in new TestSetup {
-      val runtimeException = new RuntimeException("Connection timeout")
-
-      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
-        .thenReturn(Future.failed(runtimeException))
-
-      val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
-        connector.submit(validZReference, testSubscriptions).value.futureValue
-
-      result.statusCode shouldBe 500
-      result.message      should include("Unexpected error: Connection timeout")
     }
   }
 

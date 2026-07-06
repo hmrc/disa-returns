@@ -21,7 +21,6 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
-import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.HttpReadsInstances.readEitherOf
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -31,19 +30,6 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
-
-  def submit(zReference: String, isaAccounts: Seq[IsaAccount])(implicit
-    hc:                  HeaderCarrier
-  ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.npsBaseUrl}/nps/submit/$zReference"
-    read(
-      httpClient
-        .post(url"$url")
-        .withBody(Json.toJson(isaAccounts))
-        .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = "NPSConnector: submit"
-    )
-  }
 
   def sendNotification(zReference: String, nilReturnReported: Boolean)(implicit
     hc:                            HeaderCarrier

@@ -58,6 +58,15 @@ class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
       result shouldBe MonthlyReturnNotSubmitted
     }
 
+    "map 422 response with NO_SUBMISSION_DATA code embedded in HMRC formatted message to MonthlyReturnNotSubmitted" in {
+      val body = """{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""
+      val message =
+        s"POST of 'http://localhost:11111/disa-returns-submission/monthly/Z7900/2025-26/2/declarations' returned 422. Response body: '$body'"
+      val err    = UpstreamErrorResponse(message, UNPROCESSABLE_ENTITY, UNPROCESSABLE_ENTITY)
+      val result = UpstreamErrorMapper.mapToErrorResponse(err)
+      result shouldBe MonthlyReturnNotSubmitted
+    }
+
     "map 422 response without NO_SUBMISSION_DATA code to InternalServerErr" in {
       val body   = """{"ERROR":"This monthly return was already declared"}"""
       val err    = UpstreamErrorResponse(body, UNPROCESSABLE_ENTITY, UNPROCESSABLE_ENTITY)
