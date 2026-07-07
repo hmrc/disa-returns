@@ -25,16 +25,19 @@ import utils.BaseUnitSpec
 class AppConfigSpec extends BaseUnitSpec {
 
   private val configMap: Map[String, Any] = Map(
-    "microservice.services.etmp.host" -> "etmp",
-    "microservice.services.etmp.port" -> "1204",
-    "urls.returnResultsLocation"      -> "/monthly/{zReference}/{taxYear}/{month}/results",
-    "mongodb.timeToLive"              -> 30,
-    "returnResultsRecordsPerPage"     -> 10
+    "microservice.services.etmp.host"          -> "etmp",
+    "microservice.services.etmp.port"          -> "1204",
+    "microservice.services.internal-auth.host" -> "internal-auth",
+    "microservice.services.internal-auth.port" -> "8470",
+    "internal-auth.token"                      -> "valid-internal-auth-token-disa-returns",
+    "urls.returnResultsLocation"               -> "/monthly/{zReference}/{taxYear}/{month}/results",
+    "mongodb.timeToLive"                       -> 30,
+    "returnResultsRecordsPerPage"              -> 10
   )
 
   private val configuration  = Configuration.from(configMap)
   private val servicesConfig = new ServicesConfig(configuration)
-  private val appConfig      = new AppConfig(servicesConfig)
+  private val appConfig      = new AppConfig(configuration, servicesConfig)
 
   "AppConfig" should {
 
@@ -44,6 +47,11 @@ class AppConfigSpec extends BaseUnitSpec {
 
     "read the mongodb timeToLive correctly" in {
       appConfig.timeToLive mustBe 30
+    }
+
+    "read the internal auth config correctly" in {
+      appConfig.internalAuthUrl mustBe "http://internal-auth:8470"
+      appConfig.internalAuthToken mustBe "valid-internal-auth-token-disa-returns"
     }
 
     "read the returnResultsRecordsPerPage correctly" in {

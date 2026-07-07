@@ -72,13 +72,17 @@ trait BaseIntegrationSpec
       "microservice.services.ppns.port"                    -> wiremockPort.toString,
       "microservice.services.auth.host"                    -> wiremockHost,
       "microservice.services.auth.port"                    -> wiremockPort.toString,
+      "microservice.services.internal-auth.host"           -> wiremockHost,
+      "microservice.services.internal-auth.port"           -> wiremockPort.toString,
       "microservice.services.nps.host"                     -> wiremockHost,
       "microservice.services.nps.port"                     -> wiremockPort.toString,
       "microservice.services.disa-returns-submission.host" -> wiremockHost,
       "microservice.services.disa-returns-submission.port" -> wiremockPort.toString,
       "microservice.services.self.host"                    -> wiremockHost,
       "microservice.services.self.port"                    -> wiremockPort.toString,
-      "returnResultsRecordsPerPage"                        -> "2"
+      "returnResultsRecordsPerPage"                        -> "2",
+      "internal-auth.token"                                -> "valid-internal-auth-token-disa-returns",
+      "create-internal-auth-token-on-start"                -> "false"
     )
 
   override def beforeAll(): Unit = {

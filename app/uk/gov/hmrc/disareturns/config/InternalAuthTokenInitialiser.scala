@@ -1,0 +1,85 @@
+/*
+ * Copyright 2026 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package uk.gov.hmrc.disareturns.config
+
+import org.apache.pekko.Done
+import play.api.Logging
+import play.api.http.Status.CREATED
+import play.api.libs.concurrent.Futures
+import play.api.libs.json.Json
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
+
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, Future}
+
+abstract class InternalAuthTokenInitialiser {
+  final lazy val initialised: Future[Done] = initialise()
+
+  protected def initialise(): Future[Done]
+}
+
+@Singleton
+class NoOpInternalAuthTokenInitialiser @Inject() extends InternalAuthTokenInitialiser {
+  override protected def initialise(): Future[Done] = Future.successful(Done)
+}
+
+@Singleton
+class InternalAuthTokenInitialiserImpl @Inject() (
+  appConfig:   AppConfig,
+  httpClient:  HttpClientV2,
+  futures:     Futures
+)(implicit ec: ExecutionContext)
+    extends InternalAuthTokenInitialiser
+    with Logging {
+
+  override protected def initialise(): Future[Done] =
+    futures.timeout(30.seconds)(createClientAuthToken())
+
+  private def createClientAuthToken(): Future[Done] = {
+    logger.info("[InternalAuthTokenInitialiser][createClientAuthToken] Initialising auth token")
+
+    httpClient
+      .post(url"${appConfig.internalAuthUrl}/test-only/token")(HeaderCarrier())
+      .withBody(
+        Json.obj(
+          "token"     -> appConfig.internalAuthToken,
+          "principal" -> "disa-returns",
+          "permissions" -> Seq(
+            Json.obj(
+              "resourceType"     -> "disa-returns-submission",
+              "resourceLocation" -> "*",
+              "actions"          -> List("READ", "WRITE")
+            )
+          )
+        )
+      )
+      .execute
+      .flatMap { response =>
+        if (response.status == CREATED) {
+          logger.info("[InternalAuthTokenInitialiser][createClientAuthToken] Auth token initialised")
+          Future.successful(Done)
+        } else {
+          logger.error("[InternalAuthTokenInitialiser][createClientAuthToken] Unable to initialise internal-auth token")
+          Future.failed(new RuntimeException("Unable to initialise internal-auth token"))
+        }
+      }
+  }
+}
