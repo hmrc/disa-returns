@@ -44,6 +44,7 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
     EitherT(
       httpClient
         .post(url"$url")
+        .setHeader(authorizationHeader)
         .withBody(Json.toJson(ReportingNilReturn(nilReturn = nilReturnReported)))
         .execute[HttpResponse]
         .map { response =>
@@ -69,6 +70,7 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
     val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}"
     httpClient
       .post(url"$url")
+      .setHeader(authorizationHeader)
       .withBody(Json.toJson(ReportingNilReturn(nilReturn = nilReturn)))
       .execute[HttpResponse]
       .map { response =>
@@ -93,6 +95,7 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
     val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}/submissions"
     httpClient
       .post(url"$url")
+      .setHeader(authorizationHeader)
       .withBody(source)
       .execute[HttpResponse]
       .map { response =>
@@ -110,4 +113,7 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
           Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
       }
   }
+
+  private def authorizationHeader: (String, String) =
+    "Authorization" -> appConfig.internalAuthToken
 }

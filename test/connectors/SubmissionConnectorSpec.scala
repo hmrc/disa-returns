@@ -31,20 +31,25 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
 
   trait TestSetup {
 
+    reset(mockHttpClient, mockAppConfig, mockRequestBuilder)
+
     val connector         = new SubmissionConnector(mockHttpClient, mockAppConfig)
     val nilReturnReported = false
     val testUrl           = "http://localhost:12103"
     val monthInt          = validMonth.id
+    val internalAuthToken = "valid-internal-auth-token-disa-returns"
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     when(mockAppConfig.submissionBaseUrl).thenReturn(testUrl)
+    when(mockAppConfig.internalAuthToken).thenReturn(internalAuthToken)
     when(mockHttpClient.post(url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/declarations"))
       .thenReturn(mockRequestBuilder)
     when(mockHttpClient.post(url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt"))
       .thenReturn(mockRequestBuilder)
     when(mockHttpClient.post(url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions"))
       .thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.setHeader("Authorization" -> internalAuthToken)).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
   }
 
@@ -59,7 +64,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       val result: Either[UpstreamErrorResponse, HttpResponse] =
         connector.sendDeclaration(validZReference, validTaxYear, validMonth, nilReturnReported).value.futureValue
 
-      result shouldBe Right(httpResponse)
+      result                                         shouldBe Right(httpResponse)
+      verify(mockRequestBuilder).setHeader("Authorization" -> internalAuthToken)
     }
 
     "return Left(UpstreamErrorResponse) with raw body when the POST returns a 422" in new TestSetup {
@@ -126,7 +132,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       val result: Either[UpstreamErrorResponse, Unit] =
         connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
 
-      result shouldBe Right(())
+      result                                         shouldBe Right(())
+      verify(mockRequestBuilder).setHeader("Authorization" -> internalAuthToken)
     }
 
     "return Left(UpstreamErrorResponse) when the POST returns a 409" in new TestSetup {
@@ -195,7 +202,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       val result: Either[UpstreamErrorResponse, Unit] =
         connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
 
-      result shouldBe Right(())
+      result                                         shouldBe Right(())
+      verify(mockRequestBuilder).setHeader("Authorization" -> internalAuthToken)
     }
 
     "return Left(UpstreamErrorResponse) when the POST returns a 400" in new TestSetup {

@@ -88,6 +88,7 @@ abstract class BaseUnitSpec
   val mockNotificationContextService:    NotificationContextService      = mock[NotificationContextService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
+    .configure("create-internal-auth-token-on-start" -> false)
     .overrides(
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[ETMPService].toInstance(mockETMPService),

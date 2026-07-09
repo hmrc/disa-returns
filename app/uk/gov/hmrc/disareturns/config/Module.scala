@@ -16,10 +16,34 @@
 
 package uk.gov.hmrc.disareturns.config
 
-import com.google.inject.AbstractModule
+import com.google.inject.{AbstractModule, Provides}
+import play.api.Configuration
+import play.api.libs.concurrent.Futures
+import uk.gov.hmrc.disareturns.AppInitialiser
+import uk.gov.hmrc.http.client.HttpClientV2
+
+import javax.inject.Singleton
+import scala.concurrent.ExecutionContext
 
 class Module extends AbstractModule {
 
-  override def configure(): Unit =
+  override def configure(): Unit = {
     bind(classOf[AppConfig]).asEagerSingleton()
+    bind(classOf[AppInitialiser]).asEagerSingleton()
+  }
+
+  @Provides
+  @Singleton
+  def provideInternalAuthTokenInitialiser(
+    configuration: Configuration,
+    appConfig:     AppConfig,
+    httpClient:    HttpClientV2,
+    futures:       Futures,
+    ec:            ExecutionContext
+  ): InternalAuthTokenInitialiser =
+    if (configuration.get[Boolean]("create-internal-auth-token-on-start")) {
+      new InternalAuthTokenInitialiserImpl(appConfig, httpClient, futures)(ec)
+    } else {
+      new NoOpInternalAuthTokenInitialiser()
+    }
 }
