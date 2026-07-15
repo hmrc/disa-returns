@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{GET, POST, contentAsJson, status}
 import uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController
-import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, ReturnNotFoundErr}
+import uk.gov.hmrc.disareturns.models.common.{BadRequestErr, InternalServerErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
@@ -57,7 +57,7 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
 
       authorizationForZRef()
       when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Right(returnSummaryResult)))
-      when(mockPPNSService.sendNotification(any, any)(any)).thenReturn(Future.successful())
+      when(mockPPNSService.sendNotification(any, any)(any)).thenReturn(Future.successful((): Unit))
 
       val res = controller.retrieveReturnSummary(validZReference, validTaxYear, validMonth.toString).apply(req)
 
@@ -91,6 +91,19 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       contentAsJson(res) shouldBe Json.toJson(InternalServerErr())
+    }
+
+    "return 500 Internal server error when the service returns an unexpected error type" in {
+      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results/summary")
+
+      authorizationForZRef()
+      when(mockReturnsSummaryService.retrieveReturnSummary(any, any, any))
+        .thenReturn(Future.successful(Left(BadRequestErr("unexpected"))))
+
+      val res = controller.retrieveReturnSummary(validZReference, validTaxYear, validMonth.toString).apply(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(res) shouldBe Json.toJson(BadRequestErr("unexpected"))
     }
 
     "return 400 BAD_REQUEST when Z-ref is invalid" in {
@@ -168,6 +181,19 @@ class ReturnsSummaryControllerSpec extends BaseUnitSpec {
         summary.month == validMonth &&
         summary.totalRecords == totalRecords
       })
+    }
+
+    "returns 500 Internal server error when saving the summary returns an unexpected error type" in {
+      val req = FakeRequest(POST, s"/callback/monthly/$validZReference/$validTaxYear/$validMonth")
+        .withBody(Json.toJson(callbackRequest))
+
+      when(mockReturnsSummaryService.saveReturnsSummary(any))
+        .thenReturn(Future.successful(Left(BadRequestErr("unexpected"))))
+
+      val res = controller.returnsSummaryCallback(validZReference, validTaxYear, validMonth.toString).apply(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(res) shouldBe Json.toJson(BadRequestErr("unexpected"))
     }
 
     "return 400 BAD_REQUEST when Z-ref is invalid" in {

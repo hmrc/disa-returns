@@ -57,7 +57,7 @@ abstract class BaseUnitSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(
+    reset[AnyRef](
       mockAuthConnector,
       mockETMPService,
       mockNPSService,

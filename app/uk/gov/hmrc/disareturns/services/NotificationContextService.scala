@@ -31,7 +31,7 @@ class NotificationContextService @Inject() (repository: NotificationContextRepos
   def saveContext(clientId: String, boxId: Option[String], zReference: String): Future[Either[ErrorResponse, Unit]] =
     repository
       .insertNotificationContext(NotificationContext(clientId, boxId, zReference))
-      .map(_ => Right())
+      .map(_ => Right((): Unit))
       .recover { case ex: Throwable =>
         logger.error(s"Failed to insertNotificationContext for zReference [$zReference]. Error: ${ex.getMessage}", ex)
         Left(InternalServerErr())

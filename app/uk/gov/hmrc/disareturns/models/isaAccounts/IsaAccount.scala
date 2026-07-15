@@ -77,6 +77,8 @@ object IsaAccount {
       case sis: StandardIsaSubscription =>
         Json.toJson(sis)(StandardIsaSubscription.writes)
       case sic: StandardIsaClosure => Json.toJson(sic)(StandardIsaClosure.writes)
+      case other =>
+        throw new MatchError(s"Unhandled IsaAccount subtype: ${other.getClass.getSimpleName}")
     }
   }
 

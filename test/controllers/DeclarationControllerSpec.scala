@@ -63,7 +63,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Right(Some(boxId))))
       when(mockNotificationContextService.saveContext(any(), any(), any()))
-        .thenReturn(Future.successful(Right()))
+        .thenReturn(Future.successful(Right((): Unit)))
 
       val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)
@@ -89,7 +89,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Right(None)))
       when(mockNotificationContextService.saveContext(any(), any(), any()))
-        .thenReturn(Future.successful(Right()))
+        .thenReturn(Future.successful(Right((): Unit)))
 
       val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$validMonth/declaration")
         .withHeaders("X-Client-ID" -> clientId)

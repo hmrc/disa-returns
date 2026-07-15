@@ -54,6 +54,9 @@ class ReturnsSummaryController @Inject() (
             case Left(e: ReturnNotFoundErr) =>
               logger.warn(s"Return summary not found for IM ref: [$zReference] for [$month][$taxYear]")
               NotFound(Json.toJson(e))
+            case Left(e) =>
+              logger.warn(s"Unexpected error [$e] retrieving return summary for IM ref: [$zReference] for [$month][$taxYear]")
+              InternalServerError(Json.toJson(e))
             case Right(summary) =>
               logger.info(s"Retrieval of return summary successful for IM ref: [$zReference] for [$month][$taxYear]")
               Ok(Json.toJson(summary))
@@ -75,6 +78,9 @@ class ReturnsSummaryController @Inject() (
             //TODO Should we consider doing the logic for the numberOfPages etc as part of saving the summary instead of doing it on retrieveReturnSummary???
             returnsSummaryService.saveReturnsSummary(summary).flatMap {
               case Left(err: InternalServerErr) =>
+                Future.successful(InternalServerError(Json.toJson(err)))
+              case Left(err) =>
+                logger.warn(s"Unexpected error [$err] saving return summary for IM ref: [$zReference] for [$month][$taxYear]")
                 Future.successful(InternalServerError(Json.toJson(err)))
               case Right(_) =>
                 returnsSummaryService.retrieveReturnSummary(zReference, taxYear, month).flatMap {
