@@ -227,7 +227,7 @@ class NPSServiceSpec extends BaseUnitSpec {
       val result: Either[ErrorResponse, ReconciliationReportPage] =
         service.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, pageIndex).futureValue
 
-      result                    shouldBe a[Left[InternalServerErr, ReconciliationReportPage]]
+      result                    shouldBe a[Left[_, _]]
       result.swap.value.message shouldBe InternalServerErr().message
     }
   }

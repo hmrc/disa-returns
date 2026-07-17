@@ -52,7 +52,7 @@ object ValidationHelper extends Logging {
         case Some(value) =>
           Try(value.toInt).toOption
             .filter(_ >= 0)
-            .map(Some)
+            .map(Some.apply)
             .toValidNel(InvalidPageErr)
       }
 

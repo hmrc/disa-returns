@@ -61,13 +61,13 @@ class ValidationHelperSpec extends BaseUnitSpec {
 
     "return MultipleErrorResponse when all parameters are invalid" in {
       val result = ValidationHelper.validateParams("1234", "20-24", "13", Some("-12"))
-      result.left.get shouldBe
+      result.left.value shouldBe
         MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear, InvalidMonth, InvalidPageErr))
     }
 
     "return MultipleErrorResponse when two parameters are invalid" in {
       val result = ValidationHelper.validateParams("Invalid", "20-24", "MAY")
-      result.left.get shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear))
+      result.left.value shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear))
     }
   }
 }

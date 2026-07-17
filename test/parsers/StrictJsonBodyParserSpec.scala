@@ -19,6 +19,7 @@ package parsers
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.{Materializer, SystemMaterializer}
 import org.apache.pekko.util.ByteString
+import org.scalatest.EitherValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -30,7 +31,7 @@ import uk.gov.hmrc.disareturns.models.common.{DuplicateNilReturnField, MissingNi
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class StrictJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutures {
+class StrictJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutures with EitherValues {
 
   implicit val system:       ActorSystem      = ActorSystem("StrictJsonBodyParserSpec")
   implicit val materializer: Materializer     = SystemMaterializer(system).materializer
@@ -46,7 +47,7 @@ class StrictJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutur
 
       val result = await(acc.run())
       result.isLeft shouldBe true
-      val badRequestResult = result.left.get
+      val badRequestResult = result.left.value
       status(Future.successful(badRequestResult))        shouldBe BAD_REQUEST
       contentAsJson(Future.successful(badRequestResult)) shouldBe Json.toJson(MissingNilReturn)
     }
@@ -78,7 +79,7 @@ class StrictJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutur
       val result = await(acc.run(bytes))
 
       result.isLeft shouldBe true
-      val badRequestResult = result.left.get
+      val badRequestResult = result.left.value
       status(Future.successful(badRequestResult))        shouldBe BAD_REQUEST
       contentAsJson(Future.successful(badRequestResult)) shouldBe Json.toJson(DuplicateNilReturnField)
     }
@@ -105,7 +106,7 @@ class StrictJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutur
       val acc     = parser.apply(request)
       val result  = await(acc.run())
       result.isLeft shouldBe true
-      val badRequestResult = result.left.get
+      val badRequestResult = result.left.value
       status(Future.successful(badRequestResult))        shouldBe BAD_REQUEST
       contentAsJson(Future.successful(badRequestResult)) shouldBe Json.toJson(MissingNilReturn)
     }
