@@ -16,12 +16,16 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
-import play.api.libs.json._
+
+import org.mongodb.scala.ObservableFuture
+import org.scalatest.matchers.must.Matchers.{must, mustBe}
+import play.api.libs.json.*
+import play.api.libs.ws.DefaultBodyReadables.readableAsByteArray
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import play.api.libs.ws.WSResponse
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.common._
+import uk.gov.hmrc.disareturns.models.common.*
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec

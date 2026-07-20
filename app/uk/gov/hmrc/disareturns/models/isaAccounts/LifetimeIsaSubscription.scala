@@ -77,5 +77,23 @@ object LifetimeIsaSubscription {
       (__ \ "isaType").write[IsaType] and
       (__ \ "lisaQualifyingAddition").write(twoDecimalWrites) and
       (__ \ "lisaBonusClaim").write(twoDecimalWrites)
-  )(unlift(LifetimeIsaSubscription.unapply))
+  )((l: LifetimeIsaSubscription) =>
+    (
+      l.accountNumber,
+      l.nino,
+      l.firstName,
+      l.middleName,
+      l.lastName,
+      l.dateOfBirth,
+      l.amountTransferredIn,
+      l.amountTransferredOut,
+      l.dateOfFirstSubscription,
+      l.dateOfLastSubscription,
+      l.totalCurrentYearSubscriptionsToDate,
+      l.marketValueOfAccount,
+      l.isaType,
+      l.lisaQualifyingAddition,
+      l.lisaBonusClaim
+    )
+  )
 }

@@ -84,5 +84,25 @@ object LifetimeIsaClosure {
       (__ \ "reasonForClosure").write[LisaReasonForClosure] and
       (__ \ "lisaQualifyingAddition").write(twoDecimalWrites) and
       (__ \ "lisaBonusClaim").write(twoDecimalWrites)
-  )(unlift(LifetimeIsaClosure.unapply))
+  )((x: LifetimeIsaClosure) =>
+    (
+      x.accountNumber,
+      x.nino,
+      x.firstName,
+      x.middleName,
+      x.lastName,
+      x.dateOfBirth,
+      x.amountTransferredIn,
+      x.amountTransferredOut,
+      x.dateOfFirstSubscription,
+      x.dateOfLastSubscription,
+      x.totalCurrentYearSubscriptionsToDate,
+      x.marketValueOfAccount,
+      x.isaType,
+      x.closureDate,
+      x.reasonForClosure,
+      x.lisaQualifyingAddition,
+      x.lisaBonusClaim
+    )
+  )
 }

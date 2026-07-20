@@ -20,7 +20,12 @@ import play.api.libs.json.{Format, Reads, Writes}
 
 object JsonUtils {
 
-  def enumFormat[E <: Enumeration](e: E): Format[e.Value] =
-    Format(Reads.enumNameReads(e), Writes.enumNameWrites)
+  inline def enumFormat[E <: Enumeration & Singleton](using
+    e: ValueOf[E]
+  ): Format[e.value.Value] =
+    Format(
+      Reads.enumNameReads(e.value),
+      Writes.enumNameWrites
+    )
 
 }

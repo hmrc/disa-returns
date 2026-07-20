@@ -18,15 +18,15 @@ package controllers
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
-import play.api.http.Status._
+import org.scalatest.matchers.must.Matchers.mustBe
+import play.api.http.Status.*
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{GET, contentAsJson, status}
 import uk.gov.hmrc.auth.core.InvalidBearerToken
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.controllers.ReconciliationResultController
-import uk.gov.hmrc.disareturns.models.common._
+import uk.gov.hmrc.disareturns.models.common.*
 import uk.gov.hmrc.disareturns.models.returnResults.{IssueWithMessage, ReconciliationReportPage, ReturnResults}
 import utils.BaseUnitSpec
 
@@ -89,12 +89,12 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
 
       authorizationForZRef()
       when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any))
-        .thenReturn(Future.successful(Left(ReportPageNotFoundErr(validPageIndex))))
+        .thenReturn(Future.successful(Left(ReportPageNotFoundErr(validPageIndex.toInt))))
 
       val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, validPageIndex).apply(req)
 
       status(res) mustBe NOT_FOUND
-      contentAsJson(res) shouldBe Json.toJson(ReportPageNotFoundErr(validPageIndex))
+      contentAsJson(res) shouldBe Json.toJson(ReportPageNotFoundErr(validPageIndex.toInt))
     }
 
     "return 401 with an error when auth fails" in {

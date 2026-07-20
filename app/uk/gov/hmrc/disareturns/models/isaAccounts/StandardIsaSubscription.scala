@@ -71,5 +71,21 @@ object StandardIsaSubscription {
       (__ \ "marketValueOfAccount").write(twoDecimalWrites) and
       (__ \ "isaType").write[IsaType] and
       (__ \ "flexibleIsa").write[Boolean]
-  )(unlift(StandardIsaSubscription.unapply))
+  )((s: StandardIsaSubscription) =>
+    (
+      s.accountNumber,
+      s.nino,
+      s.firstName,
+      s.middleName,
+      s.lastName,
+      s.dateOfBirth,
+      s.amountTransferredIn,
+      s.amountTransferredOut,
+      s.dateOfLastSubscription,
+      s.totalCurrentYearSubscriptionsToDate,
+      s.marketValueOfAccount,
+      s.isaType,
+      s.flexibleIsa
+    )
+  )
 }

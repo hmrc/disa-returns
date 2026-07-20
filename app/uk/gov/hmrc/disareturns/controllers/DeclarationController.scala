@@ -53,7 +53,7 @@ class DeclarationController @Inject() (
   def declare(zReference: String, taxYear: String, month: String): Action[JsValue] =
     ValidationHelper.validateParams(zReference, taxYear, month) match {
       case Left(errors) =>
-        Action(strictJsonBodyParser) { _: Request[JsValue] =>
+        Action(strictJsonBodyParser) { (_: Request[JsValue]) =>
           BadRequest(Json.toJson(errors))
         }
       case Right((zReference, validTaxYear, validMonth, _)) =>

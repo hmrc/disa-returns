@@ -42,7 +42,7 @@ class SubmitReturnsController @Inject() (
   submissionService:        SubmissionService,
   authAction:               AuthAction,
   implicit val etmpService: ETMPService
-)(implicit ec:              ExecutionContext, implicit val mat: Materializer)
+)(implicit ec:              ExecutionContext, val mat: Materializer)
     extends BackendController(cc)
     with Logging {
 

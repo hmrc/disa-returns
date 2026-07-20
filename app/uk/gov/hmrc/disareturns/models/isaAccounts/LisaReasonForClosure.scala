@@ -28,6 +28,6 @@ object LisaReasonForClosure extends Enumeration {
   val TRANSFERRED_IN_FULL: Value = Value("TRANSFERRED_IN_FULL")
   val ALL_FUNDS_WITHDRAWN: Value = Value("ALL_FUNDS_WITHDRAWN")
 
-  implicit val format: Format[LisaReasonForClosure.Value] = JsonUtils.enumFormat(LisaReasonForClosure)
+  given Format[LisaReasonForClosure.Value] = JsonUtils.enumFormat[LisaReasonForClosure.type]
 
 }

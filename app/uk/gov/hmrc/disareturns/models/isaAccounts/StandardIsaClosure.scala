@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.models.isaAccounts
 
-import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType.IsaType
 import uk.gov.hmrc.disareturns.models.isaAccounts.ReasonForClosure.ReasonForClosure
@@ -78,6 +78,24 @@ object StandardIsaClosure {
       (__ \ "closureDate").write[LocalDate] and
       (__ \ "reasonForClosure").write[ReasonForClosure] and
       (__ \ "flexibleIsa").write[Boolean]
-  )(unlift(StandardIsaClosure.unapply))
+  )((s: StandardIsaClosure) =>
+    (
+      s.accountNumber,
+      s.nino,
+      s.firstName,
+      s.middleName,
+      s.lastName,
+      s.dateOfBirth,
+      s.amountTransferredIn,
+      s.amountTransferredOut,
+      s.dateOfLastSubscription,
+      s.totalCurrentYearSubscriptionsToDate,
+      s.marketValueOfAccount,
+      s.isaType,
+      s.closureDate,
+      s.reasonForClosure,
+      s.flexibleIsa
+    )
+  )
 
 }

@@ -16,7 +16,8 @@
 
 package repositories
 
-import org.scalatest.matchers.must.Matchers._
+import org.mongodb.scala.ObservableFuture
+import org.scalatest.matchers.must.Matchers.*
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary

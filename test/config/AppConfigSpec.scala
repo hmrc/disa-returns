@@ -16,7 +16,7 @@
 
 package config
 
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatest.matchers.must.Matchers.mustBe
 import play.api.Configuration
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig

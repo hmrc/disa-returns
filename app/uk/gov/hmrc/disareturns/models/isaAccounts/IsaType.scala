@@ -27,6 +27,6 @@ object IsaType extends Enumeration {
   val INNOVATIVE_FINANCE: Value = Value("INNOVATIVE_FINANCE")
   val LIFETIME:           Value = Value("LIFETIME")
 
-  implicit val format: Format[IsaType.Value] = JsonUtils.enumFormat(IsaType)
+  given Format[IsaType.Value] = JsonUtils.enumFormat[IsaType.type]
 
 }

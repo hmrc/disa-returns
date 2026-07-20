@@ -26,6 +26,6 @@ object ReasonForClosure extends Enumeration {
   val CLOSED:    Value = Value("CLOSED")
   val VOID:      Value = Value("VOID")
 
-  implicit val format: Format[ReasonForClosure.Value] = JsonUtils.enumFormat(ReasonForClosure)
+  given Format[ReasonForClosure.Value] = JsonUtils.enumFormat[ReasonForClosure.type]
 
 }

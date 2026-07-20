@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
-import com.github.tomakehurst.wiremock.client.WireMock._
-import play.api.http.Status._
-import play.api.libs.json._
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import play.api.http.Status.*
+import play.api.libs.json.*
+import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
-import uk.gov.hmrc.disareturns.models.common._
+import uk.gov.hmrc.disareturns.models.common.*
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
