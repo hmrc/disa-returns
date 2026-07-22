@@ -22,7 +22,6 @@ import play.api.Logging
 import uk.gov.hmrc.disareturns.models.common.*
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
-import uk.gov.hmrc.disareturns.utils.ZReferenceValidator
 
 import scala.util.Try
 

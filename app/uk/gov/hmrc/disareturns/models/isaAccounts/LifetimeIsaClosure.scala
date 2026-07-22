@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.models.isaAccounts
 
-import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.{OWrites, Reads, __}
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType.IsaType
 import uk.gov.hmrc.disareturns.models.isaAccounts.LisaReasonForClosure.LisaReasonForClosure
