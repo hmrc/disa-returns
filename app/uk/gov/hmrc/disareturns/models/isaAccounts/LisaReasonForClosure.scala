@@ -17,7 +17,7 @@
 package uk.gov.hmrc.disareturns.models.isaAccounts
 
 import play.api.libs.json.Format
-import uk.gov.hmrc.disareturns.models.common.JsonUtils
+import uk.gov.hmrc.disareturns.utils.JsonUtils
 
 object LisaReasonForClosure extends Enumeration {
   type LisaReasonForClosure = Value
@@ -28,6 +28,6 @@ object LisaReasonForClosure extends Enumeration {
   val TRANSFERRED_IN_FULL: Value = Value("TRANSFERRED_IN_FULL")
   val ALL_FUNDS_WITHDRAWN: Value = Value("ALL_FUNDS_WITHDRAWN")
 
-  implicit val format: Format[LisaReasonForClosure.Value] = JsonUtils.enumFormat(LisaReasonForClosure)
+  given Format[LisaReasonForClosure.Value] = JsonUtils.enumFormat[LisaReasonForClosure.type]
 
 }

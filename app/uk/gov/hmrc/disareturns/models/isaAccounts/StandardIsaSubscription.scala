@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.models.isaAccounts
 
-import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaType.IsaType
 import uk.gov.hmrc.disareturns.utils.JsonValidation._
@@ -71,5 +71,21 @@ object StandardIsaSubscription {
       (__ \ "marketValueOfAccount").write(twoDecimalWrites) and
       (__ \ "isaType").write[IsaType] and
       (__ \ "flexibleIsa").write[Boolean]
-  )(unlift(StandardIsaSubscription.unapply))
+  )((s: StandardIsaSubscription) =>
+    (
+      s.accountNumber,
+      s.nino,
+      s.firstName,
+      s.middleName,
+      s.lastName,
+      s.dateOfBirth,
+      s.amountTransferredIn,
+      s.amountTransferredOut,
+      s.dateOfLastSubscription,
+      s.totalCurrentYearSubscriptionsToDate,
+      s.marketValueOfAccount,
+      s.isaType,
+      s.flexibleIsa
+    )
+  )
 }

@@ -17,7 +17,7 @@
 package models.helpers
 
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
+import uk.gov.hmrc.disareturns.utils.ValidationHelper
 import utils.BaseUnitSpec
 
 class ValidationHelperSpec extends BaseUnitSpec {

@@ -39,8 +39,7 @@ class StrictJsonBodyParser @Inject() ()(implicit ec: ExecutionContext) extends B
 
   override def apply(request: RequestHeader): Accumulator[ByteString, Either[Result, JsValue]] =
     Accumulator(Sink.fold[ByteString, ByteString](ByteString.empty)(_ ++ _)).map { bytes =>
-      if (bytes.isEmpty)
-        Left(BadRequest(Json.toJson(MissingNilReturn)))
+      if (bytes.isEmpty) Left(BadRequest(Json.toJson(MissingNilReturn)))
       else {
         val raw = bytes.toArray
         try {

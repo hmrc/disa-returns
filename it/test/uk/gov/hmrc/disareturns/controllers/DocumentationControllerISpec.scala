@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatest.matchers.must.Matchers.mustBe
 import play.api.http.Status.OK
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{GET, contentAsString, contentType, route, status, writeableOf_AnyContentAsEmpty}
@@ -31,7 +31,7 @@ class DocumentationControllerISpec extends BaseIntegrationSpec {
 
       status(result) mustBe OK
       contentType(result) mustBe Some("application/json")
-      contentAsString(result) must include("api")
+      contentAsString(result) should include("api")
     }
   }
 
@@ -42,7 +42,7 @@ class DocumentationControllerISpec extends BaseIntegrationSpec {
 
       status(result) mustBe OK
       contentType(result) mustBe Some("application/octet-stream")
-      contentAsString(result) must include("openapi")
+      contentAsString(result) should include("openapi")
     }
   }
 }

@@ -27,9 +27,8 @@ import play.api.libs.streams.Accumulator
 import play.api.mvc.{Action, BodyParser, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.disareturns.services.{ETMPService, StreamingParserService, SubmissionService}
-import uk.gov.hmrc.disareturns.utils.HttpHelper
+import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import play.api.libs.Files.TemporaryFile
@@ -42,7 +41,7 @@ class SubmitReturnsController @Inject() (
   submissionService:        SubmissionService,
   authAction:               AuthAction,
   implicit val etmpService: ETMPService
-)(implicit ec:              ExecutionContext, implicit val mat: Materializer)
+)(implicit ec:              ExecutionContext, val mat: Materializer)
     extends BackendController(cc)
     with Logging {
 

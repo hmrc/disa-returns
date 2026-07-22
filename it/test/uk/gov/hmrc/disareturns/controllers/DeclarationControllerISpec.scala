@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, OK, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.Json
+import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
-import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
-import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
+import uk.gov.hmrc.disareturns.utils.{BaseIntegrationSpec, ValidationHelper}
 
 class DeclarationControllerISpec extends BaseIntegrationSpec {
 

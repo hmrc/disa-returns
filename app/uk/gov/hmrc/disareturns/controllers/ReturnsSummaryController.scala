@@ -23,10 +23,10 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
 import uk.gov.hmrc.disareturns.services.{PPNSService, ReturnsSummaryService}
+import uk.gov.hmrc.disareturns.utils.ValidationHelper
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}

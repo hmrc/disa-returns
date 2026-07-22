@@ -20,9 +20,8 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
-import uk.gov.hmrc.disareturns.models.helpers.ValidationHelper
 import uk.gov.hmrc.disareturns.services.NPSService
-import uk.gov.hmrc.disareturns.utils.HttpHelper
+import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}

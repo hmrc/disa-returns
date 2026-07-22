@@ -41,7 +41,7 @@ class NotificationContextRepository @Inject() (mc: MongoComponent, appConfig: Ap
           keys = Indexes.ascending("updatedAt"),
           indexOptions = IndexOptions()
             .name("updatedAtTtlIdx")
-            .expireAfter(appConfig.timeToLive, TimeUnit.DAYS)
+            .expireAfter(appConfig.timeToLive.toLong, TimeUnit.DAYS)
         )
       ),
       replaceIndexes = true

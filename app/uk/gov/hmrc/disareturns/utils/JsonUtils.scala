@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.common
+package uk.gov.hmrc.disareturns.utils
 
 import play.api.libs.json.{Format, Reads, Writes}
 
 object JsonUtils {
 
-  def enumFormat[E <: Enumeration](e: E): Format[e.Value] =
-    Format(Reads.enumNameReads(e), Writes.enumNameWrites)
+  inline def enumFormat[E <: Enumeration & Singleton](using
+    e: ValueOf[E]
+  ): Format[e.value.Value] =
+    Format(
+      Reads.enumNameReads(e.value),
+      Writes.enumNameWrites
+    )
 
 }

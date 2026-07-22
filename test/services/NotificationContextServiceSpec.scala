@@ -40,7 +40,7 @@ class NotificationContextServiceSpec extends BaseUnitSpec {
 
     "return Right when notificationContext is stored successfully" in {
       when(mockNotificationContextRepository.insertNotificationContext(any[NotificationContext]))
-        .thenReturn(Future.successful(Right(())))
+        .thenReturn(Future.unit)
 
       val result = await(service.saveContext(clientId, boxId, validZReference))
 

@@ -16,7 +16,7 @@
 
 package models.summary
 
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatest.matchers.must.Matchers.mustBe
 import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 import utils.BaseUnitSpec
 

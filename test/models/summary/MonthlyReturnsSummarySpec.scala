@@ -16,7 +16,7 @@
 
 package models.summary
 
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatest.matchers.must.Matchers.mustBe
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary

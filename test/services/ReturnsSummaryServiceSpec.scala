@@ -18,12 +18,12 @@ package services
 
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito.{reset, verify, when}
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, ReturnNotFoundErr}
 import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
+import org.scalatest.matchers.must.Matchers.mustBe
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future

@@ -19,7 +19,7 @@ package controllers
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
 import org.mockito.Mockito.{verify, when}
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatest.matchers.must.Matchers.mustBe
 import play.api.Play.materializer
 import play.api.http.Status._
 import play.api.libs.json.Json
