@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.common
+package uk.gov.hmrc.disareturns.utils
 
 import play.api.libs.json.{Format, Reads, Writes}
 

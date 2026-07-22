@@ -23,7 +23,7 @@ import play.api.http.Status.CONFLICT
 import uk.gov.hmrc.disareturns.connectors.SubmissionConnector
 import uk.gov.hmrc.disareturns.models.common.ErrorResponse
 import uk.gov.hmrc.disareturns.models.common.Month.Month
-import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
+import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
 
 import java.nio.file.Path

@@ -22,7 +22,7 @@ import play.api.http.Status.OK
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
 import uk.gov.hmrc.disareturns.models.common.Month.Month
-import uk.gov.hmrc.disareturns.models.common.UpstreamErrorMapper.mapToErrorResponse
+import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReportNotFoundErr, ReportPageNotFoundErr}
 import uk.gov.hmrc.disareturns.models.returnResults.{ReconciliationReportPage, ReconciliationReportResponse}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}

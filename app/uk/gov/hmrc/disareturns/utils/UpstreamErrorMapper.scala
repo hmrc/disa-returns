@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.common
+package uk.gov.hmrc.disareturns.utils
 
 import play.api.Logging
-import play.api.http.Status.{BAD_GATEWAY, BAD_REQUEST, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
+import play.api.http.Status.*
 import play.api.libs.json.Json
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, MonthlyReturnNotSubmitted, UnauthorisedErr}
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 import scala.util.Try

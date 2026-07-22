@@ -20,7 +20,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status.{MULTI_STATUS, UNPROCESSABLE_ENTITY}
 import play.mvc.Http.Status
-import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, MonthlyReturnNotSubmitted, UnauthorisedErr, UpstreamErrorMapper}
+import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, MonthlyReturnNotSubmitted, UnauthorisedErr}
+import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {

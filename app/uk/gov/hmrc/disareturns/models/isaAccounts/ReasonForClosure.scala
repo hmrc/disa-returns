@@ -17,7 +17,7 @@
 package uk.gov.hmrc.disareturns.models.isaAccounts
 
 import play.api.libs.json.Format
-import uk.gov.hmrc.disareturns.models.common.JsonUtils
+import uk.gov.hmrc.disareturns.utils.JsonUtils
 
 object ReasonForClosure extends Enumeration {
   type ReasonForClosure = Value

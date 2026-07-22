@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.helpers
+package uk.gov.hmrc.disareturns.utils
 
-import play.api.Logging
-import uk.gov.hmrc.disareturns.models.common.Month.Month
-import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
 import cats.data.ValidatedNel
-import cats.syntax.all._
+import cats.syntax.all.*
+import play.api.Logging
+import uk.gov.hmrc.disareturns.models.common.*
+import uk.gov.hmrc.disareturns.models.common.Month.Month
+import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
+import uk.gov.hmrc.disareturns.utils.ZReferenceValidator
 
 import scala.util.Try
 
