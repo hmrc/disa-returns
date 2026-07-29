@@ -24,6 +24,7 @@ import uk.gov.hmrc.disareturns.connectors.SubmissionConnector
 import uk.gov.hmrc.disareturns.models.common.ErrorResponse
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper.mapToErrorResponse
+import uk.gov.hmrc.disareturns.utils.UuidGenerator
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
 
 import java.nio.file.Path
@@ -31,7 +32,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class SubmissionService @Inject() (connector: SubmissionConnector)(implicit ec: ExecutionContext) extends Logging {
+class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator: UuidGenerator)(implicit ec: ExecutionContext) extends Logging {
 
   def declare(zReference: String, taxYear: String, month: Month, nilReturnReported: Boolean)(implicit
     hc:                   HeaderCarrier
@@ -59,11 +60,16 @@ class SubmissionService @Inject() (connector: SubmissionConnector)(implicit ec: 
 
   private def sendSubmission(zReference: String, taxYear: String, month: Month, path: Path)(implicit
     hc:                                  HeaderCarrier
-  ): Future[Either[ErrorResponse, Unit]] =
-    connector.sendSubmission(zReference, taxYear, month, FileIO.fromPath(path)).map {
+  ): Future[Either[ErrorResponse, Unit]] = {
+    val submissionId = uuidGenerator.randomUuid()
+
+    connector.sendSubmission(zReference, taxYear, month, submissionId, FileIO.fromPath(path)).map {
       case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
       case Right(()) =>
-        logger.info(s"Monthly return submitted successfully for IM ref: [$zReference], taxYear: [$taxYear], month: [$month]")
+        logger.info(
+          s"Monthly return submitted successfully for IM ref: [$zReference], taxYear: [$taxYear], month: [$month], submissionId: [$submissionId]"
+        )
         Right(())
     }
+  }
 }

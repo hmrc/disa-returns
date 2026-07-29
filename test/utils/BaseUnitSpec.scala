@@ -17,7 +17,7 @@
 package utils
 
 import org.mockito.Mockito.reset
-import org.scalatest._
+import org.scalatest.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -29,9 +29,10 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.connectors.{BaseConnector, ETMPConnector, NPSConnector, PPNSConnector, SubmissionConnector}
+import uk.gov.hmrc.disareturns.connectors.*
 import uk.gov.hmrc.disareturns.repositories.{MonthlyReturnsSummaryRepository, NotificationContextRepository}
-import uk.gov.hmrc.disareturns.services._
+import uk.gov.hmrc.disareturns.services.*
+import uk.gov.hmrc.disareturns.utils.UuidGenerator
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 import utils.TestData
@@ -62,7 +63,9 @@ abstract class BaseUnitSpec
       mockETMPService,
       mockNPSService,
       mockPPNSService,
+      mockSubmissionConnector,
       mockSubmissionService,
+      mockUuidGenerator,
       mockNotificationContextService,
       mockReturnsSummaryService
     )
@@ -84,6 +87,7 @@ abstract class BaseUnitSpec
   val mockNPSService:                    NPSService                      = mock[NPSService]
   val mockSubmissionConnector:           SubmissionConnector             = mock[SubmissionConnector]
   val mockSubmissionService:             SubmissionService               = mock[SubmissionService]
+  val mockUuidGenerator:                 UuidGenerator                   = mock[UuidGenerator]
   val mockNotificationContextRepository: NotificationContextRepository   = mock[NotificationContextRepository]
   val mockNotificationContextService:    NotificationContextService      = mock[NotificationContextService]
 

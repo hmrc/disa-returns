@@ -25,15 +25,18 @@ import uk.gov.hmrc.disareturns.models.common.Month
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 
+import java.util.UUID
+
 class SubmissionConnectorISpec extends BaseIntegrationSpec {
 
-  private val taxYear  = "2026-27"
-  private val month    = Month.SEP
-  private val monthInt = month.id
+  private val taxYear      = "2026-27"
+  private val month        = Month.SEP
+  private val monthInt     = month.id
+  private val submissionId = UUID.fromString("11111111-1111-4111-8111-111111111111")
 
   private val declarationsUrl = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/declarations"
   private val createUrl       = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt"
-  private val submissionsUrl  = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/submissions"
+  private val submissionsUrl  = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/submissions/$submissionId"
 
   private val connector: SubmissionConnector = app.injector.instanceOf[SubmissionConnector]
 
@@ -96,15 +99,15 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     val ndjsonSource: Source[ByteString, _] = Source.single(ByteString("""{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n"))
 
     "return Right(()) when disa-returns-submission returns 200 OK" in {
-      stubPost(submissionsUrl, OK, "")
+      stubPut(submissionsUrl, OK, "")
 
-      val Right(()) = await(connector.sendSubmission(validZReference, taxYear, month, ndjsonSource))
+      val Right(()) = await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource))
     }
 
     "return Left(UpstreamErrorResponse) when disa-returns-submission returns 503" in {
-      stubPost(submissionsUrl, SERVICE_UNAVAILABLE, "")
+      stubPut(submissionsUrl, SERVICE_UNAVAILABLE, "")
 
-      val Left(err) = await(connector.sendSubmission(validZReference, taxYear, month, ndjsonSource))
+      val Left(err) = await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource))
 
       err.statusCode shouldBe SERVICE_UNAVAILABLE
     }

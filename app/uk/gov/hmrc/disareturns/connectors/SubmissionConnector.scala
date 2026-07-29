@@ -31,6 +31,7 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 
+import java.util.UUID
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -91,12 +92,13 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
       }
   }
 
-  def sendSubmission(zReference: String, taxYear: String, month: Month, source: Source[ByteString, _])(implicit
+  def sendSubmission(zReference: String, taxYear: String, month: Month, submissionId: UUID, source: Source[ByteString, _])(implicit
     hc:                          HeaderCarrier
   ): Future[Either[UpstreamErrorResponse, Unit]] = {
-    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}/submissions"
+    val url =
+      s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}/submissions/$submissionId"
     httpClient
-      .post(url"$url")
+      .put(url"$url")
       .setHeader(authorizationHeader)
       .withBody(source)
       .execute[HttpResponse]

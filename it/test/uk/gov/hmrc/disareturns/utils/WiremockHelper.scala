@@ -71,6 +71,14 @@ object WiremockHelper extends Eventually with IntegrationPatience {
           aResponse().withStatus(status).withBody(responseBody)
         )
     )
+
+  def stubPut(url: String, status: Integer, responseBody: String): Unit =
+    stubFor(
+      put(urlEqualTo(url))
+        .willReturn(
+          aResponse().withStatus(status).withBody(responseBody)
+        )
+    )
 }
 
 trait WiremockHelper {
