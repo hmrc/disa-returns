@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.disareturns.controllers
 
-
 import org.mongodb.scala.ObservableFuture
 import org.scalatest.matchers.must.Matchers.{must, mustBe}
 import play.api.libs.json.*

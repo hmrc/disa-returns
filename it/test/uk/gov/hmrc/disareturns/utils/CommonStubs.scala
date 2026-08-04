@@ -25,6 +25,8 @@ import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
 
 trait CommonStubs { self: TestData =>
 
+  private val submissionIdPattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+
   def stubAuth(zRef: String = validZReference): Unit = {
     val validEnrolment = s"""{
       "authorisedEnrolments": [{
@@ -113,7 +115,7 @@ trait CommonStubs { self: TestData =>
 
   def stubStoreMonthlyReturn(status: Int, zReference: String, taxYear: String, monthInt: Int): Unit =
     stubFor(
-      post(urlEqualTo(s"/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/submissions"))
+      put(urlPathMatching(s"/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/submissions/$submissionIdPattern"))
         .willReturn(aResponse().withStatus(status))
     )
 
@@ -125,7 +127,7 @@ trait CommonStubs { self: TestData =>
     expectedNdjsonLine: String
   ): Unit =
     stubFor(
-      post(urlEqualTo(s"/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/submissions"))
+      put(urlPathMatching(s"/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt/submissions/$submissionIdPattern"))
         .withRequestBody(containing(expectedNdjsonLine))
         .willReturn(aResponse().withStatus(status))
     )

@@ -1372,6 +1372,14 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
       result.status                 shouldBe FORBIDDEN
       result.json.as[ErrorResponse] shouldBe ObligationClosed
+      verify(
+        0,
+        putRequestedFor(
+          urlPathMatching(
+            s"/disa-returns-submission/monthly/$validZReference/$testTaxYear/9/submissions/.*"
+          )
+        )
+      )
 
     }
 

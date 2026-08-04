@@ -25,6 +25,7 @@ import uk.gov.hmrc.disareturns.connectors.SubmissionConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
+import java.util.UUID
 import scala.concurrent.Future
 
 class SubmissionConnectorSpec extends BaseUnitSpec {
@@ -38,6 +39,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     val testUrl           = "http://localhost:12103"
     val monthInt          = validMonth.id
     val internalAuthToken = "valid-internal-auth-token-disa-returns"
+    val submissionId      = UUID.fromString("11111111-1111-4111-8111-111111111111")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -47,7 +49,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       .thenReturn(mockRequestBuilder)
     when(mockHttpClient.post(url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt"))
       .thenReturn(mockRequestBuilder)
-    when(mockHttpClient.post(url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions"))
+    when(mockHttpClient.put(url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions/$submissionId"))
       .thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.setHeader("Authorization" -> internalAuthToken)).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
@@ -193,20 +195,23 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
 
     val ndjsonSource: Source[ByteString, _] = Source.single(ByteString("""{"nino":"AB000001C"}"""))
 
-    "return Right(()) when the POST is successful" in new TestSetup {
+    "return Right(()) when the PUT is successful" in new TestSetup {
       val httpResponse: HttpResponse = HttpResponse(OK, "")
 
       when(mockRequestBuilder.execute[HttpResponse](any(), any()))
         .thenReturn(Future.successful(httpResponse))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
 
-      result                                         shouldBe Right(())
+      result shouldBe Right(())
+      verify(mockHttpClient).put(
+        url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions/$submissionId"
+      )
       verify(mockRequestBuilder).setHeader("Authorization" -> internalAuthToken)
     }
 
-    "return Left(UpstreamErrorResponse) when the POST returns a 400" in new TestSetup {
+    "return Left(UpstreamErrorResponse) when the PUT returns a 400" in new TestSetup {
       val body         = """{"code":"VALIDATION_FAILURE","message":"Bad request"}"""
       val httpResponse = HttpResponse(BAD_REQUEST, body)
 
@@ -214,7 +219,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(httpResponse))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
 
       result match {
         case Left(err) =>
@@ -224,14 +229,14 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       }
     }
 
-    "return Left(UpstreamErrorResponse) when the POST returns a 500" in new TestSetup {
+    "return Left(UpstreamErrorResponse) when the PUT returns a 500" in new TestSetup {
       val httpResponse = HttpResponse(INTERNAL_SERVER_ERROR, "Internal Server Error")
 
       when(mockRequestBuilder.execute[HttpResponse](any(), any()))
         .thenReturn(Future.successful(httpResponse))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
 
       result match {
         case Left(err) =>
@@ -248,7 +253,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.failed(exception))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendSubmission(validZReference, validTaxYear, validMonth, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
 
       result match {
         case Left(err) =>
