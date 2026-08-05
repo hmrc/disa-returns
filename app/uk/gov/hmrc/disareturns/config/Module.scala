@@ -17,7 +17,8 @@
 package uk.gov.hmrc.disareturns.config
 
 import com.google.inject.{AbstractModule, Provides}
-import play.api.Configuration
+import com.typesafe.config.Config
+import org.apache.pekko.actor.ActorSystem
 import play.api.libs.concurrent.Futures
 import uk.gov.hmrc.disareturns.AppInitialiser
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -35,14 +36,15 @@ class Module extends AbstractModule {
   @Provides
   @Singleton
   def provideInternalAuthTokenInitialiser(
-    configuration: Configuration,
-    appConfig:     AppConfig,
-    httpClient:    HttpClientV2,
-    futures:       Futures,
-    ec:            ExecutionContext
+    actorSystem: ActorSystem,
+    config:      Config,
+    appConfig:   AppConfig,
+    httpClient:  HttpClientV2,
+    futures:     Futures,
+    ec:          ExecutionContext
   ): InternalAuthTokenInitialiser =
-    if (configuration.get[Boolean]("create-internal-auth-token-on-start")) {
-      new InternalAuthTokenInitialiserImpl(appConfig, httpClient, futures)(ec)
+    if (config.getBoolean("create-internal-auth-token-on-start")) {
+      new InternalAuthTokenInitialiserImpl(actorSystem, appConfig, config, httpClient, futures)(ec)
     } else {
       new NoOpInternalAuthTokenInitialiser()
     }
