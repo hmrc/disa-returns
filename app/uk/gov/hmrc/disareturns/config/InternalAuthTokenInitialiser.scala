@@ -16,15 +16,17 @@
 
 package uk.gov.hmrc.disareturns.config
 
+import com.typesafe.config.Config
 import org.apache.pekko.Done
+import org.apache.pekko.actor.ActorSystem
 import play.api.Logging
 import play.api.http.Status.CREATED
 import play.api.libs.concurrent.Futures
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
-import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
+import uk.gov.hmrc.http.HttpReads.Implicits.{readEitherOf, readRaw}
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
+import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HeaderCarrier, HttpResponse, Retries, StringContextOps, UpstreamErrorResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
@@ -43,12 +45,15 @@ class NoOpInternalAuthTokenInitialiser @Inject() extends InternalAuthTokenInitia
 
 @Singleton
 class InternalAuthTokenInitialiserImpl @Inject() (
-  appConfig:   AppConfig,
-  httpClient:  HttpClientV2,
-  futures:     Futures
-)(implicit ec: ExecutionContext)
+  val actorSystem:   ActorSystem,
+  appConfig:         AppConfig,
+  val configuration: Config,
+  httpClient:        HttpClientV2,
+  futures:           Futures
+)(implicit ec:       ExecutionContext)
     extends InternalAuthTokenInitialiser
-    with Logging {
+    with Logging
+    with Retries {
 
   override protected def initialise(): Future[Done] =
     futures.timeout(30.seconds)(createClientAuthToken())
@@ -56,30 +61,42 @@ class InternalAuthTokenInitialiserImpl @Inject() (
   private def createClientAuthToken(): Future[Done] = {
     logger.info("[InternalAuthTokenInitialiser][createClientAuthToken] Initialising auth token")
 
-    httpClient
-      .post(url"${appConfig.internalAuthUrl}/test-only/token")(HeaderCarrier())
-      .withBody(
-        Json.obj(
-          "token"     -> appConfig.internalAuthToken,
-          "principal" -> "disa-returns",
-          "permissions" -> Seq(
-            Json.obj(
-              "resourceType"     -> "disa-returns-submission",
-              "resourceLocation" -> "*",
-              "actions"          -> List("READ", "WRITE")
+    retryFor("POST Send auth token") {
+      case _: BadGatewayException | _: GatewayTimeoutException => true
+      case UpstreamErrorResponse.Upstream4xxResponse(_)        => true
+      case UpstreamErrorResponse.Upstream5xxResponse(_)        => true
+    } {
+      httpClient
+        .post(url"${appConfig.internalAuthUrl}/test-only/token")(HeaderCarrier())
+        .withBody(
+          Json.obj(
+            "token"     -> appConfig.internalAuthToken,
+            "principal" -> "disa-returns",
+            "permissions" -> Seq(
+              Json.obj(
+                "resourceType"     -> "disa-returns-submission",
+                "resourceLocation" -> "*",
+                "actions"          -> List("READ", "WRITE")
+              )
             )
           )
         )
-      )
-      .execute
-      .flatMap { response =>
-        if (response.status == CREATED) {
-          logger.info("[InternalAuthTokenInitialiser][createClientAuthToken] Auth token initialised")
-          Future.successful(Done)
-        } else {
-          logger.error("[InternalAuthTokenInitialiser][createClientAuthToken] Unable to initialise internal-auth token")
-          Future.failed(new RuntimeException("Unable to initialise internal-auth token"))
+        .execute[Either[UpstreamErrorResponse, HttpResponse]]
+        .flatMap {
+          case Right(response) if response.status == CREATED =>
+            logger.info("[InternalAuthTokenInitialiser][createClientAuthToken] Auth token initialised")
+            Future.successful(Done)
+
+          case Left(error) =>
+            logger.warn(
+              "[InternalAuthTokenInitialiser][createClientAuthToken] Unable to initialise internal-auth token, retrying..."
+            )
+            Future.failed(error)
+
+          case Right(_) =>
+            logger.error("[InternalAuthTokenInitialiser][createClientAuthToken] Failed to initialise internal-auth token")
+            Future.failed(new RuntimeException("Failed to initialise internal-auth token"))
         }
-      }
+    }
   }
 }
