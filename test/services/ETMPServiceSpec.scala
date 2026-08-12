@@ -85,7 +85,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
     "return Right((ReportingWindowStatus, EtmpObligations)) when the reporting window is open and the obligation is not met" in new TestSetup {
       val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(reportingWindowOpen = true)
-      val obligations:     EtmpObligations        = EtmpObligations(obligationAlreadyMet = false)
+      val obligations:     EtmpObligations       = EtmpObligations(obligationAlreadyMet = false)
 
       when(mockReportingWindowService.getReportingWindowStatus()(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](reportingWindow))
@@ -100,7 +100,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
     "return Left(ReportingWindowClosed) when the reporting window is closed" in new TestSetup {
       val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(reportingWindowOpen = false)
-      val obligations:     EtmpObligations        = EtmpObligations(obligationAlreadyMet = false)
+      val obligations:     EtmpObligations       = EtmpObligations(obligationAlreadyMet = false)
 
       when(mockReportingWindowService.getReportingWindowStatus()(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](reportingWindow))
@@ -115,7 +115,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
     "return Left(ObligationClosed) when the reporting window is open but the obligation is already met" in new TestSetup {
       val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(reportingWindowOpen = true)
-      val obligations:     EtmpObligations        = EtmpObligations(obligationAlreadyMet = true)
+      val obligations:     EtmpObligations       = EtmpObligations(obligationAlreadyMet = true)
 
       when(mockReportingWindowService.getReportingWindowStatus()(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](reportingWindow))
@@ -130,7 +130,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
     "return Left(MultipleErrorResponse) when the reporting window is closed and the obligation is already met" in new TestSetup {
       val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(reportingWindowOpen = false)
-      val obligations:     EtmpObligations        = EtmpObligations(obligationAlreadyMet = true)
+      val obligations:     EtmpObligations       = EtmpObligations(obligationAlreadyMet = true)
 
       when(mockReportingWindowService.getReportingWindowStatus()(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](reportingWindow))

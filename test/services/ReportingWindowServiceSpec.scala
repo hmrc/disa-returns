@@ -32,9 +32,9 @@ class ReportingWindowServiceSpec extends BaseUnitSpec {
   "ReportingWindowService.getReportingWindowStatus" should {
 
     "return Right(ReportingWindowStatus) when the call to disa-returns-submission returns a reporting window status" in new TestSetup {
-      val expectedResponse:        ReportingWindowStatus = ReportingWindowStatus(true)
-      val reportingWindowStatusJson: JsValue             = Json.toJson(expectedResponse)
-      val httpResponse:            HttpResponse          = HttpResponse(200, reportingWindowStatusJson.toString())
+      val expectedResponse:          ReportingWindowStatus = ReportingWindowStatus(true)
+      val reportingWindowStatusJson: JsValue               = Json.toJson(expectedResponse)
+      val httpResponse:              HttpResponse          = HttpResponse(200, reportingWindowStatusJson.toString())
 
       when(mockSubmissionConnector.getReportingWindowStatus)
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
