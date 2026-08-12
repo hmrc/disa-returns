@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.etmp
+package uk.gov.hmrc.disareturns.models.submission
 
 import play.api.libs.json.{Json, OFormat}
 
-case class EtmpReportingWindow(reportingWindowOpen: Boolean)
+case class ReportingWindowStatus(reportingWindowOpen: Boolean)
 
-object EtmpReportingWindow {
-  implicit val format: OFormat[EtmpReportingWindow] = Json.format[EtmpReportingWindow]
+object ReportingWindowStatus {
+  implicit val format: OFormat[ReportingWindowStatus] = Json.format[ReportingWindowStatus]
 }

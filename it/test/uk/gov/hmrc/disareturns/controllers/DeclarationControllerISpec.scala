@@ -47,7 +47,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   "POST /monthly/:zReference/:taxYear/:month/declaration" should {
 
     "return 200 OK when the declaration is successful and a boxId has been retrieved from PPNS" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
       stubPPNSBoxId(boxResponseJson, testClientId)
@@ -61,7 +61,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   }
 
   "return 200 OK when the declaration is successful and no boxId has been retrieved from PPNS" in {
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
     stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
     stubFor(
@@ -83,7 +83,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
         |}
         |""".stripMargin
 
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
     stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt, nilReturn = true)
     stubPPNSBoxId(boxResponseJson, testClientId)
@@ -103,7 +103,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
         |}
         |""".stripMargin
 
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
     stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
     stubPPNSBoxId(boxResponseJson, testClientId)
@@ -192,7 +192,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   }
 
   "return 403 Forbidden when the reporting window is closed" in {
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
+    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
     val result = declarationRequest(validZReference, taxYear, month)
 
@@ -203,7 +203,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   }
 
   "return 403 Forbidden when the obligation is closed" in {
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), zReference = validZReference)
     val result = declarationRequest(validZReference, taxYear, month)
 
@@ -214,7 +214,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   }
 
   "return 422 Unprocessable Entity when no monthly return data has been submitted" in {
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
     stubSubmissionDeclaration(
       aResponse()
@@ -236,7 +236,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   }
 
   "return 500 Internal Server Error when the call to disa-returns-submission fails" in {
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
     stubSubmissionDeclaration(serverError, validZReference, taxYear, monthInt)
     val result = declarationRequest(validZReference, taxYear, month)

@@ -34,9 +34,10 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
   private val monthInt     = month.id
   private val submissionId = UUID.fromString("11111111-1111-4111-8111-111111111111")
 
-  private val declarationsUrl = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/declarations"
-  private val createUrl       = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt"
-  private val submissionsUrl  = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/submissions/$submissionId"
+  private val declarationsUrl    = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/declarations"
+  private val createUrl          = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt"
+  private val submissionsUrl     = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/submissions/$submissionId"
+  private val reportingWindowUrl = "/disa-returns-submission/reporting-window/status"
 
   private val connector: SubmissionConnector = app.injector.instanceOf[SubmissionConnector]
 
@@ -110,6 +111,26 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
       val Left(err) = await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource))
 
       err.statusCode shouldBe SERVICE_UNAVAILABLE
+    }
+  }
+
+  "SubmissionConnector.getReportingWindowStatus" should {
+
+    "return Right(HttpResponse) when disa-returns-submission returns 200 OK" in {
+      stubGet(reportingWindowUrl, OK, """{"reportingWindowOpen":true}""")
+
+      val Right(response) = await(connector.getReportingWindowStatus.value)
+
+      response.status                                     shouldBe OK
+      (response.json \ "reportingWindowOpen").as[Boolean] shouldBe true
+    }
+
+    "return Left(UpstreamErrorResponse) when disa-returns-submission returns 500" in {
+      stubGet(reportingWindowUrl, INTERNAL_SERVER_ERROR, """{"error":"Internal server error"}""")
+
+      val Left(err) = await(connector.getReportingWindowStatus.value)
+
+      err.statusCode shouldBe INTERNAL_SERVER_ERROR
     }
   }
 }

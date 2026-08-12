@@ -49,14 +49,4 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implici
       context = "ETMPConnector: sendDeclaration"
     )
   }
-
-  def getReportingWindowStatus(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.etmpBaseUrl}/etmp/check-reporting-window"
-    read(
-      http
-        .get(url"$url")
-        .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = "ETMPConnector: getReportingWindowStatus"
-    )
-  }
 }
