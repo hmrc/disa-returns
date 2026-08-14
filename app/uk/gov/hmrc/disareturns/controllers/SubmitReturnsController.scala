@@ -65,17 +65,14 @@ class SubmitReturnsController @Inject() (
                     error match {
                       case FirstLevelValidationFailure(err) =>
                         logger.warn(
-                          s"Submission had first level validation error for IM ref: [$zRef] for [$month][$taxYear] with error: [$error]"
+                          s"[SubmitReturnsController][submit] Submission had first level validation error for IM ref: [$zRef] for [$month][$taxYear] with error: [$error]"
                         )
                         Future.successful(BadRequest(Json.toJson(err)))
                       case SecondLevelValidationFailure(errors) =>
                         logger.warn(
-                          s"Submission had second level validation errors for IM ref: [$zRef] for [$month][$taxYear] with error: [$error]"
+                          s"[SubmitReturnsController][submit] Submission had second level validation errors for IM ref: [$zRef] for [$month][$taxYear] with error: [$error]"
                         )
                         Future.successful(BadRequest(Json.toJson(SecondLevelValidationResponse(errors = errors))))
-                      case err =>
-                        logger.error(s"streamingParserService.processToTempFile has failed with the error: $err")
-                        Future.successful(InternalServerError(Json.toJson(InternalServerErr())))
                     }
                   case Right(tempFile: TemporaryFile) =>
                     submissionService
@@ -85,11 +82,11 @@ class SubmitReturnsController @Inject() (
                         result match {
                           case Left(error) =>
                             logger.error(
-                              s"Submission of data to disa-returns-submission for IM ref: [$zRef] for [$month][$taxYear] has failed with the error: [$error]"
+                              s"[SubmitReturnsController][submit] Submission of data to disa-returns-submission for IM ref: [$zRef] for [$month][$taxYear] has failed with the error: [$error]"
                             )
                             HttpHelper.toHttpError(error)
                           case Right(_) =>
-                            logger.info(s"Data submitted successfully for IM ref: [$zRef] for: [$month][$taxYear]")
+                            logger.info(s"[SubmitReturnsController][submit] Data submitted successfully for IM ref: [$zRef] for: [$month][$taxYear]")
                             NoContent
                         }
                       }
@@ -102,11 +99,11 @@ class SubmitReturnsController @Inject() (
                 error match {
                   case _: InternalServerErr =>
                     logger.error(
-                      s"Submission eligibility failed for IM ref: [$zRef] for [$month][$taxYear] has failed with the error: [$error]"
+                      s"[SubmitReturnsController][submit] Submission eligibility failed for IM ref: [$zRef] for [$month][$taxYear] has failed with the error: [$error]"
                     )
                   case _ =>
                     logger.warn(
-                      s"Submission eligibility failed for IM ref: [$zRef] for [$month][$taxYear] has failed with the error: [$error]"
+                      s"[SubmitReturnsController][submit] Submission eligibility failed for IM ref: [$zRef] for [$month][$taxYear] has failed with the error: [$error]"
                     )
                 }
 

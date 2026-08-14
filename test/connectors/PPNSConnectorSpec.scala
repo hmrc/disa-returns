@@ -41,7 +41,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
     when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
 
-    val connector = new PPNSConnector(mockHttpClient, mockAppConfig)
+    val connector = new PPNSConnector(mockHttpClient, mockAppConfig, retryConfig, actorSystem)
   }
 
   "PPNSConnector.getBox" should {
@@ -58,7 +58,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
       )
       val httpResponse: HttpResponse = HttpResponse(200, Json.toJson(expectedResponse).toString())
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any())).thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())).thenReturn(Future.successful(Right(httpResponse)))
       val result: Either[UpstreamErrorResponse, Option[String]] = connector.getBox(testClientId).futureValue
 
       result shouldBe Right(Some(boxId))
@@ -68,7 +68,8 @@ class PPNSConnectorSpec extends BaseUnitSpec {
 
       val httpResponse: HttpResponse = HttpResponse(404, "")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any())).thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(UpstreamErrorResponse(httpResponse.body, httpResponse.status))))
       val result: Either[UpstreamErrorResponse, Option[String]] = connector.getBox(testClientId).futureValue
 
       result shouldBe Right(None)
@@ -78,7 +79,8 @@ class PPNSConnectorSpec extends BaseUnitSpec {
 
       val httpResponse: HttpResponse = HttpResponse(500, "Internal Server Error")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any())).thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(UpstreamErrorResponse(httpResponse.body, httpResponse.status))))
       val result: Either[UpstreamErrorResponse, Option[String]] = connector.getBox(testClientId).futureValue
 
       result shouldBe Left(UpstreamErrorResponse("Unexpected status from PPNS: 500", 500))
@@ -90,7 +92,7 @@ class PPNSConnectorSpec extends BaseUnitSpec {
 
     "successfully send a notification" in new TestSetup {
       val httpResponse: HttpResponse = HttpResponse(201, "")
-      when(mockRequestBuilder.execute[HttpResponse](any(), any())).thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())).thenReturn(Future.successful(Right(httpResponse)))
       connector.sendNotification(testBoxId, returnSummaryResults).futureValue shouldBe ()
     }
   }

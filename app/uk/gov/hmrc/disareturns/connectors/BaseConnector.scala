@@ -17,20 +17,38 @@
 package uk.gov.hmrc.disareturns.connectors
 
 import cats.data.EitherT
+import com.typesafe.config.Config
+import org.apache.pekko.actor.ActorSystem
 import play.api.Logging
 import play.api.http.Status.INTERNAL_SERVER_ERROR
-import uk.gov.hmrc.http.{HttpException, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.HttpReads.Implicits.*
+import uk.gov.hmrc.http.client.RequestBuilder
+import uk.gov.hmrc.http.{HttpException, HttpResponse, Retries, UpstreamErrorResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait BaseConnector extends Logging {
+trait BaseConnector extends Logging with Retries {
 
-  implicit val ec: ExecutionContext
+  implicit val ec:            ExecutionContext
+  override val configuration: Config
+  override val actorSystem:   ActorSystem
+
+  extension (requestBuilder: RequestBuilder)
+    protected def executeOrFail: Future[HttpResponse] =
+      requestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]].flatMap {
+        case Right(response) => Future.successful(response)
+        case Left(error)     => Future.failed(error)
+      }
+
+  protected def retryCondition: PartialFunction[Exception, Boolean] = { case UpstreamErrorResponse.Upstream5xxResponse(_) =>
+    true
+  }
 
   def read[A <: HttpResponse](response: Future[Either[UpstreamErrorResponse, A]], context: String): EitherT[Future, UpstreamErrorResponse, A] = {
     val recoveredResponse: Future[Either[UpstreamErrorResponse, A]] = response.recover {
-      case ex: HttpException =>
-        logger.error(s"[$context] ${ex.getMessage}")
+      case upstream: UpstreamErrorResponse => Left(upstream)
+      case ex:       HttpException =>
+        logger.error(s"$context ${ex.getMessage}")
         Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
       case ex =>
         logger.error(s"[$context] Unexpected error: ${ex.getMessage}", ex)

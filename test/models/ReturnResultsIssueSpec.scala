@@ -19,7 +19,6 @@ package models
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.models.returnResults.{IssueOverSubscribed, IssueWithMessage, ReturnResultsIssue}
 import utils.BaseUnitSpec
-import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 
 class ReturnResultsIssueSpec extends BaseUnitSpec {
 

@@ -210,8 +210,9 @@ object ValidationFailureResponse {
   private def formatFieldPath(jsPath: JsPath): String = {
     val pathString = jsPath.path
       .map {
-        case KeyPathNode(key) => s"/$key"
-        case IdxPathNode(idx) => s"/$idx"
+        case KeyPathNode(key)     => s"/$key"
+        case IdxPathNode(idx)     => s"/$idx"
+        case RecursiveSearch(key) => s"//$key"
       }
       .mkString("")
 

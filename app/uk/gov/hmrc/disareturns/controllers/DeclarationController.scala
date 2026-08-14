@@ -74,15 +74,20 @@ class DeclarationController @Inject() (
 
               result.value.flatMap {
                 case Left(error) =>
-                  logger.error(s"Failed to declare return for IM ref: [$zReference] for [$month][$taxYear] with error: [$error]")
+                  logger.error(
+                    s"[DeclarationController][declare] Failed to declare return for IM ref: [$zReference] for [$month][$taxYear] with error: [$error]"
+                  )
                   Future.successful(HttpHelper.toHttpError(error))
                 case Right(optBoxId) =>
                   notificationContextService.saveContext(request.clientId, optBoxId, zReference).map {
                     case Left(error) =>
-                      logger.error(s"Failed to save notification context for IM ref: [$zReference]for [$month][$taxYear], error: [$error]")
+                      logger.error(
+                        s"[DeclarationController][declare] Failed to save notification context for IM ref: [$zReference] for [$month][$taxYear], error: [$error]"
+                      )
                       HttpHelper.toHttpError(error)
                     case Right(_) =>
-                      logger.info(s"Declaration of return successful for IM ref: [$zReference] for [$month][$taxYear]")
+                      logger
+                        .info(s"[DeclarationController][declare] Declaration of return successful for IM ref: [$zReference] for [$month][$taxYear]")
                       val returnResultsSummaryLocation =
                         config.selfHost +
                           routes.ReturnsSummaryController

@@ -38,7 +38,7 @@ class ClientIdAction @Inject() (implicit ec: ExecutionContext) extends ActionRef
       case Some(clientId) =>
         Future.successful(Right(DeclarationRequest(request, clientId)))
       case None =>
-        logger.warn("Client ID missing from request header")
+        logger.warn("[ClientIdAction][refine] Client ID missing from request header")
         Future.successful(Left(BadRequest(Json.toJson(BadRequestErr(message = "Missing required header: X-Client-ID"): ErrorResponse))))
     }
   }

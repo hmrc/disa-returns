@@ -85,8 +85,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(runtimeException))
 
-      val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
-        connector.getReturnsObligationStatus("123456").value.futureValue
+      val result = connector.getReturnsObligationStatus("123456").value.futureValue.left.value
 
       result.statusCode shouldBe 500
       result.message      should include("Unexpected error: Connection timeout")
@@ -127,8 +126,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(runtimeException))
 
-      val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
-        connector.sendDeclaration(testZReference).value.futureValue
+      val result = connector.sendDeclaration(testZReference).value.futureValue.left.value
 
       result.statusCode shouldBe 500
       result.message      should include("Unexpected error: Connection timeout")
@@ -137,7 +135,7 @@ class ETMPConnectorSpec extends BaseUnitSpec {
 
   trait TestSetup {
     val testZReference: String        = "123456"
-    val connector:      ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig)
+    val connector:      ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig, retryConfig, actorSystem)
     val testUrl:        String        = "http://localhost:1204"
     when(mockAppConfig.etmpBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.get(url"$testUrl/etmp/check-obligation-status/$testZReference"))

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.connector
 
-import play.api.http.Status.{NOT_FOUND, OK, UNAUTHORIZED}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK, UNAUTHORIZED}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
@@ -34,7 +34,7 @@ class ETMPConnectorISpec extends BaseIntegrationSpec {
 
       stubGet(obligationsUrl, OK, responseBody)
 
-      val Right(response) = await(connector.getReturnsObligationStatus(validZReference).value)
+      val response = await(connector.getReturnsObligationStatus(validZReference).value).value
 
       response.status                                      shouldBe OK
       (response.json \ "obligationAlreadyMet").as[Boolean] shouldBe true
@@ -43,14 +43,22 @@ class ETMPConnectorISpec extends BaseIntegrationSpec {
     "return Left(UpstreamErrorResponse) when ETMP returns an error status" in {
       stubGet(obligationsUrl, UNAUTHORIZED, """{"error": "Not authorised"}""")
 
-      val Left(response) = await(connector.getReturnsObligationStatus(validZReference).value)
+      val response = await(connector.getReturnsObligationStatus(validZReference).value).left.value
 
       response.statusCode shouldBe UNAUTHORIZED
       response.message      should include("Not authorised")
+      verifyGet(obligationsUrl, count = 1)
+    }
+
+    "retry a persistent server error four times" in {
+      stubGet(obligationsUrl, INTERNAL_SERVER_ERROR, "failed")
+
+      await(connector.getReturnsObligationStatus(validZReference).value).left.value.statusCode shouldBe INTERNAL_SERVER_ERROR
+      verifyGet(obligationsUrl, count = 4)
     }
 
     "return Left(UpstreamErrorResponse) when ETMP fails with unexpected exception - No stub simulate 404" in {
-      val Left(response) = await(connector.getReturnsObligationStatus("non-existent").value)
+      val response = await(connector.getReturnsObligationStatus("non-existent").value).left.value
 
       response.statusCode shouldBe NOT_FOUND
       response.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")

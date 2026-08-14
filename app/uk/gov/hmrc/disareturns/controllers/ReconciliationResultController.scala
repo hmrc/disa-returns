@@ -20,6 +20,7 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
+import uk.gov.hmrc.disareturns.models.common.InvalidPageErr
 import uk.gov.hmrc.disareturns.services.NPSService
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -45,13 +46,17 @@ class ReconciliationResultController @Inject() (
           npsService.retrieveReconciliationReportPage(zReference, taxYear, month, page).map {
             case Left(errorResponse) =>
               logger.error(
-                s"Failed to retrieve report page [$page] for IM ref: [$zReference] for [$month][$taxYear] with error: [$errorResponse]"
+                s"[ReconciliationResultController][retrieveReconciliationReportPage] Failed to retrieve report page [$page] for IM ref: [$zReference] for [$month][$taxYear] with error: [$errorResponse]"
               )
               HttpHelper.toHttpError(errorResponse)
             case Right(reportPage) =>
-              logger.info(s"Retrieval of report page [$page] successful for IM ref: [$zReference] for [$month][$taxYear]")
+              logger.info(
+                s"[ReconciliationResultController][retrieveReconciliationReportPage] Retrieval of report page [$page] successful for IM ref: [$zReference] for [$month][$taxYear]"
+              )
               Ok(Json.toJson(reportPage))
           }
         }
+      case Right(_) =>
+        Action(_ => BadRequest(Json.toJson(InvalidPageErr)))
     }
 }

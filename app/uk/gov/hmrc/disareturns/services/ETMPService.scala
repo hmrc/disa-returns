@@ -33,7 +33,7 @@ class ETMPService @Inject() (connector: ETMPConnector, reportingWindowService: R
     extends Logging {
 
   def getObligationStatus(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] = {
-    logger.info(s"Getting obligation status for IM ref: [$zReference]")
+    logger.info(s"[ETMPService][getObligationStatus] Getting obligation status for IM ref: [$zReference]")
 
     EitherT {
       connector.getReturnsObligationStatus(zReference).value.map {
@@ -73,7 +73,7 @@ class ETMPService @Inject() (connector: ETMPConnector, reportingWindowService: R
     } yield (reportingWindow, obligations)
 
   def declaration(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
-    logger.info(s"Submitting declaration for IM ref: [$zReference]")
+    logger.info(s"[ETMPService][declaration] Submitting declaration for IM ref: [$zReference]")
     connector.sendDeclaration(zReference).leftMap(mapToErrorResponse)
   }
 

@@ -52,13 +52,18 @@ class ReturnsSummaryController @Inject() (
             case Left(e: InternalServerErr) =>
               InternalServerError(Json.toJson(e))
             case Left(e: ReturnNotFoundErr) =>
-              logger.warn(s"Return summary not found for IM ref: [$zReference] for [$month][$taxYear]")
+              logger
+                .warn(s"[ReturnsSummaryController][retrieveReturnSummary] Return summary not found for IM ref: [$zReference] for [$month][$taxYear]")
               NotFound(Json.toJson(e))
             case Left(e) =>
-              logger.warn(s"Unexpected error [$e] retrieving return summary for IM ref: [$zReference] for [$month][$taxYear]")
+              logger.warn(
+                s"[ReturnsSummaryController][retrieveReturnSummary] Unexpected error [$e] retrieving return summary for IM ref: [$zReference] for [$month][$taxYear]"
+              )
               InternalServerError(Json.toJson(e))
             case Right(summary) =>
-              logger.info(s"Retrieval of return summary successful for IM ref: [$zReference] for [$month][$taxYear]")
+              logger.info(
+                s"[ReturnsSummaryController][retrieveReturnSummary] Retrieval of return summary successful for IM ref: [$zReference] for [$month][$taxYear]"
+              )
               Ok(Json.toJson(summary))
           }
         }
@@ -80,7 +85,9 @@ class ReturnsSummaryController @Inject() (
               case Left(err: InternalServerErr) =>
                 Future.successful(InternalServerError(Json.toJson(err)))
               case Left(err) =>
-                logger.warn(s"Unexpected error [$err] saving return summary for IM ref: [$zReference] for [$month][$taxYear]")
+                logger.warn(
+                  s"[ReturnsSummaryController][returnsSummaryCallback] Unexpected error [$err] saving return summary for IM ref: [$zReference] for [$month][$taxYear]"
+                )
                 Future.successful(InternalServerError(Json.toJson(err)))
               case Right(_) =>
                 returnsSummaryService.retrieveReturnSummary(zReference, taxYear, month).flatMap {
@@ -88,7 +95,9 @@ class ReturnsSummaryController @Inject() (
                     Future.successful(NoContent)
                   case Right(returnSummaryResults) =>
                     ppnsService.sendNotification(zReference, returnSummaryResults).map { _ =>
-                      logger.info(s"Callback with return summary successful for IM ref: [$zReference] for [$month][$taxYear]")
+                      logger.info(
+                        s"[ReturnsSummaryController][returnsSummaryCallback] Callback with return summary successful for IM ref: [$zReference] for [$month][$taxYear]"
+                      )
                       NoContent
                     }
                 }

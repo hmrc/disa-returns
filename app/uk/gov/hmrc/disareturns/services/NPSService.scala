@@ -36,7 +36,7 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
   def notification(zReference: String, nilReturnReported: Boolean)(implicit
     hc:                        HeaderCarrier
   ): EitherT[Future, ErrorResponse, HttpResponse] = {
-    logger.info(s"Sending notification to NPS for IM ref: [$zReference]")
+    logger.info(s"[NPSService][notification] Sending notification to NPS for IM ref: [$zReference]")
     connector.sendNotification(zReference, nilReturnReported).leftMap(mapToErrorResponse)
   }
 
@@ -53,7 +53,7 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
       else
         totalNoOfPages.fold[Either[ErrorResponse, ReconciliationReportPage]] {
           logger.error(
-            s"Invalid number of total records: [$totalRecords] received from upstream for IM Ref: [$zReference] for [$taxYear] [$month]"
+            s"[NPSService][convertResponseToPage] Invalid number of total records: [$totalRecords] received from upstream for IM Ref: [$zReference] for [$taxYear] [$month]"
           )
           Left(InternalServerErr())
         } { noOfPages =>
@@ -62,7 +62,7 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
     }
 
     logger.info(
-      s"Retrieving reconciliation report page: [$pageIndex] from NPS for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
+      s"[NPSService][retrieveReconciliationReportPage] Retrieving reconciliation report page: [$pageIndex] from NPS for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
     )
 
     val pageSize = config.returnResultsRecordsPerPage
@@ -83,13 +83,13 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
             catch {
               case e: Throwable =>
                 logger.error(
-                  s"Caught exception with message: [${e.getMessage}] when parsing response from NPS for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
+                  s"[NPSService][retrieveReconciliationReportPage] Caught exception with message: [${e.getMessage}] when parsing response from NPS for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
                 )
                 Left(InternalServerErr())
             }
           case otherStatus =>
             logger.error(
-              s"Unexpected status: [$otherStatus] was received from NPS report retrieval for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
+              s"[NPSService][retrieveReconciliationReportPage] Unexpected status: [$otherStatus] was received from NPS report retrieval for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
             )
             Left(InternalServerErr())
         }

@@ -47,7 +47,7 @@ class StrictJsonBodyParser @Inject() ()(implicit ec: ExecutionContext) extends B
           Right(Json.parse(raw))
         } catch {
           case _: JsonParseException =>
-            logger.warn("Duplicate NilReturn Field Detected")
+            logger.warn("[StrictJsonBodyParser][apply] Duplicate NilReturn Field Detected")
             Left(BadRequest(Json.toJson(DuplicateNilReturnField)))
         }
       }

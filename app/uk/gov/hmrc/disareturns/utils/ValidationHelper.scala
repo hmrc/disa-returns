@@ -60,7 +60,7 @@ object ValidationHelper extends Logging {
 
     combined.toEither.leftMap { nonEmptyList =>
       val errs = nonEmptyList.toList
-      logger.warn(s"Failed path or query string parameter validation with errors: [$errs]")
+      logger.warn(s"[ValidationHelper][validateParams] Failed path or query string parameter validation with errors: [$errs]")
       if (errs.size == 1) errs.head
       else MultipleErrorResponse(code = "BAD_REQUEST", errors = errs)
     }

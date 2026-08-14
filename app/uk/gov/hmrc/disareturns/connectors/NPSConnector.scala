@@ -17,11 +17,13 @@
 package uk.gov.hmrc.disareturns.connectors
 
 import cats.data.EitherT
+import com.typesafe.config.Config
+import org.apache.pekko.actor.ActorSystem
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -29,7 +31,13 @@ import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
+class NPSConnector @Inject() (
+  httpClient:                 HttpClientV2,
+  appConfig:                  AppConfig,
+  override val configuration: Config,
+  override val actorSystem:   ActorSystem
+)(implicit val ec:            ExecutionContext)
+    extends BaseConnector {
 
   def sendNotification(zReference: String, nilReturnReported: Boolean)(implicit
     hc:                            HeaderCarrier
@@ -40,7 +48,7 @@ class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(im
         .post(url"$url")
         .withBody(Json.toJson(ReportingNilReturn(nilReturn = nilReturnReported)))
         .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = "NPSConnector: sendNotification"
+      context = "[NPSConnector][sendNotification]"
     )
   }
 
@@ -49,10 +57,10 @@ class NPSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(im
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.npsBaseUrl}/monthly/$zReference/$taxYear/${month.toString}/results?pageIndex=$pageIndex&pageSize=$pageSize"
     read(
-      httpClient
-        .get(url"$url")
-        .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = "NPSConnector: retrieveReconciliationReportPage"
+      retryFor("retrieve NPS reconciliation report page")(retryCondition) {
+        httpClient.get(url"$url").executeOrFail.map(Right(_))
+      },
+      context = "[NPSConnector][retrieveReconciliationReportPage]"
     )
   }
 }

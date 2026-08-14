@@ -53,7 +53,7 @@ object JsonValidation extends Logging {
     Try(mapper.readValue(s.trim, classOf[JsValue])) match {
       case Success(value) => Right(value)
       case Failure(ex) =>
-        logger.info(s"Unable to parse: [$s] as valid NDJson with exception: [$ex]")
+        logger.info(s"[JsonValidation][ensureValidNDJson] Unable to parse: [$s] as valid NDJson with exception: [$ex]")
         Left(MalformedJsonFailureErr(message = "One of the NDJson lines contains malformed JSON"))
     }
   }

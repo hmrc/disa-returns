@@ -16,26 +16,35 @@
 
 package uk.gov.hmrc.disareturns.connectors
 
+import com.typesafe.config.Config
+import org.apache.pekko.actor.ActorSystem
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.{AppConfig, Constants}
 import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
-import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class PPNSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
+class PPNSConnector @Inject() (
+  httpClient:                 HttpClientV2,
+  appConfig:                  AppConfig,
+  override val configuration: Config,
+  override val actorSystem:   ActorSystem
+)(implicit val ec:            ExecutionContext)
+    extends BaseConnector {
 
   def getBox(clientId: String)(implicit hc: HeaderCarrier): Future[Either[UpstreamErrorResponse, Option[String]]] = {
     val url = s"${appConfig.ppnsBaseUrl}/box"
 
-    httpClient
-      .get(url"$url")
-      .transform(_.withQueryStringParameters(Seq("clientId" -> clientId, "boxName" -> Constants.BoxName): _*))
-      .execute[HttpResponse]
+    retryFor("get PPNS box")(retryCondition) {
+      httpClient
+        .get(url"$url")
+        .transform(_.withQueryStringParameters(Seq("clientId" -> clientId, "boxName" -> Constants.BoxName): _*))
+        .executeOrFail
+    }
       .map { response =>
         response.status match {
           case 200 =>
@@ -50,6 +59,13 @@ class PPNSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(i
             Left(UpstreamErrorResponse(s"Unexpected status from PPNS: $other", other))
         }
       }
+      .recover {
+        case upstream: UpstreamErrorResponse if upstream.statusCode == 404 =>
+          logger.warn(s"[PPNSConnector][getBox] Box not found for clientId=$clientId (status 404)")
+          Right(None)
+        case upstream: UpstreamErrorResponse =>
+          Left(UpstreamErrorResponse(s"Unexpected status from PPNS: ${upstream.statusCode}", upstream.statusCode))
+      }
   }
 
   def sendNotification(
@@ -59,10 +75,14 @@ class PPNSConnector @Inject() (httpClient: HttpClientV2, appConfig: AppConfig)(i
     httpClient
       .post(url"${appConfig.ppnsBaseUrl}/box/$boxId/notifications")
       .withBody(Json.toJson(payload))
-      .execute[HttpResponse]
+      .executeOrFail
       .map { response =>
         if (response.status == 201) logger.info(s"[PPNSConnector][sendNotification] Sent notification to boxId=$boxId")
         else logger.error(s"[PPNSConnector][sendNotification] Unexpected status=${response.status}, body=${response.body}, boxId=$boxId")
+        ()
+      }
+      .recover { case upstream: UpstreamErrorResponse =>
+        logger.error(s"[PPNSConnector][sendNotification] Unexpected status=${upstream.statusCode}, body=${upstream.message}, boxId=$boxId")
         ()
       }
 

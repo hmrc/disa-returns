@@ -41,7 +41,7 @@ trait WithJsonBodyWithBadRequest extends Logging {
       case JsSuccess(payload, _) => f(payload)
       case JsError(errors) =>
         val validationFailure = ValidationFailureResponse.createFromJsError(JsError(errors))
-        logger.warn(s"Parsing request body failed with error: [$validationFailure]")
+        logger.warn(s"[WithJsonBodyWithBadRequest][withJson] Parsing request body failed with error: [$validationFailure]")
         Future.successful(BadRequest(Json.toJson(validationFailure)))
     }
 }

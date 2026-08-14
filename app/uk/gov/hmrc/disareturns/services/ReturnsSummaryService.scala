@@ -36,13 +36,15 @@ class ReturnsSummaryService @Inject() (
     extends Logging {
 
   def saveReturnsSummary(summary: MonthlyReturnsSummary): Future[Either[ErrorResponse, Unit]] = {
-    logger.info(s"Saving return summary for IM ref: [${summary.zRef}]")
+    logger.info(s"[ReturnsSummaryService][saveReturnsSummary] Saving return summary for IM ref: [${summary.zRef}]")
 
     summaryRepo
       .upsert(summary)
       .map(_ => Right(()))
       .recover { case e =>
-        logger.error(s"Failed to save return summary for IM ref: [${summary.zRef}] for [${summary.month}][${summary.taxYear}] due to error: [$e]")
+        logger.error(
+          s"[ReturnsSummaryService][saveReturnsSummary] Failed to save return summary for IM ref: [${summary.zRef}] for [${summary.month}][${summary.taxYear}] due to error: [$e]"
+        )
         Left(InternalServerErr())
       }
   }
@@ -52,7 +54,7 @@ class ReturnsSummaryService @Inject() (
     taxYear:    String,
     month:      Month
   ): Future[Either[ErrorResponse, ReturnSummaryResults]] = {
-    logger.info(s"Retrieving return summary for IM ref: [$zReference] for [$month][$taxYear]")
+    logger.info(s"[ReturnsSummaryService][retrieveReturnSummary] Retrieving return summary for IM ref: [$zReference] for [$month][$taxYear]")
 
     lazy val returnResultsLocation =
       s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReportPage(zReference, taxYear, month.toString).url}?page=0"
@@ -62,7 +64,7 @@ class ReturnsSummaryService @Inject() (
 
       numberOfPages.fold[Either[ErrorResponse, ReturnSummaryResults]] {
         logger.error(
-          s"Invalid number of total records [$totalRecords] received from upstream for IM Ref: [$zReference] for [$taxYear] [$month]"
+          s"[ReturnsSummaryService][returnSummaryResults] Invalid number of total records [$totalRecords] received from upstream for IM Ref: [$zReference] for [$taxYear] [$month]"
         )
         Left(InternalServerErr())
       } { numberOfPages =>
@@ -77,7 +79,9 @@ class ReturnsSummaryService @Inject() (
         case _             => Left(ReturnNotFoundErr(s"No return found for $zReference for ${month.toString} $taxYear"))
       }
       .recover { case e =>
-        logger.error(s"Failed to retrieve return summary for IM ref: [$zReference] for [$month][$taxYear] due to error: [$e]")
+        logger.error(
+          s"[ReturnsSummaryService][retrieveReturnSummary] Failed to retrieve return summary for IM ref: [$zReference] for [$month][$taxYear] due to error: [$e]"
+        )
         Left(InternalServerErr())
       }
   }
