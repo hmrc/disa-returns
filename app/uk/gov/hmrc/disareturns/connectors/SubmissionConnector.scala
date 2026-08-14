@@ -118,6 +118,30 @@ class SubmissionConnector @Inject() (httpClient: HttpClientV2, appConfig: AppCon
       }
   }
 
+  def getReportingWindowStatus(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/reporting-window/status"
+    EitherT(
+      httpClient
+        .get(url"$url")
+        .setHeader(authorizationHeader)
+        .execute[HttpResponse]
+        .map { response =>
+          if (response.status >= BAD_REQUEST) {
+            logger.warn(s"[SubmissionConnector: getReportingWindowStatus] Received error status ${response.status} with body: ${response.body}")
+            Left(UpstreamErrorResponse(response.body, response.status, response.status))
+          } else {
+            Right(response)
+          }
+        }
+        .recover {
+          case upstream: UpstreamErrorResponse => Left(upstream)
+          case ex =>
+            logger.error(s"[SubmissionConnector: getReportingWindowStatus] Unexpected error: ${ex.getMessage}", ex)
+            Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
+        }
+    )
+  }
+
   private def authorizationHeader: (String, String) =
     "Authorization" -> appConfig.internalAuthToken
 }

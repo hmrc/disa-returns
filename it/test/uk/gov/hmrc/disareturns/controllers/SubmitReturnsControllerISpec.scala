@@ -47,7 +47,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
   "POST /monthly/:zReference/:taxYear/:month" should {
 
     "return 204 for successful submission - LifetimeIsaSubscription" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validLifetimeIsaSubscription)
@@ -57,7 +57,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 204 for successful submission - LifetimeIsaClosure" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validLifetimeIsaClosure)
@@ -67,7 +67,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 204 for successful submission - StandardIsaSubscription" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validStandardIsaSubscription)
@@ -77,7 +77,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 204 for successful submission - StandardIsaClosure" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validStandardIsaClosure)
@@ -90,7 +90,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val validStandardIsaClosureMiddleNameNull =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First4","middleName": null,"lastName":"Last4","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.99,"amountTransferredOut": 2500.99,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.99,"marketValueOfAccount":10000.99,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
 
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validStandardIsaClosureMiddleNameNull)
@@ -101,7 +101,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
   }
 
   "return 204 for NDJSON payload with trailing newline at the end of the payload" in {
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
     stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
     stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 9)
@@ -114,7 +114,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
   "return 204 for NDJSON payload without trailing newline at the end of the payload" in {
     stubAuth()
-    stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
     stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 1)
     stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 1)
@@ -134,28 +134,28 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
   "POST /monthly/:zReference/:taxYear/:month path parameter validation checks" should {
 
     "return 400 with correct error response when an invalid zReference is provided" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(zReference = "Invalid", requestBody = validStandardIsaClosure)
       result.json.as[ErrorResponse] shouldBe InvalidZReference
     }
 
     "return 400 with correct error response when an invalid taxYear is provided" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(taxYear = "Invalid", requestBody = validStandardIsaClosure)
       result.json.as[ErrorResponse] shouldBe InvalidTaxYear
     }
 
     "return 400 with correct error response when an invalid month is provided" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(month = "Invalid", requestBody = validStandardIsaClosure)
       result.json.as[ErrorResponse] shouldBe InvalidMonth
     }
 
     "return 400 with correct error response when invalid zReference, taxYear, month are provided" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result =
         submitMonthlyReturnRequest(zReference = "Invalid", taxYear = "Invalid", month = "Invalid", requestBody = validStandardIsaClosure)
@@ -164,7 +164,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when invalid taxYear & month are provided" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(taxYear = "Invalid", month = "Invalid", requestBody = validStandardIsaClosure)
       result.json.as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidTaxYear, InvalidMonth))
@@ -174,7 +174,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
   "POST /monthly/:zReference/:taxYear/:month payload validation checks" should {
 
     "return 400 with correct error response when request body is missing accountNumber" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -185,7 +185,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid accountNumber" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":123,"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -196,7 +196,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid accountNumber that doesn't match the regex" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"=!","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -215,7 +215,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing nino" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -225,7 +225,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid nino" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":123,"firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -236,7 +236,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct single error response body when request body has multiple validation errors but only displays one - invalid first & last name" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -255,7 +255,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid nino that doesn't match the regex" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -274,7 +274,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid first name" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":123,"middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -295,7 +295,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing first name" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -316,7 +316,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid middle name" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":123,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -337,7 +337,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid last name" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":123,"dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -358,7 +358,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing last name" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidJson =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
@@ -379,7 +379,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid DOB - wrong format" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -400,7 +400,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid DOB - JsNumber" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":123,"isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -421,7 +421,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing DOB" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -442,7 +442,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid ISA type" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"INVALID","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -463,7 +463,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has an invalid standard ISA type for LifetimeIsaClosure" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":-5000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01"}"""
@@ -484,7 +484,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has an invalid standard ISA type for LifetimeIsaSubscription" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"INNOVATIVE_FINANCE","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -505,7 +505,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has an invalid lifetime ISA type for StandardIsaSubscription" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
@@ -526,7 +526,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has an invalid lifetime ISA type for StandardIsaClosure" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"LIFETIME","closureDate":"2025-06-01","flexibleIsa":false}"""
@@ -547,7 +547,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has a missing ISA type for LifetimeIsaClosure" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":-5000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01"}"""
@@ -568,7 +568,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has a missing ISA type for LifetimeIsaSubscription" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -589,7 +589,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has a missing ISA type for StandardIsaSubscription" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
@@ -610,7 +610,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has a missing ISA type for StandardIsaClosure" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"LIFETIME","closureDate":"2025-06-01","flexibleIsa":false}"""
@@ -631,7 +631,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid dateOfLastSubscription" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-1","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -653,7 +653,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing dateOfLastSubscription" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -674,7 +674,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid dateOfFirstSubscription" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-1","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -695,7 +695,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing amountTransferredIn" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-11","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -716,7 +716,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid amountTransferredIn" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn":2500.0,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-11","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -737,7 +737,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has a negative amountTransferredIn" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn":-20.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-11","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -758,7 +758,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing amountTransferredOut" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"dateOfFirstSubscription":"2025-06-11","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -779,7 +779,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid amountTransferredOut" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut":2500.0,"dateOfFirstSubscription":"2025-06-11","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -800,7 +800,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has a negative amountTransferredOut" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn":20.00,"amountTransferredOut": -2500.00,"dateOfFirstSubscription":"2025-06-11","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -821,7 +821,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing dateOfFirstSubscription" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -842,7 +842,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid totalCurrentYearSubscriptionsToDate" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":"Invalid","marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -863,7 +863,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has a negative totalCurrentYearSubscriptionsToDate" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":"-20.00","marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -884,7 +884,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing totalCurrentYearSubscriptionsToDate" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -905,7 +905,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid marketValueOfAccount" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.0,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -926,7 +926,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has a negative marketValueOfAccount" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":-10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -947,7 +947,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing marketValueOfAccount" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":5000.00}"""
@@ -968,7 +968,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid lisaQualifyingAddition" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":"money","lisaBonusClaim":5000.00}"""
@@ -989,7 +989,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing lisaQualifyingAddition" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaBonusClaim":5000.00}"""
@@ -1010,7 +1010,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid lisaBonusClaim" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":"money"}"""
@@ -1031,7 +1031,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing lisaBonusClaim" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00}"""
@@ -1052,7 +1052,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid flexibleIsa" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":123}""".stripMargin
@@ -1073,7 +1073,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing flexibleIsa" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01"}"""
@@ -1094,7 +1094,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid closureDate" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-1","flexibleIsa":false}"""
@@ -1115,7 +1115,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing closureDate" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","flexibleIsa":false}"""
@@ -1136,7 +1136,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid reasonForClosure" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"INVALID","closureDate":"2025-06-01","flexibleIsa":false}"""
@@ -1157,7 +1157,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid ALL_FUNDS_WITHDRAWN reasonForClosure for a standard ISA" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"ALL_FUNDS_WITHDRAWN","closureDate":"2025-06-01","flexibleIsa":false}"""
@@ -1178,7 +1178,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid TRANSFERRED_IN_FULL reasonForClosure for a standard ISA" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"TRANSFERRED_IN_FULL","closureDate":"2025-06-01","flexibleIsa":false}"""
@@ -1199,7 +1199,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when request body has invalid reasonForClosure for a Lifetime ISA" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"LIFETIME","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfFirstSubscription":"2025-06-01","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"lisaQualifyingAddition":5000.00,"lisaBonusClaim":-5000.00,"reasonForClosure":"INVALID","closureDate":"2025-06-01"}"""
@@ -1220,7 +1220,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when request body is missing reasonForClosure" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"closureDate":"2025-06-01","flexibleIsa":false}"""
@@ -1246,7 +1246,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val invalidStandardIsaClosure2 =
         """{"accountNumber":"STD000002","nino":"AB000002C","firstName":"First1","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
 
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(invalidStandardIsaClosure1 + "\n" + invalidStandardIsaClosure2 + "\n")
       result.status shouldBe BAD_REQUEST
@@ -1274,7 +1274,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val invalidStandardIsaClosure2 =
         """{"accountNumber":"STD000002","nino":233,"firstName":"First1","middleName":null, "lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
 
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(invalidStandardIsaClosure1 + "\n" + invalidStandardIsaClosure2 + "\n")
       result.status                 shouldBe BAD_REQUEST
@@ -1287,7 +1287,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       val invalidStandardIsaClosure2 =
         """{"accountNumber":"STD000002","firstName":"First1","middleName":null, "lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
 
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(invalidStandardIsaClosure1 + "\n" + invalidStandardIsaClosure2 + "\n")
       result.status                 shouldBe BAD_REQUEST
@@ -1295,7 +1295,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response when duplicate nino fields are provided in a single IsaAccount" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidStandardIsaClosure =
         """{"accountNumber":"STD000001","nino":"AB000001C","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.00,"amountTransferredOut": 2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
@@ -1316,7 +1316,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body request body when json is malformed" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidJson =
         """{"accountNumber":MALFORMEDJSON,"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"dateOfFirstSubscription":"2025-06-01","closureDate":"2025-06-01", "lisaQualifyingAddition":"10000.00", "lisaBonusClaim":"10000.00"}"""
@@ -1329,7 +1329,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
     "return 400 with correct error response when payload NDJSON lines are not separated by a newline delimiter " in {
 
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(validStandardIsaClosure + validStandardIsaSubscription)
       result.status                 shouldBe BAD_REQUEST
@@ -1338,7 +1338,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
     "return 400 with correct error response when payload NDJSON lines have non-whitespace trailing tokens" in {
 
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val result = submitMonthlyReturnRequest(validStandardIsaClosure + ";dlafj")
       result.status                 shouldBe BAD_REQUEST
@@ -1346,7 +1346,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 400 with correct error response body when NDJSON payload is empty" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
 
       val result = submitMonthlyReturnRequest(requestBody = "")
@@ -1366,7 +1366,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
     "return FORBIDDEN if ETMP obligationAlreadyMet check returns true" in {
 
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), zReference = validZReference)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
@@ -1385,7 +1385,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
     "return FORBIDDEN if ETMP reportingWindowOpen check returns false" in {
 
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
@@ -1396,7 +1396,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
     "return FORBIDDEN if ETMP reportingWindowOpen check returns false & obligationAlreadyMet check returns true" in {
 
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), zReference = validZReference)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
@@ -1406,7 +1406,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from ETMP" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubFor(
         get(urlEqualTo(s"/etmp/check-obligation-status/$validZReference"))
           .willReturn(serverError)
@@ -1418,7 +1418,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from disa-returns-submission" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       stubCreateMonthlyReturn(SERVICE_UNAVAILABLE, validZReference, testTaxYear, 9)
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
@@ -1428,7 +1428,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
 
     "return 204 when upstream 409 conflict returned from create (monthly return already exists for this period)" in {
-      stubEtmpReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       stubCreateMonthlyReturn(CONFLICT, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 9)

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.connector
 
-import play.api.http.Status.{FORBIDDEN, NOT_FOUND, OK, UNAUTHORIZED}
+import play.api.http.Status.{NOT_FOUND, OK, UNAUTHORIZED}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
@@ -24,8 +24,7 @@ import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 
 class ETMPConnectorISpec extends BaseIntegrationSpec {
 
-  val obligationsUrl     = s"/etmp/check-obligation-status/$validZReference"
-  val reportingWindowUrl = "/etmp/check-reporting-window"
+  val obligationsUrl = s"/etmp/check-obligation-status/$validZReference"
 
   val connector: ETMPConnector = app.injector.instanceOf[ETMPConnector]
 
@@ -52,36 +51,6 @@ class ETMPConnectorISpec extends BaseIntegrationSpec {
 
     "return Left(UpstreamErrorResponse) when ETMP fails with unexpected exception - No stub simulate 404" in {
       val Left(response) = await(connector.getReturnsObligationStatus("non-existent").value)
-
-      response.statusCode shouldBe NOT_FOUND
-      response.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")
-    }
-  }
-
-  "ETMPConnector.checkReportingWindowStatus" should {
-
-    "return Right(EtmpReportingWindow) when ETMP returns a successful response" in {
-      val responseBody = """{ "reportingWindowOpen": true }"""
-
-      stubGet(reportingWindowUrl, OK, responseBody)
-
-      val Right(response) = await(connector.getReportingWindowStatus.value)
-
-      response.status                                     shouldBe OK
-      (response.json \ "reportingWindowOpen").as[Boolean] shouldBe true
-    }
-
-    "return Left(UpstreamErrorResponse) when ETMP returns an error status" in {
-      stubGet(reportingWindowUrl, FORBIDDEN, """{"error": "Forbidden"}""")
-
-      val Left(response) = await(connector.getReportingWindowStatus.value)
-
-      response.statusCode shouldBe FORBIDDEN
-      response.message      should include("Forbidden")
-    }
-
-    "return Left(UpstreamErrorResponse) when ETMP call fails with unexpected exception" in {
-      val Left(response) = await(connector.getReportingWindowStatus.value)
 
       response.statusCode shouldBe NOT_FOUND
       response.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")

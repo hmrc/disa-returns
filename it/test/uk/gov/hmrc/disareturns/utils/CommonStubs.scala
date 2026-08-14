@@ -54,9 +54,9 @@ trait CommonStubs { self: TestData =>
         }
     }
 
-  def stubEtmpReportingWindow(status: Int, body: JsObject): Unit =
+  def stubReportingWindow(status: Int, body: JsObject): Unit =
     stubFor(
-      get(urlEqualTo("/etmp/check-reporting-window"))
+      get(urlEqualTo("/disa-returns-submission/reporting-window/status"))
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
     )
 

@@ -67,7 +67,8 @@ abstract class BaseUnitSpec
       mockSubmissionService,
       mockUuidGenerator,
       mockNotificationContextService,
-      mockReturnsSummaryService
+      mockReturnsSummaryService,
+      mockReportingWindowService
     )
   }
 
@@ -90,6 +91,7 @@ abstract class BaseUnitSpec
   val mockUuidGenerator:                 UuidGenerator                   = mock[UuidGenerator]
   val mockNotificationContextRepository: NotificationContextRepository   = mock[NotificationContextRepository]
   val mockNotificationContextService:    NotificationContextService      = mock[NotificationContextService]
+  val mockReportingWindowService:        ReportingWindowService          = mock[ReportingWindowService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .configure("create-internal-auth-token-on-start" -> false)

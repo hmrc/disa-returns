@@ -26,7 +26,8 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.controllers.SubmitReturnsController
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.etmp.{EtmpObligations, EtmpReportingWindow}
+import uk.gov.hmrc.disareturns.models.etmp.EtmpObligations
+import uk.gov.hmrc.disareturns.models.submission.ReportingWindowStatus
 import utils.BaseUnitSpec
 
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
@@ -36,8 +37,8 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
   val controller: SubmitReturnsController = app.injector.instanceOf[SubmitReturnsController]
 
-  val obligation:      EtmpObligations     = EtmpObligations(false)
-  val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
+  val obligation:      EtmpObligations       = EtmpObligations(false)
+  val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(true)
 
   val ndJsonLine =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""

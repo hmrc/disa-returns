@@ -21,30 +21,16 @@ import play.api.Logging
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.etmp.{EtmpObligations, EtmpReportingWindow}
+import uk.gov.hmrc.disareturns.models.etmp.EtmpObligations
+import uk.gov.hmrc.disareturns.models.submission.ReportingWindowStatus
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionContext) extends Logging {
-
-  def getReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpReportingWindow] = {
-    logger.info("Getting reporting window status")
-    EitherT {
-      connector.getReportingWindowStatus.value.map {
-        case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
-        case Right(response) =>
-          response.json
-            .validate[EtmpReportingWindow]
-            .fold(
-              _ => Left(InternalServerErr()),
-              reportingWindow => Right(reportingWindow)
-            )
-      }
-    }
-  }
+class ETMPService @Inject() (connector: ETMPConnector, reportingWindowService: ReportingWindowService)(implicit ec: ExecutionContext)
+    extends Logging {
 
   def getObligationStatus(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] = {
     logger.info(s"Getting obligation status for IM ref: [$zReference]")
@@ -65,9 +51,9 @@ class ETMPService @Inject() (connector: ETMPConnector)(implicit ec: ExecutionCon
 
   def validateEtmpSubmissionEligibility(
     zReference:  String
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[ErrorResponse, (EtmpReportingWindow, EtmpObligations)]] =
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)]] =
     for {
-      reportingWindowEither <- getReportingWindowStatus().value
+      reportingWindowEither <- reportingWindowService.getReportingWindowStatus().value
       obligationsEither     <- getObligationStatus(zReference).value
     } yield for {
       reportingWindow <- reportingWindowEither

@@ -17,10 +17,12 @@
 package services
 
 import cats.data.EitherT
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, UnauthorisedErr}
-import uk.gov.hmrc.disareturns.models.etmp.{EtmpObligations, EtmpReportingWindow}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed, UnauthorisedErr}
+import uk.gov.hmrc.disareturns.models.etmp.EtmpObligations
+import uk.gov.hmrc.disareturns.models.submission.ReportingWindowStatus
 import uk.gov.hmrc.disareturns.services.ETMPService
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import utils.BaseUnitSpec
@@ -63,35 +65,6 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
   "ETMPService.checkReportingWindowStatus" should {
 
-    "return Right(EtmpReportingWindow) when call to ETMP connector returns a reporting window status" in new TestSetup {
-      val expectedResponse:        EtmpReportingWindow = EtmpReportingWindow(true)
-      val etmpReportingWindowJson: JsValue             = Json.toJson(expectedResponse)
-      val httpResponse:            HttpResponse        = HttpResponse(200, etmpReportingWindowJson.toString())
-
-      when(mockETMPConnector.getReportingWindowStatus)
-        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
-
-      val result: Either[ErrorResponse, EtmpReportingWindow] = service.getReportingWindowStatus().value.futureValue
-
-      result shouldBe Right(expectedResponse)
-    }
-
-    "return Left(UpstreamErrorResponse) when the call to ETMP connector returns an UpstreamErrorResponse" in new TestSetup {
-      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
-        message = "Not authorised to access this service",
-        statusCode = 401,
-        reportAs = 401,
-        headers = Map.empty
-      )
-
-      when(mockETMPConnector.getReportingWindowStatus)
-        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
-
-      val result: Either[ErrorResponse, EtmpReportingWindow] = service.getReportingWindowStatus().value.futureValue
-
-      result shouldBe Left(UnauthorisedErr)
-    }
-
     "return Left(InternalServerErr) when the response JSON cannot be parsed into a obligation status" in new TestSetup {
       val obligation: String = """{
                                  |  "obligationAlreadyMet": "true"
@@ -106,18 +79,80 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
       result shouldBe Left(InternalServerErr())
     }
-    "return Left(InternalServerErr) when the response JSON cannot be parsed into a reporting window" in new TestSetup {
-      val reportingWindow: String = """{
-                                 |  "reportingWindowOpen": "false"
-                                 |}""".stripMargin
-      val httpResponse: HttpResponse = HttpResponse(200, reportingWindow)
+  }
 
-      when(mockETMPConnector.getReportingWindowStatus)
-        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
+  "ETMPService.validateEtmpSubmissionEligibility" should {
 
-      val result: Either[ErrorResponse, EtmpReportingWindow] = service.getReportingWindowStatus().value.futureValue
+    "return Right((ReportingWindowStatus, EtmpObligations)) when the reporting window is open and the obligation is not met" in new TestSetup {
+      val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(reportingWindowOpen = true)
+      val obligations:     EtmpObligations       = EtmpObligations(obligationAlreadyMet = false)
 
-      result shouldBe Left(InternalServerErr())
+      when(mockReportingWindowService.getReportingWindowStatus()(any()))
+        .thenReturn(EitherT.rightT[Future, ErrorResponse](reportingWindow))
+      when(mockETMPConnector.getReturnsObligationStatus(validZReference))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](HttpResponse(200, Json.toJson(obligations).toString())))
+
+      val result: Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)] =
+        service.validateEtmpSubmissionEligibility(validZReference).futureValue
+
+      result shouldBe Right((reportingWindow, obligations))
+    }
+
+    "return Left(ReportingWindowClosed) when the reporting window is closed" in new TestSetup {
+      val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(reportingWindowOpen = false)
+      val obligations:     EtmpObligations       = EtmpObligations(obligationAlreadyMet = false)
+
+      when(mockReportingWindowService.getReportingWindowStatus()(any()))
+        .thenReturn(EitherT.rightT[Future, ErrorResponse](reportingWindow))
+      when(mockETMPConnector.getReturnsObligationStatus(validZReference))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](HttpResponse(200, Json.toJson(obligations).toString())))
+
+      val result: Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)] =
+        service.validateEtmpSubmissionEligibility(validZReference).futureValue
+
+      result shouldBe Left(ReportingWindowClosed)
+    }
+
+    "return Left(ObligationClosed) when the reporting window is open but the obligation is already met" in new TestSetup {
+      val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(reportingWindowOpen = true)
+      val obligations:     EtmpObligations       = EtmpObligations(obligationAlreadyMet = true)
+
+      when(mockReportingWindowService.getReportingWindowStatus()(any()))
+        .thenReturn(EitherT.rightT[Future, ErrorResponse](reportingWindow))
+      when(mockETMPConnector.getReturnsObligationStatus(validZReference))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](HttpResponse(200, Json.toJson(obligations).toString())))
+
+      val result: Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)] =
+        service.validateEtmpSubmissionEligibility(validZReference).futureValue
+
+      result shouldBe Left(ObligationClosed)
+    }
+
+    "return Left(MultipleErrorResponse) when the reporting window is closed and the obligation is already met" in new TestSetup {
+      val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(reportingWindowOpen = false)
+      val obligations:     EtmpObligations       = EtmpObligations(obligationAlreadyMet = true)
+
+      when(mockReportingWindowService.getReportingWindowStatus()(any()))
+        .thenReturn(EitherT.rightT[Future, ErrorResponse](reportingWindow))
+      when(mockETMPConnector.getReturnsObligationStatus(validZReference))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](HttpResponse(200, Json.toJson(obligations).toString())))
+
+      val result: Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)] =
+        service.validateEtmpSubmissionEligibility(validZReference).futureValue
+
+      result shouldBe Left(MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ReportingWindowClosed, ObligationClosed)))
+    }
+
+    "return Left(error) when the reporting window service fails" in new TestSetup {
+      when(mockReportingWindowService.getReportingWindowStatus()(any()))
+        .thenReturn(EitherT.leftT[Future, ReportingWindowStatus](UnauthorisedErr))
+      when(mockETMPConnector.getReturnsObligationStatus(validZReference))
+        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](HttpResponse(200, Json.toJson(EtmpObligations(false)).toString())))
+
+      val result: Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)] =
+        service.validateEtmpSubmissionEligibility(validZReference).futureValue
+
+      result shouldBe Left(UnauthorisedErr)
     }
   }
 
@@ -155,6 +190,6 @@ class ETMPServiceSpec extends BaseUnitSpec {
   }
 
   trait TestSetup {
-    val service: ETMPService = new ETMPService(mockETMPConnector)
+    val service: ETMPService = new ETMPService(mockETMPConnector, mockReportingWindowService)
   }
 }

@@ -27,7 +27,8 @@ import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.controllers.DeclarationController
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
-import uk.gov.hmrc.disareturns.models.etmp.{EtmpObligations, EtmpReportingWindow}
+import uk.gov.hmrc.disareturns.models.etmp.EtmpObligations
+import uk.gov.hmrc.disareturns.models.submission.ReportingWindowStatus
 import uk.gov.hmrc.disareturns.utils.ValidationHelper
 import uk.gov.hmrc.http.HttpResponse
 import utils.BaseUnitSpec
@@ -41,8 +42,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
   val clientId = "client-999"
   val boxId    = "box-123"
-  val obligation:      EtmpObligations     = EtmpObligations(false)
-  val reportingWindow: EtmpReportingWindow = EtmpReportingWindow(true)
+  val obligation:      EtmpObligations       = EtmpObligations(false)
+  val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(true)
   val testUrl           = "http://localhost:9000"
   val invalidTaxYear    = "2011"
   val invalidMonth      = "September"
