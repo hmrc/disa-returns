@@ -25,11 +25,11 @@ import javax.inject.{Inject, Singleton}
 class ReportingPeriodService @Inject() (clock: Clock) {
 
   def previousMonthPeriod: ReportingPeriod = {
-    val previousYearMonth: YearMonth = YearMonth.from(LocalDate.now(clock)).minusMonths(1)
-    val month: Month.Value = Month(previousYearMonth.getMonthValue)
-    val isAprilOrLater: Boolean = month.id >= Month.APR.id
-    val taxYearStart: Int = if (isAprilOrLater) previousYearMonth.getYear else previousYearMonth.getYear - 1
-    val taxYearEndShort: Int = (taxYearStart + 1) % 100
+    val previousYearMonth: YearMonth   = YearMonth.from(LocalDate.now(clock)).minusMonths(1)
+    val month:             Month.Value = Month(previousYearMonth.getMonthValue)
+    val isAprilOrLater:    Boolean     = month.id >= Month.APR.id
+    val taxYearStart:      Int         = if (isAprilOrLater) previousYearMonth.getYear else previousYearMonth.getYear - 1
+    val taxYearEndShort:   Int         = (taxYearStart + 1) % 100
     ReportingPeriod(f"$taxYearStart%04d-$taxYearEndShort%02d", month)
   }
 }
