@@ -83,7 +83,7 @@ class ErrorResponseSpec extends BaseUnitSpec {
       val result = Json.fromJson[ErrorResponse](json)
 
       result shouldBe a[JsError]
-      val JsError(errors) = result
+      val errors = result.asEither.left.value
       errors.head._2.head.message should include("Unknown error code: UNKNOWN_CODE")
     }
 

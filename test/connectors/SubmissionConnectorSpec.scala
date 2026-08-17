@@ -34,7 +34,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
 
     reset(mockHttpClient, mockAppConfig, mockRequestBuilder)
 
-    val connector         = new SubmissionConnector(mockHttpClient, mockAppConfig)
+    val connector         = new SubmissionConnector(mockHttpClient, mockAppConfig, retryConfig, actorSystem)
     val nilReturnReported = false
     val testUrl           = "http://localhost:12103"
     val monthInt          = validMonth.id
@@ -62,8 +62,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     "return Right(HttpResponse) when the POST is successful" in new TestSetup {
       val httpResponse: HttpResponse = HttpResponse(OK, "")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Right(httpResponse)))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
         connector.sendDeclaration(validZReference, validTaxYear, validMonth, nilReturnReported).value.futureValue
@@ -76,8 +76,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       val body = """{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""
       val httpResponse = HttpResponse(UNPROCESSABLE_ENTITY, body)
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(UpstreamErrorResponse(body, UNPROCESSABLE_ENTITY, UNPROCESSABLE_ENTITY))))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
         connector.sendDeclaration(validZReference, validTaxYear, validMonth, nilReturnReported).value.futureValue
@@ -93,8 +93,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     "return Left(UpstreamErrorResponse) when the POST returns a 500" in new TestSetup {
       val httpResponse = HttpResponse(INTERNAL_SERVER_ERROR, "Internal Server Error")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(UpstreamErrorResponse(httpResponse.body, httpResponse.status, httpResponse.status))))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
         connector.sendDeclaration(validZReference, validTaxYear, validMonth, nilReturnReported).value.futureValue
@@ -110,7 +110,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     "return Left(UpstreamErrorResponse) when an unexpected exception occurs" in new TestSetup {
       val exception = new RuntimeException("Connection timeout")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(exception))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
@@ -130,8 +130,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     "return Right(()) when the POST is successful" in new TestSetup {
       val httpResponse: HttpResponse = HttpResponse(CREATED, "")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Right(httpResponse)))
 
       val result: Either[UpstreamErrorResponse, Unit] =
         connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
@@ -144,8 +144,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       val body         = """{"submissionId":"existing-id"}"""
       val httpResponse = HttpResponse(CONFLICT, body)
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(UpstreamErrorResponse(body, CONFLICT, CONFLICT))))
 
       val result: Either[UpstreamErrorResponse, Unit] =
         connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
@@ -156,13 +156,14 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
           err.message    shouldBe body
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
+      verify(mockRequestBuilder, times(1)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
     "return Left(UpstreamErrorResponse) when the POST returns a 500" in new TestSetup {
       val httpResponse = HttpResponse(INTERNAL_SERVER_ERROR, "Internal Server Error")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(UpstreamErrorResponse(httpResponse.body, httpResponse.status, httpResponse.status))))
 
       val result: Either[UpstreamErrorResponse, Unit] =
         connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
@@ -173,12 +174,13 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
           err.message    shouldBe "Internal Server Error"
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
+      verify(mockRequestBuilder, times(4)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
     "return Left(UpstreamErrorResponse) when an unexpected exception occurs" in new TestSetup {
       val exception = new RuntimeException("Connection timeout")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(exception))
 
       val result: Either[UpstreamErrorResponse, Unit] =
@@ -200,8 +202,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     "return Right(()) when the PUT is successful" in new TestSetup {
       val httpResponse: HttpResponse = HttpResponse(OK, "")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Right(httpResponse)))
 
       val result: Either[UpstreamErrorResponse, Unit] =
         connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
@@ -217,8 +219,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       val body         = """{"code":"VALIDATION_FAILURE","message":"Bad request"}"""
       val httpResponse = HttpResponse(BAD_REQUEST, body)
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(UpstreamErrorResponse(body, BAD_REQUEST, BAD_REQUEST))))
 
       val result: Either[UpstreamErrorResponse, Unit] =
         connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
@@ -229,13 +231,14 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
           err.message    shouldBe body
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
+      verify(mockRequestBuilder, times(1)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
     "return Left(UpstreamErrorResponse) when the PUT returns a 500" in new TestSetup {
       val httpResponse = HttpResponse(INTERNAL_SERVER_ERROR, "Internal Server Error")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(UpstreamErrorResponse(httpResponse.body, httpResponse.status, httpResponse.status))))
 
       val result: Either[UpstreamErrorResponse, Unit] =
         connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
@@ -246,12 +249,13 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
           err.message    shouldBe "Internal Server Error"
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
+      verify(mockRequestBuilder, times(4)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
     "return Left(UpstreamErrorResponse) when an unexpected exception occurs" in new TestSetup {
       val exception = new RuntimeException("Connection timeout")
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(exception))
 
       val result: Either[UpstreamErrorResponse, Unit] =
@@ -267,52 +271,40 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
   }
 
   "SubmissionConnector.getReportingWindowStatus" should {
+    "return the successful response and send internal authorization" in new TestSetup {
+      val response = HttpResponse(OK, """{"reportingWindowOpen":true}""")
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Right(response)))
 
-    "return Right(HttpResponse) when the GET is successful" in new TestSetup {
-      val httpResponse: HttpResponse = HttpResponse(OK, """{"reportingWindowOpen":true}""")
-
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
-
-      val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.getReportingWindowStatus.value.futureValue
-
-      result                                         shouldBe Right(httpResponse)
-      verify(mockRequestBuilder).setHeader("Authorization" -> internalAuthToken)
+      connector.getReportingWindowStatus.value.futureValue shouldBe Right(response)
+      verify(mockRequestBuilder).setHeader("Authorization"       -> internalAuthToken)
     }
 
-    "return Left(UpstreamErrorResponse) when the GET returns a 500" in new TestSetup {
-      val httpResponse = HttpResponse(INTERNAL_SERVER_ERROR, "Internal Server Error")
+    "return a client error without retrying" in new TestSetup {
+      val error = UpstreamErrorResponse("bad request", BAD_REQUEST, BAD_REQUEST)
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(error)))
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.successful(httpResponse))
-
-      val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.getReportingWindowStatus.value.futureValue
-
-      result match {
-        case Left(err) =>
-          err.statusCode shouldBe INTERNAL_SERVER_ERROR
-          err.message    shouldBe "Internal Server Error"
-        case _ => fail("Expected Left(UpstreamErrorResponse)")
-      }
+      connector.getReportingWindowStatus.value.futureValue shouldBe Left(error)
+      verify(mockRequestBuilder, times(1)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
-    "return Left(UpstreamErrorResponse) when an unexpected exception occurs" in new TestSetup {
-      val exception = new RuntimeException("Connection timeout")
+    "retry a persistent server error exactly four times" in new TestSetup {
+      val error = UpstreamErrorResponse("server error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.successful(Left(error)))
 
-      when(mockRequestBuilder.execute[HttpResponse](any(), any()))
-        .thenReturn(Future.failed(exception))
+      connector.getReportingWindowStatus.value.futureValue shouldBe Left(error)
+      verify(mockRequestBuilder, times(4)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
+    }
 
-      val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.getReportingWindowStatus.value.futureValue
+    "return an internal server error for an unexpected exception" in new TestSetup {
+      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
+        .thenReturn(Future.failed(new RuntimeException("Connection timeout")))
 
-      result match {
-        case Left(err) =>
-          err.statusCode shouldBe INTERNAL_SERVER_ERROR
-          err.message      should include("Unexpected error: Connection timeout")
-        case _ => fail("Expected Left(UpstreamErrorResponse)")
-      }
+      val result = connector.getReportingWindowStatus.value.futureValue.left.value
+      result.statusCode shouldBe INTERNAL_SERVER_ERROR
+      result.message      should include("Unexpected error: Connection timeout")
     }
   }
 }

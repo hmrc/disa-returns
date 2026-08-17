@@ -31,7 +31,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
 
   trait TestSetup {
 
-    val connector          = new NPSConnector(mockHttpClient, mockAppConfig)
+    val connector          = new NPSConnector(mockHttpClient, mockAppConfig, retryConfig, actorSystem)
     val nilReturnSubmitted = false
     val testUrl            = "http://localhost:1204"
 
@@ -123,8 +123,8 @@ class NPSConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(runtimeException))
 
-      val Left(result): Either[UpstreamErrorResponse, HttpResponse] =
-        connector.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, 0, 2).value.futureValue
+      val result =
+        connector.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, 0, 2).value.futureValue.left.value
 
       result.statusCode shouldBe 500
       result.message      should include("Unexpected error: Connection timeout")

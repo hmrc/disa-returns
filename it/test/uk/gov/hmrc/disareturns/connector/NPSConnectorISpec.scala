@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.connector
 
-import play.api.http.Status.{NOT_FOUND, NO_CONTENT, OK, UNAUTHORIZED}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, NO_CONTENT, OK, UNAUTHORIZED}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
 import uk.gov.hmrc.disareturns.models.common.Month
@@ -35,8 +35,8 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
     "return Right(HttpResponse) when NPS returns 204 NO_CONTENT" in {
       stubPost(sendNotificationUrl, NO_CONTENT, "")
 
-      val Right(response) =
-        await(connector.sendNotification(validZReference, nilReturnReported = true).value)
+      val response =
+        await(connector.sendNotification(validZReference, nilReturnReported = true).value).value
 
       response.status shouldBe NO_CONTENT
       response.body   shouldBe ""
@@ -45,8 +45,11 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
     "return Left(UpstreamErrorResponse) when NPS returns an error status (401)" in {
       stubPost(sendNotificationUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
 
-      val Left(err) =
-        await(connector.sendNotification(validZReference, nilReturnReported = false).value)
+      val err =
+        await(connector.sendNotification(validZReference, nilReturnReported = false).value).left.value
+
+      err.statusCode shouldBe UNAUTHORIZED
+      err.message      should include("Not authorised")
     }
   }
 
@@ -73,8 +76,8 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
     "return Right(HttpResponse) when NPS returns 200 OK" in {
       stubGet(reportRetrievalUrl, OK, reconciliationReport)
 
-      val Right(response) =
-        await(connector.retrieveReconciliationReportPage(validZReference, taxYear, month, pageIndex, pageSize).value)
+      val response =
+        await(connector.retrieveReconciliationReportPage(validZReference, taxYear, month, pageIndex, pageSize).value).value
 
       response.status shouldBe OK
       response.body   shouldBe reconciliationReport
@@ -83,17 +86,25 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
     "return Left(UpstreamErrorResponse) when NPS returns an error status (401)" in {
       stubGet(reportRetrievalUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
 
-      val Left(err) =
-        await(connector.retrieveReconciliationReportPage(validZReference, taxYear, month, pageIndex, pageSize).value)
+      val err =
+        await(connector.retrieveReconciliationReportPage(validZReference, taxYear, month, pageIndex, pageSize).value).left.value
 
       err.statusCode shouldBe UNAUTHORIZED
       err.message      should include("Not authorised")
+      verifyGet(reportRetrievalUrl, count = 1)
+    }
+
+    "retry persistent server errors four times" in {
+      stubGet(reportRetrievalUrl, INTERNAL_SERVER_ERROR, "failed")
+      await(
+        connector.retrieveReconciliationReportPage(validZReference, taxYear, month, pageIndex, pageSize).value
+      ).left.value.statusCode shouldBe INTERNAL_SERVER_ERROR
+      verifyGet(reportRetrievalUrl, count = 4)
     }
 
     "return Left(UpstreamErrorResponse) when the call fails with an unexpected exception" in {
-      val Left(err) =
-        await(connector.sendNotification("non-existent", nilReturnReported = true).value)
-      await(connector.retrieveReconciliationReportPage("non-existent", "nope", month, pageIndex, pageSize).value)
+      val err =
+        await(connector.retrieveReconciliationReportPage("non-existent", "nope", month, pageIndex, pageSize).value).left.value
 
       err.statusCode shouldBe NOT_FOUND
       err.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")

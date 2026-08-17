@@ -27,6 +27,8 @@ class BaseConnectorSpec extends BaseUnitSpec {
 
   val baseConnector: BaseConnector = new BaseConnector {
     override implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+    override val configuration = retryConfig
+    override val actorSystem   = BaseConnectorSpec.this.actorSystem
   }
 
   val context = "Some context"

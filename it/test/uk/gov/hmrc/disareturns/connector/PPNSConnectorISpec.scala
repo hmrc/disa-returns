@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.connector
 
-import play.api.http.Status.{NOT_FOUND, OK, UNAUTHORIZED}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK, UNAUTHORIZED}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.config.Constants
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
@@ -71,6 +71,13 @@ class PPNSConnectorISpec extends BaseIntegrationSpec {
           error.message      should include("Unexpected status from PPNS: 401")
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
+      verifyGet(url, count = 1)
+    }
+
+    "retry a persistent server error four times" in {
+      stubGet(url, INTERNAL_SERVER_ERROR, "failed")
+      await(connector.getBox(testClientId)).left.value.statusCode shouldBe INTERNAL_SERVER_ERROR
+      verifyGet(url, count = 4)
     }
   }
 

@@ -17,6 +17,7 @@
 package utils
 
 import org.mockito.Mockito.reset
+import org.apache.pekko.actor.ActorSystem
 import org.scalatest.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
@@ -24,6 +25,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import com.typesafe.config.Config
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.test.DefaultAwaitTimeout
@@ -35,7 +37,6 @@ import uk.gov.hmrc.disareturns.services.*
 import uk.gov.hmrc.disareturns.utils.UuidGenerator
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
-import utils.TestData
 
 import scala.concurrent.ExecutionContext
 
@@ -51,10 +52,12 @@ abstract class BaseUnitSpec
     with GuiceOneAppPerSuite
     with TestMocks
     with MockAuthConnector
-    with TestData {
+    with utils.TestData {
 
-  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
-  implicit val hc: HeaderCarrier    = HeaderCarrier()
+  implicit val ec:      ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val hc:      HeaderCarrier    = HeaderCarrier()
+  lazy val retryConfig: Config           = app.configuration.underlying
+  lazy val actorSystem: ActorSystem      = app.actorSystem
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -94,7 +97,10 @@ abstract class BaseUnitSpec
   val mockReportingWindowService:        ReportingWindowService          = mock[ReportingWindowService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
-    .configure("create-internal-auth-token-on-start" -> false)
+    .configure(
+      "create-internal-auth-token-on-start" -> false,
+      "http-verbs.retries.intervals"        -> List("1ms", "1ms", "1ms")
+    )
     .overrides(
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[ETMPService].toInstance(mockETMPService),

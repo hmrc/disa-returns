@@ -17,25 +17,33 @@
 package uk.gov.hmrc.disareturns.connectors
 
 import cats.data.EitherT
+import com.typesafe.config.Config
+import org.apache.pekko.actor.ActorSystem
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implicit val ec: ExecutionContext) extends BaseConnector {
+class ETMPConnector @Inject() (
+  http:                       HttpClientV2,
+  appConfig:                  AppConfig,
+  override val configuration: Config,
+  override val actorSystem:   ActorSystem
+)(implicit val ec:            ExecutionContext)
+    extends BaseConnector {
 
   def getReturnsObligationStatus(
     zReference:  String
   )(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.etmpBaseUrl}/etmp/check-obligation-status/$zReference"
     read(
-      http
-        .get(url"$url")
-        .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = "ETMPConnector: getReturnsObligationStatus"
+      retryFor("get ETMP returns obligation status")(retryCondition) {
+        http.get(url"$url").executeOrFail.map(Right(_))
+      },
+      context = "[ETMPConnector][getReturnsObligationStatus]"
     )
   }
   def sendDeclaration(
@@ -43,10 +51,8 @@ class ETMPConnector @Inject() (http: HttpClientV2, appConfig: AppConfig)(implici
   )(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.etmpBaseUrl}/etmp/declaration/$zReference"
     read(
-      http
-        .post(url"$url")
-        .execute[Either[UpstreamErrorResponse, HttpResponse]],
-      context = "ETMPConnector: sendDeclaration"
+      http.post(url"$url").execute[Either[UpstreamErrorResponse, HttpResponse]],
+      context = "[ETMPConnector][sendDeclaration]"
     )
   }
 }

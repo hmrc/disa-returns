@@ -30,7 +30,7 @@ class PPNSService @Inject() (ppnsConnector: PPNSConnector, notificationContextSe
     extends Logging {
 
   def getBoxId(clientId: String)(implicit hc: HeaderCarrier): Future[Either[ErrorResponse, Option[String]]] = {
-    logger.info(s"Getting boxId for clientId: [$clientId]")
+    logger.info(s"[PPNSService][getBoxId] Getting boxId for clientId: [$clientId]")
     ppnsConnector.getBox(clientId).map {
       case Right(boxOpt) => Right(boxOpt)
       case Left(_)       => Left(InternalServerErr())
@@ -44,7 +44,7 @@ class PPNSService @Inject() (ppnsConnector: PPNSConnector, notificationContextSe
     retrieveBoxId(zReference).flatMap {
       case Some(boxId) => ppnsConnector.sendNotification(boxId, returnSummaryResults)
       case None =>
-        logger.warn(s"Unable to send notification: no boxId found for $zReference")
+        logger.warn(s"[PPNSService][sendNotification] Unable to send notification: no boxId found for $zReference")
         Future.successful(())
     }
 
@@ -53,7 +53,7 @@ class PPNSService @Inject() (ppnsConnector: PPNSConnector, notificationContextSe
   )(implicit hc: HeaderCarrier): Future[Option[String]] =
     notificationContextService.retrieveContext(zReference).flatMap {
       case None =>
-        logger.warn(s"No notification context found for zReference: $zReference")
+        logger.warn(s"[PPNSService][retrieveBoxId] No notification context found for zReference: $zReference")
         Future.successful(None)
       case Some(notificationContext) =>
         notificationContext.boxId match {
@@ -63,11 +63,11 @@ class PPNSService @Inject() (ppnsConnector: PPNSConnector, notificationContextSe
               case Right(Some(boxId)) => Some(boxId)
               case Right(None) =>
                 logger.warn(
-                  s"No boxId found for clientId: ${notificationContext.clientId} and zReference: ${notificationContext.zReference}"
+                  s"[PPNSService][retrieveBoxId] No boxId found for clientId: ${notificationContext.clientId} and zReference: ${notificationContext.zReference}"
                 )
                 None
               case Left(err) =>
-                logger.warn(s"Failed to a retrieve boxId: $err")
+                logger.warn(s"[PPNSService][retrieveBoxId] Failed to a retrieve boxId: $err")
                 None
             }
         }

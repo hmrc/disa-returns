@@ -33,12 +33,15 @@ class AppInitialiser @Inject() (
   val initialised: Future[Done] =
     internalAuthTokenInitialiser.initialised
 
-  try {
-    Await.result(initialised, 31.seconds)
-    logger.info("[AppInitialiser] Internal auth initialiser completed")
-  } catch {
-    case NonFatal(exception) =>
-      logger.error("[AppInitialiser] Internal auth initialiser failed", exception)
-      throw exception
-  }
+  initialise()
+
+  private def initialise(): Unit =
+    try {
+      Await.result(initialised, 31.seconds)
+      logger.info("[AppInitialiser][initialise] Internal auth initialiser completed")
+    } catch {
+      case NonFatal(exception) =>
+        logger.error("[AppInitialiser][initialise] Internal auth initialiser failed", exception)
+        throw exception
+    }
 }

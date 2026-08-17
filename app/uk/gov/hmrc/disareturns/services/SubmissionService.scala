@@ -38,7 +38,7 @@ class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator
     hc:                   HeaderCarrier
   ): EitherT[Future, ErrorResponse, HttpResponse] = {
     logger.info(
-      s"Sending declaration to disa-returns-submission for IM ref: [$zReference], taxYear: [$taxYear], month: [$month], nilReturn: [$nilReturnReported]"
+      s"[SubmissionService][declare] Sending declaration to disa-returns-submission for IM ref: [$zReference], taxYear: [$taxYear], month: [$month], nilReturn: [$nilReturnReported]"
     )
     connector.sendDeclaration(zReference, taxYear, month, nilReturnReported).leftMap(mapToErrorResponse)
   }
@@ -46,11 +46,13 @@ class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator
   def submitMonthlyReturn(zReference: String, taxYear: String, month: Month, path: Path)(implicit
     hc:                               HeaderCarrier
   ): Future[Either[ErrorResponse, Unit]] = {
-    logger.info(s"Sending monthly return to disa-returns-submission for IM ref: [$zReference], taxYear: [$taxYear], month: [$month]")
+    logger.info(
+      s"[SubmissionService][submitMonthlyReturn] Sending monthly return to disa-returns-submission for IM ref: [$zReference], taxYear: [$taxYear], month: [$month]"
+    )
     connector.createMonthlyReturn(zReference, taxYear, month, nilReturn = false).flatMap {
       case Left(UpstreamErrorResponse(_, CONFLICT, _, _)) =>
         logger.info(
-          s"Monthly return already exists for IM ref: [$zReference], taxYear: [$taxYear], month: [$month] - proceeding to store submission data"
+          s"[SubmissionService][submitMonthlyReturn] Monthly return already exists for IM ref: [$zReference], taxYear: [$taxYear], month: [$month] - proceeding to store submission data"
         )
         sendSubmission(zReference, taxYear, month, path)
       case Left(upstreamError) => Future.successful(Left(mapToErrorResponse(upstreamError)))
@@ -67,7 +69,7 @@ class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator
       case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
       case Right(()) =>
         logger.info(
-          s"Monthly return submitted successfully for IM ref: [$zReference], taxYear: [$taxYear], month: [$month], submissionId: [$submissionId]"
+          s"[SubmissionService][sendSubmission] Monthly return submitted successfully for IM ref: [$zReference], taxYear: [$taxYear], month: [$month], submissionId: [$submissionId]"
         )
         Right(())
     }

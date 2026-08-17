@@ -35,7 +35,7 @@ package uk.gov.hmrc.disareturns.utils
 import org.apache.pekko.stream.Materializer
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, EitherValues}
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -52,6 +52,7 @@ trait BaseIntegrationSpec
     with GuiceOneServerPerSuite
     with BeforeAndAfterEach
     with BeforeAndAfterAll
+    with EitherValues
     with DefaultAwaitTimeout
     with WiremockHelper
     with CommonStubs
@@ -63,7 +64,7 @@ trait BaseIntegrationSpec
     .configure(config)
     .build()
 
-  def config: Map[String, String] =
+  def config: Map[String, Any] =
     Map(
       "auditing.enabled"                                   -> "false",
       "microservice.services.etmp.host"                    -> wiremockHost,
@@ -82,7 +83,8 @@ trait BaseIntegrationSpec
       "microservice.services.self.port"                    -> wiremockPort.toString,
       "returnResultsRecordsPerPage"                        -> "2",
       "internal-auth.token"                                -> "valid-internal-auth-token-disa-returns",
-      "create-internal-auth-token-on-start"                -> "false"
+      "create-internal-auth-token-on-start"                -> "false",
+      "http-verbs.retries.intervals"                       -> List("1ms", "1ms", "1ms")
     )
 
   override def beforeAll(): Unit = {

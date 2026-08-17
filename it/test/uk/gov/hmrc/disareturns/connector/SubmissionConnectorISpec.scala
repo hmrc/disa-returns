@@ -46,7 +46,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     "return Right(HttpResponse) when disa-returns-submission returns 200 OK" in {
       stubPost(declarationsUrl, OK, "")
 
-      val Right(response) = await(connector.sendDeclaration(validZReference, taxYear, month, nilReturnReported = false).value)
+      val response = await(connector.sendDeclaration(validZReference, taxYear, month, nilReturnReported = false).value).value
 
       response.status shouldBe OK
     }
@@ -55,7 +55,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
       val body = """{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""
       stubPost(declarationsUrl, UNPROCESSABLE_ENTITY, body)
 
-      val Left(err) = await(connector.sendDeclaration(validZReference, taxYear, month, nilReturnReported = false).value)
+      val err = await(connector.sendDeclaration(validZReference, taxYear, month, nilReturnReported = false).value).left.value
 
       err.statusCode shouldBe UNPROCESSABLE_ENTITY
       err.message      should include(body)
@@ -64,7 +64,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     "return Left(UpstreamErrorResponse) when disa-returns-submission returns 500" in {
       stubPost(declarationsUrl, INTERNAL_SERVER_ERROR, """{"error":"Internal server error"}""")
 
-      val Left(err) = await(connector.sendDeclaration(validZReference, taxYear, month, nilReturnReported = false).value)
+      val err = await(connector.sendDeclaration(validZReference, taxYear, month, nilReturnReported = false).value).left.value
 
       err.statusCode shouldBe INTERNAL_SERVER_ERROR
     }
@@ -75,23 +75,25 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     "return Right(()) when disa-returns-submission returns 201 Created" in {
       stubPost(createUrl, CREATED, """{"submissionId":"abc-123"}""")
 
-      val Right(()) = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false))
+      await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)) shouldBe Right(())
     }
 
     "return Left(UpstreamErrorResponse) preserving 409 status when disa-returns-submission returns 409 Conflict" in {
       stubPost(createUrl, CONFLICT, """{"submissionId":"existing-id"}""")
 
-      val Left(err) = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false))
+      val err = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)).left.value
 
       err.statusCode shouldBe CONFLICT
+      verifyPost(createUrl, count = 1)
     }
 
     "return Left(UpstreamErrorResponse) when disa-returns-submission returns 503" in {
       stubPost(createUrl, SERVICE_UNAVAILABLE, "")
 
-      val Left(err) = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false))
+      val err = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)).left.value
 
       err.statusCode shouldBe SERVICE_UNAVAILABLE
+      verifyPost(createUrl, count = 4)
     }
   }
 
@@ -102,35 +104,45 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     "return Right(()) when disa-returns-submission returns 200 OK" in {
       stubPut(submissionsUrl, OK, "")
 
-      val Right(()) = await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource))
+      await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource)) shouldBe Right(())
     }
 
     "return Left(UpstreamErrorResponse) when disa-returns-submission returns 503" in {
       stubPut(submissionsUrl, SERVICE_UNAVAILABLE, "")
 
-      val Left(err) = await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource))
+      val err = await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource)).left.value
 
       err.statusCode shouldBe SERVICE_UNAVAILABLE
+      verifyPut(submissionsUrl, count = 4)
+    }
+
+    "not retry a client error" in {
+      stubPut(submissionsUrl, BAD_REQUEST, "bad request")
+      await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource)).left.value.statusCode shouldBe BAD_REQUEST
+      verifyPut(submissionsUrl, count = 1)
     }
   }
 
   "SubmissionConnector.getReportingWindowStatus" should {
-
-    "return Right(HttpResponse) when disa-returns-submission returns 200 OK" in {
+    "return a successful reporting window response" in {
       stubGet(reportingWindowUrl, OK, """{"reportingWindowOpen":true}""")
-
-      val Right(response) = await(connector.getReportingWindowStatus.value)
-
+      val response = await(connector.getReportingWindowStatus.value).value
       response.status                                     shouldBe OK
       (response.json \ "reportingWindowOpen").as[Boolean] shouldBe true
+      verifyGet(reportingWindowUrl, count = 1)
     }
 
-    "return Left(UpstreamErrorResponse) when disa-returns-submission returns 500" in {
-      stubGet(reportingWindowUrl, INTERNAL_SERVER_ERROR, """{"error":"Internal server error"}""")
+    "retry a persistent server error exactly four times" in {
+      stubGet(reportingWindowUrl, INTERNAL_SERVER_ERROR, "failed")
+      await(connector.getReportingWindowStatus.value).left.value.statusCode shouldBe INTERNAL_SERVER_ERROR
+      verifyGet(reportingWindowUrl, count = 4)
+    }
 
-      val Left(err) = await(connector.getReportingWindowStatus.value)
-
-      err.statusCode shouldBe INTERNAL_SERVER_ERROR
+    "not retry a client error" in {
+      stubGet(reportingWindowUrl, BAD_REQUEST, "bad request")
+      await(connector.getReportingWindowStatus.value).left.value.statusCode shouldBe BAD_REQUEST
+      verifyGet(reportingWindowUrl, count = 1)
     }
   }
+
 }
