@@ -45,8 +45,6 @@ class DeclarationControllerSpec extends BaseUnitSpec {
   val obligation:      EtmpObligations       = EtmpObligations(false)
   val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(true)
   val testUrl           = "http://localhost:9000"
-  val invalidTaxYear    = "2011"
-  val invalidMonth      = "September"
   val invalidZReference = "Z12345454"
 
   val nilReturnBody: JsValue = Json.toJson(ReportingNilReturn(nilReturn = false))
@@ -66,13 +64,13 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockNotificationContextService.saveContext(any(), any(), any()))
         .thenReturn(Future.successful(Right((): Unit)))
 
-      val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$validMonth/declaration")
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
         .withHeaders("X-Client-ID" -> clientId)
         .withJsonBody(nilReturnBody)
 
-      val result = call(controller.declare(validZReference, validTaxYear, validMonth.toString), request)
+      val result = call(controller.declare(validZReference), request)
 
-      val summaryLocation = s"$testUrl/monthly/$validZReference/$validTaxYear/$validMonth/results/summary"
+      val summaryLocation = s"$testUrl/monthly/$validZReference/results/summary"
 
       status(result)                                                      shouldBe OK
       (contentAsJson(result) \ "returnResultsSummaryLocation").as[String] shouldBe summaryLocation
@@ -92,58 +90,36 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockNotificationContextService.saveContext(any(), any(), any()))
         .thenReturn(Future.successful(Right((): Unit)))
 
-      val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$validMonth/declaration")
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
         .withHeaders("X-Client-ID" -> clientId)
         .withJsonBody(nilReturnBody)
 
-      val result = call(controller.declare(validZReference, validTaxYear, validMonth.toString), request)
+      val result = call(controller.declare(validZReference), request)
 
-      val summaryLocation = s"$testUrl/monthly/$validZReference/$validTaxYear/$validMonth/results/summary"
+      val summaryLocation = s"$testUrl/monthly/$validZReference/results/summary"
 
       status(result)                                                      shouldBe OK
       (contentAsJson(result) \ "returnResultsSummaryLocation").as[String] shouldBe summaryLocation
     }
 
-    "return 400 BadRequest when validation fails for taxYear" in {
-      authorizationForZRef()
-      val request = FakeRequest(POST, s"/monthly/$validZReference/$invalidTaxYear/$validMonth/declaration")
-        .withHeaders("X-Client-ID" -> clientId)
-        .withJsonBody(nilReturnBody)
-      val result = call(controller.declare(validZReference, invalidTaxYear, validMonth.toString), request)
-      status(result) shouldBe BAD_REQUEST
-      contentAsJson(result) shouldBe Json.toJson(
-        ValidationHelper.validateParams(validZReference, invalidTaxYear, validMonth.toString).left.toOption.get
-      )
-    }
-
-    "return 400 BadRequest when validation fails for month" in {
-      authorizationForZRef()
-      val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$invalidMonth/declaration")
-        .withHeaders("X-Client-ID" -> clientId)
-        .withJsonBody(nilReturnBody)
-      val result = call(controller.declare(validZReference, validTaxYear, invalidMonth), request)
-      status(result)        shouldBe BAD_REQUEST
-      contentAsJson(result) shouldBe Json.toJson(ValidationHelper.validateParams(validZReference, validTaxYear, invalidMonth).left.toOption.get)
-    }
-
     "return 400 BadRequest when validation fails for zReference" in {
       authorizationForZRef()
-      val request = FakeRequest(POST, s"/monthly/$invalidZReference/$validTaxYear/$validMonth/declaration")
+      val request = FakeRequest(POST, s"/monthly/$invalidZReference/declaration")
         .withHeaders("X-Client-ID" -> clientId)
         .withJsonBody(nilReturnBody)
-      val result = call(controller.declare(invalidZReference, validTaxYear, validMonth.toString), request)
+      val result = call(controller.declare(invalidZReference), request)
       status(result) shouldBe BAD_REQUEST
       contentAsJson(result) shouldBe Json.toJson(
-        ValidationHelper.validateParams(invalidZReference, validTaxYear, validMonth.toString).left.toOption.get
+        ValidationHelper.validateParams(invalidZReference).left.toOption.get
       )
 
     }
 
     "return 400 BadRequest when the clientId is missing from the header" in {
       authorizationForZRef()
-      val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$validMonth/declaration")
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
         .withJsonBody(nilReturnBody)
-      val result = call(controller.declare(validZReference, validTaxYear, validMonth.toString), request)
+      val result = call(controller.declare(validZReference), request)
       status(result) shouldBe BAD_REQUEST
       val json = contentAsJson(result)
       (json \ "code").as[String]    shouldBe "BAD_REQUEST"
@@ -153,10 +129,10 @@ class DeclarationControllerSpec extends BaseUnitSpec {
     "return 400 BadRequest when the request body fails validation" in {
       authorizationForZRef()
       val invalidBody = Json.obj("invalid" -> "field")
-      val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$validMonth/declaration")
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
         .withHeaders("X-Client-ID" -> clientId)
         .withJsonBody(invalidBody)
-      val result = call(controller.declare(validZReference, validTaxYear, validMonth.toString), request)
+      val result = call(controller.declare(validZReference), request)
       status(result) shouldBe BAD_REQUEST
       val json = contentAsJson(result)
       (json \ "code").as[String]    shouldBe "MALFORMED_JSON"
@@ -168,11 +144,11 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ReportingWindowClosed)))
 
-      val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$validMonth/declaration")
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
         .withHeaders("X-Client-ID" -> clientId)
         .withJsonBody(nilReturnBody)
 
-      val result = call(controller.declare(validZReference, validTaxYear, validMonth.toString), request)
+      val result = call(controller.declare(validZReference), request)
 
       status(result) shouldBe FORBIDDEN
       val json = contentAsJson(result)
@@ -186,11 +162,11 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
-      val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$validMonth/declaration")
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
         .withHeaders("X-Client-ID" -> clientId)
         .withJsonBody(nilReturnBody)
 
-      val result = call(controller.declare(validZReference, validTaxYear, validMonth.toString), request)
+      val result = call(controller.declare(validZReference), request)
 
       status(result) shouldBe FORBIDDEN
       val json = contentAsJson(result)
@@ -209,11 +185,11 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockPPNSService.getBoxId(any())(any()))
         .thenReturn(Future.successful(Left(InternalServerErr())))
 
-      val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$validMonth/declaration")
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
         .withHeaders("X-Client-ID" -> clientId)
         .withJsonBody(nilReturnBody)
 
-      val result = call(controller.declare(validZReference, validTaxYear, validMonth.toString), request)
+      val result = call(controller.declare(validZReference), request)
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
@@ -234,11 +210,11 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockNotificationContextService.saveContext(any(), any(), any()))
         .thenReturn(Future.successful(Left(InternalServerErr())))
 
-      val request = FakeRequest(POST, s"/monthly/$validZReference/$validTaxYear/$validMonth/declaration")
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
         .withHeaders("X-Client-ID" -> clientId)
         .withJsonBody(nilReturnBody)
 
-      val result = call(controller.declare(validZReference, validTaxYear, validMonth.toString), request)
+      val result = call(controller.declare(validZReference), request)
 
       status(result)        shouldBe INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.toJson(InternalServerErr())

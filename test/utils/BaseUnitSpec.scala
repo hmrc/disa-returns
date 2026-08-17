@@ -39,6 +39,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
 import scala.concurrent.ExecutionContext
+import java.time.{Clock, Instant, ZoneOffset}
 
 abstract class BaseUnitSpec
     extends AnyWordSpec
@@ -54,10 +55,12 @@ abstract class BaseUnitSpec
     with MockAuthConnector
     with utils.TestData {
 
-  implicit val ec:      ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
-  implicit val hc:      HeaderCarrier    = HeaderCarrier()
-  lazy val retryConfig: Config           = app.configuration.underlying
-  lazy val actorSystem: ActorSystem      = app.actorSystem
+  implicit val ec:              ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val hc:              HeaderCarrier    = HeaderCarrier()
+  lazy val retryConfig:         Config           = app.configuration.underlying
+  lazy val actorSystem:         ActorSystem      = app.actorSystem
+  val testReportingPeriod:      Instant          = Instant.parse("2026-10-15T12:00:00Z")
+  val testReportingPeriodClock: Clock            = Clock.fixed(testReportingPeriod, ZoneOffset.UTC)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -111,7 +114,8 @@ abstract class BaseUnitSpec
       bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository),
       bind[NPSService].toInstance(mockNPSService),
       bind[SubmissionService].toInstance(mockSubmissionService),
-      bind[NotificationContextService].toInstance(mockNotificationContextService)
+      bind[NotificationContextService].toInstance(mockNotificationContextService),
+      bind[Clock].toInstance(testReportingPeriodClock)
     )
     .build()
 

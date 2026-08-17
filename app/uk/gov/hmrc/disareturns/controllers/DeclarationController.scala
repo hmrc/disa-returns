@@ -28,7 +28,7 @@ import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.controllers.parsers.StrictJsonBodyParser
 import uk.gov.hmrc.disareturns.models.common.{DeclarationRequest, MalformedJsonFailureErr}
 import uk.gov.hmrc.disareturns.models.declaration.{DeclarationSuccessfulResponse, ReportingNilReturn}
-import uk.gov.hmrc.disareturns.services.{ETMPService, NotificationContextService, PPNSService, SubmissionService}
+import uk.gov.hmrc.disareturns.services.{ETMPService, NotificationContextService, PPNSService, ReportingPeriodService, SubmissionService}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -40,6 +40,7 @@ class DeclarationController @Inject() (
   etmpService:                ETMPService,
   ppnsService:                PPNSService,
   submissionService:          SubmissionService,
+  reportingPeriodService:     ReportingPeriodService,
   notificationContextService: NotificationContextService,
   authAction:                 AuthAction,
   clientIdAction:             ClientIdAction,
@@ -49,18 +50,19 @@ class DeclarationController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def declare(zReference: String, taxYear: String, month: String): Action[JsValue] =
-    ValidationHelper.validateParams(zReference, taxYear, month) match {
+  def declare(zReference: String): Action[JsValue] =
+    ValidationHelper.validateParams(zReference) match {
       case Left(errors) =>
         Action(strictJsonBodyParser) { (_: Request[JsValue]) =>
           BadRequest(Json.toJson(errors))
         }
-      case Right((zReference, validTaxYear, validMonth, _)) =>
+      case Right((zReference, _)) =>
         (
           Action(strictJsonBodyParser)
             andThen authAction(zReference)
             andThen clientIdAction
         ).async { implicit request: DeclarationRequest[JsValue] =>
+          val reportingPeriod = reportingPeriodService.previousMonthPeriod
           request.body.validate[ReportingNilReturn] match {
             case JsError(_) =>
               Future.successful(BadRequest(Json.toJson(MalformedJsonFailureErr(message = "Request body contains malformed JSON"))))
@@ -68,30 +70,32 @@ class DeclarationController @Inject() (
               val nilReturnReported = request.body.as[ReportingNilReturn].nilReturn
               val result = for {
                 _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(zReference))
-                _             <- submissionService.declare(zReference, validTaxYear, validMonth, nilReturnReported)
+                _             <- submissionService.declare(zReference, reportingPeriod.taxYear, reportingPeriod.month, nilReturnReported)
                 boxIdResponse <- EitherT(ppnsService.getBoxId(request.clientId))
               } yield boxIdResponse
 
               result.value.flatMap {
                 case Left(error) =>
                   logger.error(
-                    s"[DeclarationController][declare] Failed to declare return for IM ref: [$zReference] for [$month][$taxYear] with error: [$error]"
+                    s"[DeclarationController][declare] Failed to declare return for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] with error: [$error]"
                   )
                   Future.successful(HttpHelper.toHttpError(error))
                 case Right(optBoxId) =>
                   notificationContextService.saveContext(request.clientId, optBoxId, zReference).map {
                     case Left(error) =>
                       logger.error(
-                        s"[DeclarationController][declare] Failed to save notification context for IM ref: [$zReference] for [$month][$taxYear], error: [$error]"
+                        s"[DeclarationController][declare] Failed to save notification context for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}], error: [$error]"
                       )
                       HttpHelper.toHttpError(error)
                     case Right(_) =>
                       logger
-                        .info(s"[DeclarationController][declare] Declaration of return successful for IM ref: [$zReference] for [$month][$taxYear]")
+                        .info(
+                          s"[DeclarationController][declare] Declaration of return successful for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}]"
+                        )
                       val returnResultsSummaryLocation =
                         config.selfHost +
                           routes.ReturnsSummaryController
-                            .retrieveReturnSummary(zReference, taxYear, month)
+                            .retrieveReturnSummary(zReference)
                             .url
                       Ok(Json.toJson(DeclarationSuccessfulResponse(returnResultsSummaryLocation, optBoxId)))
                   }

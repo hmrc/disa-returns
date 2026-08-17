@@ -21,7 +21,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import uk.gov.hmrc.disareturns.models.common.InvalidPageErr
-import uk.gov.hmrc.disareturns.services.NPSService
+import uk.gov.hmrc.disareturns.services.{NPSService, ReportingPeriodService}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -30,28 +30,30 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class ReconciliationResultController @Inject() (
-  cc:          ControllerComponents,
-  npsService:  NPSService,
-  authAction:  AuthAction
-)(implicit ec: ExecutionContext)
+  cc:                     ControllerComponents,
+  npsService:             NPSService,
+  reportingPeriodService: ReportingPeriodService,
+  authAction:             AuthAction
+)(implicit ec:            ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def retrieveReconciliationReportPage(zReference: String, taxYear: String, month: String, page: String): Action[AnyContent] =
-    ValidationHelper.validateParams(zReference, taxYear, month, Some(page)) match {
+  def retrieveReconciliationReportPage(zReference: String, page: String): Action[AnyContent] =
+    ValidationHelper.validateParams(zReference, Some(page)) match {
       case Left(errors) =>
         Action(_ => BadRequest(Json.toJson(errors)))
-      case Right((zReference, taxYear, month, Some(page))) =>
+      case Right((zReference, Some(page))) =>
         (Action andThen authAction(zReference)).async { implicit request =>
-          npsService.retrieveReconciliationReportPage(zReference, taxYear, month, page).map {
+          val reportingPeriod = reportingPeriodService.previousMonthPeriod
+          npsService.retrieveReconciliationReportPage(zReference, reportingPeriod.taxYear, reportingPeriod.month, page).map {
             case Left(errorResponse) =>
               logger.error(
-                s"[ReconciliationResultController][retrieveReconciliationReportPage] Failed to retrieve report page [$page] for IM ref: [$zReference] for [$month][$taxYear] with error: [$errorResponse]"
+                s"[ReconciliationResultController][retrieveReconciliationReportPage] Failed to retrieve report page [$page] for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] with error: [$errorResponse]"
               )
               HttpHelper.toHttpError(errorResponse)
             case Right(reportPage) =>
               logger.info(
-                s"[ReconciliationResultController][retrieveReconciliationReportPage] Retrieval of report page [$page] successful for IM ref: [$zReference] for [$month][$taxYear]"
+                s"[ReconciliationResultController][retrieveReconciliationReportPage] Retrieval of report page [$page] successful for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}]"
               )
               Ok(Json.toJson(reportPage))
           }

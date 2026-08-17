@@ -27,7 +27,7 @@ import play.api.libs.streams.Accumulator
 import play.api.mvc.{Action, BodyParser, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.services.{ETMPService, StreamingParserService, SubmissionService}
+import uk.gov.hmrc.disareturns.services.{ETMPService, ReportingPeriodService, StreamingParserService, SubmissionService}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -39,6 +39,7 @@ class SubmitReturnsController @Inject() (
   cc:                       ControllerComponents,
   streamingParserService:   StreamingParserService,
   submissionService:        SubmissionService,
+  reportingPeriodService:   ReportingPeriodService,
   authAction:               AuthAction,
   implicit val etmpService: ETMPService
 )(implicit ec:              ExecutionContext, val mat: Materializer)
@@ -51,11 +52,12 @@ class SubmitReturnsController @Inject() (
 
   private def ignoreBodyParser: BodyParser[Source[ByteString, _]] = BodyParser(_ => Accumulator.done(Right(Source.empty[ByteString])))
 
-  def submit(zReference: String, taxYear: String, month: String): Action[Source[ByteString, _]] =
-    ValidationHelper.validateParams(zReference, taxYear, month) match {
+  def submit(zReference: String): Action[Source[ByteString, _]] =
+    ValidationHelper.validateParams(zReference) match {
       case Left(errors) => Action.async(ignoreBodyParser)(_ => Future.successful(BadRequest(Json.toJson(errors))))
-      case Right((zRef, validTaxYear, parsedMonth, _)) =>
+      case Right((zRef, _)) =>
         (Action andThen authAction(zRef)).async(streamingParser) { implicit request =>
+          val reportingPeriod = reportingPeriodService.previousMonthPeriod
           etmpService
             .validateEtmpSubmissionEligibility(zRef)
             .flatMap {
@@ -65,28 +67,30 @@ class SubmitReturnsController @Inject() (
                     error match {
                       case FirstLevelValidationFailure(err) =>
                         logger.warn(
-                          s"[SubmitReturnsController][submit] Submission had first level validation error for IM ref: [$zRef] for [$month][$taxYear] with error: [$error]"
+                          s"[SubmitReturnsController][submit] Submission had first level validation error for IM ref: [$zRef] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] with error: [$error]"
                         )
                         Future.successful(BadRequest(Json.toJson(err)))
                       case SecondLevelValidationFailure(errors) =>
                         logger.warn(
-                          s"[SubmitReturnsController][submit] Submission had second level validation errors for IM ref: [$zRef] for [$month][$taxYear] with error: [$error]"
+                          s"[SubmitReturnsController][submit] Submission had second level validation errors for IM ref: [$zRef] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] with error: [$error]"
                         )
                         Future.successful(BadRequest(Json.toJson(SecondLevelValidationResponse(errors = errors))))
                     }
                   case Right(tempFile: TemporaryFile) =>
                     submissionService
-                      .submitMonthlyReturn(zRef, validTaxYear, parsedMonth, tempFile.path)
+                      .submitMonthlyReturn(zRef, reportingPeriod.taxYear, reportingPeriod.month, tempFile.path)
                       .map { result =>
                         tempFile.delete()
                         result match {
                           case Left(error) =>
                             logger.error(
-                              s"[SubmitReturnsController][submit] Submission of data to disa-returns-submission for IM ref: [$zRef] for [$month][$taxYear] has failed with the error: [$error]"
+                              s"[SubmitReturnsController][submit] Submission of data to disa-returns-submission for IM ref: [$zRef] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] has failed with the error: [$error]"
                             )
                             HttpHelper.toHttpError(error)
                           case Right(_) =>
-                            logger.info(s"[SubmitReturnsController][submit] Data submitted successfully for IM ref: [$zRef] for: [$month][$taxYear]")
+                            logger.info(
+                              s"[SubmitReturnsController][submit] Data submitted successfully for IM ref: [$zRef] for: [${reportingPeriod.month}][${reportingPeriod.taxYear}]"
+                            )
                             NoContent
                         }
                       }
@@ -99,11 +103,11 @@ class SubmitReturnsController @Inject() (
                 error match {
                   case _: InternalServerErr =>
                     logger.error(
-                      s"[SubmitReturnsController][submit] Submission eligibility failed for IM ref: [$zRef] for [$month][$taxYear] has failed with the error: [$error]"
+                      s"[SubmitReturnsController][submit] Submission eligibility failed for IM ref: [$zRef] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] has failed with the error: [$error]"
                     )
                   case _ =>
                     logger.warn(
-                      s"[SubmitReturnsController][submit] Submission eligibility failed for IM ref: [$zRef] for [$month][$taxYear] has failed with the error: [$error]"
+                      s"[SubmitReturnsController][submit] Submission eligibility failed for IM ref: [$zRef] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] has failed with the error: [$error]"
                     )
                 }
 

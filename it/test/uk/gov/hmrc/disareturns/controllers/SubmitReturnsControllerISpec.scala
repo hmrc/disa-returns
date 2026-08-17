@@ -44,7 +44,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
   val validStandardIsaClosure =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First4","lastName":"Last4","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn": 2500.99,"amountTransferredOut": 2500.99,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.99,"marketValueOfAccount":10000.99,"reasonForClosure":"CANCELLED","closureDate":"2025-06-01","flexibleIsa":false}"""
 
-  "POST /monthly/:zReference/:taxYear/:month" should {
+  "POST /monthly/:zReference" should {
 
     "return 204 for successful submission - LifetimeIsaSubscription" in {
       stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
@@ -116,12 +116,12 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     stubAuth()
     stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 1)
-    stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 1)
+    stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+    stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 9)
 
     val result = await(
       ws.url(
-        s"http://localhost:$port/monthly/$validZReference/$testTaxYear/JAN"
+        s"http://localhost:$port/monthly/$validZReference"
       ).withFollowRedirects(follow = false)
         .withHttpHeaders(
           testHeaders: _*
@@ -131,7 +131,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     result.status shouldBe NO_CONTENT
   }
 
-  "POST /monthly/:zReference/:taxYear/:month path parameter validation checks" should {
+  "POST /monthly/:zReference path parameter validation checks" should {
 
     "return 400 with correct error response when an invalid zReference is provided" in {
       stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
@@ -140,38 +140,9 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       result.json.as[ErrorResponse] shouldBe InvalidZReference
     }
 
-    "return 400 with correct error response when an invalid taxYear is provided" in {
-      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      val result = submitMonthlyReturnRequest(taxYear = "Invalid", requestBody = validStandardIsaClosure)
-      result.json.as[ErrorResponse] shouldBe InvalidTaxYear
-    }
-
-    "return 400 with correct error response when an invalid month is provided" in {
-      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      val result = submitMonthlyReturnRequest(month = "Invalid", requestBody = validStandardIsaClosure)
-      result.json.as[ErrorResponse] shouldBe InvalidMonth
-    }
-
-    "return 400 with correct error response when invalid zReference, taxYear, month are provided" in {
-      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      val result =
-        submitMonthlyReturnRequest(zReference = "Invalid", taxYear = "Invalid", month = "Invalid", requestBody = validStandardIsaClosure)
-      result.json
-        .as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear, InvalidMonth))
-    }
-
-    "return 400 with correct error response when invalid taxYear & month are provided" in {
-      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      val result = submitMonthlyReturnRequest(taxYear = "Invalid", month = "Invalid", requestBody = validStandardIsaClosure)
-      result.json.as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidTaxYear, InvalidMonth))
-    }
   }
 
-  "POST /monthly/:zReference/:taxYear/:month payload validation checks" should {
+  "POST /monthly/:zReference payload validation checks" should {
 
     "return 400 with correct error response when request body is missing accountNumber" in {
       stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
@@ -1356,7 +1327,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     }
   }
 
-  "POST /monthly/:zReference/:taxYear/:month error handling" should {
+  "POST /monthly/:zReference error handling" should {
 
     "return UNAUTHORISED if auth checks fail" in {
       val result = submitMonthlyReturnRequest(validStandardIsaClosure, withAuth = false)
@@ -1442,14 +1413,12 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     requestBody: String,
     headers:     Seq[(String, String)] = testHeaders,
     zReference:  String = validZReference,
-    taxYear:     String = testTaxYear,
-    month:       String = Month.SEP.toString,
     withAuth:    Boolean = true
   ): WSResponse = {
     if (withAuth) stubAuth() else stubAuthFail()
     await(
       ws.url(
-        s"http://localhost:$port/monthly/$zReference/$taxYear/$month"
+        s"http://localhost:$port/monthly/$zReference"
       ).withFollowRedirects(follow = false)
         .withHttpHeaders(
           headers: _*

@@ -53,7 +53,7 @@ tags:
       Results are paginated to support large datasets.
 
 paths:
-  /monthly/{zReference}/{taxYear}/{month}:
+  /monthly/{zReference}:
     post:
       summary: Submit monthly report data
       description: |
@@ -62,7 +62,7 @@ paths:
         The payload size of each request must not exceed 10 MB. 
         
         The API checks whether the reporting window is open and whether a report has already 
-        been submitted for the specified tax year and report month. 
+        been submitted for the current reporting period. 
         If either condition is not met, the API returns a `403 Forbidden` response.
 
         If the request is permitted:
@@ -99,40 +99,6 @@ paths:
             pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
-        - name: taxYear
-          in: path
-          description: |
-            Tax year of the report.
-          required: true
-          style: simple
-          explode: false
-          schema:
-            pattern: ^20\d{2}-\d{2}$
-            format: string
-            example: 2025-26
-        - name: month
-          in: path
-          description: |
-            Month of the report.
-          required: true
-          style: simple
-          explode: false
-          schema:
-            type: string
-            example: APR
-            enum:
-              - JAN
-              - FEB
-              - MAR
-              - APR
-              - MAY
-              - JUN
-              - JUL
-              - AUG
-              - SEP
-              - OCT
-              - NOV
-              - DEC
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       requestBody:
@@ -164,7 +130,6 @@ paths:
                   - $ref: '#/components/schemas/badSubmissionGeneral'
                   - $ref: '#/components/schemas/badSubmissionComplex'
                   - $ref: '#/components/schemas/badRequestParameters'
-                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -205,7 +170,7 @@ paths:
                   message:
                     type: string
                     example: "Unexpected Error"
-  /monthly/{zReference}/{taxYear}/{month}/declaration:
+  /monthly/{zReference}/declaration:
     post:
       summary: Declare monthly report as complete
       description: |
@@ -218,7 +183,7 @@ paths:
         After this step, no further data can be added for that month. 
         
         The API checks whether the reporting window is open and whether a report has 
-        already been submitted for the specified tax year and report month. 
+        already been submitted for the current reporting period. 
         If either condition is not met, the API returns a `403 Forbidden` response.
         
         If the submission completes successfully, the response includes:
@@ -243,40 +208,6 @@ paths:
             pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
-        - name: taxYear
-          in: path
-          description: |
-            Tax year of the report.
-          required: true
-          style: simple
-          explode: false
-          schema:
-            pattern: ^20\d{2}-\d{2}$
-            format: string
-            example: 2025-26
-        - name: month
-          in: path
-          description: |
-            Month of the report.
-          required: true
-          style: simple
-          explode: false
-          schema:
-            type: string
-            example: APR
-            enum:
-              - JAN
-              - FEB
-              - MAR
-              - APR
-              - MAY
-              - JUN
-              - JUL
-              - AUG
-              - SEP
-              - OCT
-              - NOV
-              - DEC
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       requestBody:
@@ -305,7 +236,7 @@ paths:
                     type: string
                     format: uri
                     description: Use this URL to retrieve the report results summary once the reporting window closes.
-                    example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/monthly/Z1234/2025-26/APR/results/summary'
+                    example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/monthly/Z1234/results/summary'
                   boxId:
                     type: string
                     format: guid
@@ -318,7 +249,7 @@ paths:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/badSubmissionGeneralDeclaration'
-                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
+                  - $ref: '#/components/schemas/badRequestParameters'
         401:
           description: Unauthorized
           content:
@@ -375,7 +306,7 @@ paths:
                   message:
                     type: string
                     example: "Unexpected Error"
-  /monthly/{zReference}/{taxYear}/{month}/results/summary:
+  /monthly/{zReference}/results/summary:
     get:
       summary: Get report summary
       description: |
@@ -407,40 +338,6 @@ paths:
             pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
-        - name: taxYear
-          in: path
-          description: |
-            Tax year of the report.
-          required: true
-          style: simple
-          explode: false
-          schema:
-            pattern: ^20\d{2}-\d{2}$
-            format: string
-            example: 2025-26
-        - name: month
-          in: path
-          description: |
-            Month of the report.
-          required: true
-          style: simple
-          explode: false
-          schema:
-            type: string
-            example: APR
-            enum:
-              - JAN
-              - FEB
-              - MAR
-              - APR
-              - MAY
-              - JUN
-              - JUL
-              - AUG
-              - SEP
-              - OCT
-              - NOV
-              - DEC
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
@@ -455,7 +352,7 @@ paths:
                     type: string
                     format: uri
                     description: Use this URL to retrieve the results of the specified report.
-                    example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/monthly/Z1234/2025-26/APR/results?page=1'
+                    example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/monthly/Z1234/results?page=1'
                   totalRecords:
                     type: integer
                     description: Total number of records in the report results.
@@ -471,7 +368,6 @@ paths:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/badRequestParameters'
-                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -522,7 +418,7 @@ paths:
                     type: string
                     example: "Unexpected Error"
 
-  /monthly/{zReference}/{taxYear}/{month}/results:
+  /monthly/{zReference}/results:
     get:
       summary: Get report reconciliation results
       description: |
@@ -556,40 +452,6 @@ paths:
             pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
-        - name: taxYear
-          in: path
-          description: |
-            Tax year of the report.
-          required: true
-          style: simple
-          explode: false
-          schema:
-            pattern: ^20\d{2}-\d{2}$
-            format: string
-            example: 2025-26
-        - name: month
-          in: path
-          description: |
-            Month of the report.
-          required: true
-          style: simple
-          explode: false
-          schema:
-            type: string
-            example: APR
-            enum:
-              - JAN
-              - FEB
-              - MAR
-              - APR
-              - MAY
-              - JUN
-              - JUL
-              - AUG
-              - SEP
-              - OCT
-              - NOV
-              - DEC
         - name: page
           in: query
           description: |
@@ -633,22 +495,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    title: Parameter Failure Code
-                    type: string
-                    description: Code indicating the type of error.
-                    enum:
-                      - INVALID_Z_REFERENCE
-                      - INVALID_TAX_YEAR
-                      - INVALID_MONTH
-                      - INVALID_PAGE
-                  message:
-                    title: Description of error
-                    type: string
-                    description: Message describing error detail.
-                    example: "Page number A5 is invalid"
+                oneOf:
+                  - $ref: '#/components/schemas/badRequestParameters'
+                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -1002,8 +851,7 @@ components:
           enum:
             - MISSING_NINO_OR_ACC_NUM
             - INVALID_NINO_OR_ACC_NUM
-            - INVALID_TAX_YEAR
-            - INVALID_MONTH
+            - INVALID_PAGE
             - INVALID_Z_REFERENCE
             - MALFORMED_JSON
             - EMPTY_PAYLOAD
@@ -1084,13 +932,12 @@ components:
           description: Code indicating the type of error.
           enum:
             - INVALID_Z_REFERENCE
-            - INVALID_TAX_YEAR
-            - INVALID_MONTH
+            - INVALID_PAGE
         message:
           title: Parameter Failure Message
           type: string
           description: Message describing the error in more detail.
-          example: Invalid parameter for month
+          example: Invalid page index parameter provided
     forbiddenSingleError:
       title: Forbidden (Single Error)
       type: object
@@ -1182,42 +1029,12 @@ components:
           type: array
           description: Array of errors outlining issues found regarding your submission.
           items:
-            anyOf:
-              - $ref: '#/components/schemas/invalidTaxYear'
-              - $ref: '#/components/schemas/invalidMonth'
+            $ref: '#/components/schemas/badRequestParameters'
           example:
-            - code: INVALID_TAX_YEAR
-              message: Invalid tax year provided
-            - code: INVALID_MONTH
-              message: Invalid month provided
-    invalidTaxYear:
-      title: Invalid Tax Year
-      type: object
-      properties:
-        code:
-          type: string
-          description: Code indicating the type of error.
-          enum:
-            - INVALID_TAX_YEAR
-        message:
-          title: Message
-          type: string
-          description: Human-readable message outlining the error.
-          example: "Invalid tax year provided"
-    invalidMonth:
-      title: Invalid Month
-      type: object
-      properties:
-        code:
-          type: string
-          description: Code indicating the type of error.
-          enum:
-            - INVALID_MONTH
-        message:
-          title: Message
-          type: string
-          description: Human-readable message outlining the error.
-          example: "Invalid month provided"
+            - code: INVALID_Z_REFERENCE
+              message: Z reference is not formatted correctly
+            - code: INVALID_PAGE
+              message: Invalid page index parameter provided
   examples:
     lifetimeIsaSubscription:
       summary: Lifetime ISA Subscription
@@ -1290,5 +1107,3 @@ components:
         marketValueOfAccount: 10000.00
         reasonForClosure: CANCELLED
         flexibleIsa: false
-
-

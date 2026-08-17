@@ -61,7 +61,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
 
-      val result = controller.submit(validZReference, validTaxYear, validMonthStr)(fakeRequestWithStream())
+      val result = controller.submit(validZReference)(fakeRequestWithStream())
 
       status(result) shouldBe NO_CONTENT
     }
@@ -75,7 +75,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Left(FirstLevelValidationFailure(NinoOrAccountNumMissingErr))))
 
-      val result = controller.submit(validZReference, validTaxYear, validMonthStr).apply(fakeRequestWithStream(ndJsonLineError))
+      val result = controller.submit(validZReference).apply(fakeRequestWithStream(ndJsonLineError))
 
       status(result)                                 shouldBe BAD_REQUEST
       (contentAsJson(result) \ "code").as[String]    shouldBe "NINO_OR_ACC_NUM_MISSING"
@@ -107,7 +107,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
           )
         )
 
-      val result = controller.submit(validZReference, validTaxYear, validMonthStr).apply(fakeRequestWithStream(ndJsonLine))
+      val result = controller.submit(validZReference).apply(fakeRequestWithStream(ndJsonLine))
       val json   = contentAsJson(result)
 
       status(result)                shouldBe BAD_REQUEST
@@ -149,7 +149,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
           )
         )
 
-      val result = controller.submit(validZReference, validTaxYear, validMonthStr).apply(fakeRequestWithStream(ndJsonLine))
+      val result = controller.submit(validZReference).apply(fakeRequestWithStream(ndJsonLine))
       val json   = contentAsJson(result)
 
       status(result)                shouldBe BAD_REQUEST
@@ -199,7 +199,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
           )
         )
 
-      val result = controller.submit(validZReference, validTaxYear, validMonthStr).apply(fakeRequestWithStream(ndJsonLine))
+      val result = controller.submit(validZReference).apply(fakeRequestWithStream(ndJsonLine))
       val json   = contentAsJson(result)
 
       status(result) shouldBe BAD_REQUEST
@@ -226,7 +226,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(UnauthorisedErr)))
 
-      val result = controller.submit(validZReference, validTaxYear, validMonthStr).apply(fakeRequestWithStream())
+      val result = controller.submit(validZReference).apply(fakeRequestWithStream())
 
       status(result)                                 shouldBe UNAUTHORIZED
       (contentAsJson(result) \ "message").as[String] shouldBe "Unauthorised"
@@ -238,7 +238,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
-      val result = controller.submit(validZReference, validTaxYear, validMonthStr).apply(fakeRequestWithStream())
+      val result = controller.submit(validZReference).apply(fakeRequestWithStream())
 
       status(result)                                 shouldBe FORBIDDEN
       (contentAsJson(result) \ "code").as[String]    shouldBe "OBLIGATION_CLOSED"
@@ -256,7 +256,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(InternalServerErr())))
 
-      val result = controller.submit(validZReference, validTaxYear, validMonthStr)(fakeRequestWithStream())
+      val result = controller.submit(validZReference)(fakeRequestWithStream())
 
       status(result)        shouldBe INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
@@ -270,7 +270,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         mockStreamingParserService.processToTempFile(any[Source[ByteString, _]])
       ).thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val result = controller.submit(validZReference, validTaxYear, validMonthStr).apply(fakeRequestWithStream())
+      val result = controller.submit(validZReference).apply(fakeRequestWithStream())
       status(result)        shouldBe INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
     }

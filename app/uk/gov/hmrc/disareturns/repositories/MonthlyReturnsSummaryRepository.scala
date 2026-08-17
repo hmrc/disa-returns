@@ -18,7 +18,6 @@ package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model._
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -36,8 +35,8 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
       domainFormat = MonthlyReturnsSummary.mongoFormat,
       indexes = Seq(
         IndexModel(
-          keys = Indexes.ascending("zRef", "taxYear", "month"),
-          indexOptions = IndexOptions().unique(true).name("zRefYearMonthIdx")
+          keys = Indexes.ascending("zRef"),
+          indexOptions = IndexOptions().unique(true).name("zRefIdx")
         ),
         IndexModel(
           keys = Indexes.ascending("updatedAt"),
@@ -48,28 +47,15 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
       )
     ) {
 
-  def retrieveReturnSummary(zReference: String, taxYear: String, month: Month): Future[Option[MonthlyReturnsSummary]] = {
-    val filter = Filters.and(
-      Filters.eq("zRef", zReference),
-      Filters.eq("taxYear", taxYear),
-      Filters.eq("month", month.toString)
-    )
-
-    collection.find(filter).headOption()
-  }
+  def retrieveReturnSummary(zReference: String): Future[Option[MonthlyReturnsSummary]] =
+    collection.find(Filters.eq("zRef", zReference)).headOption()
 
   def upsert(summary: MonthlyReturnsSummary): Future[Unit] = {
-    val now = Instant.now()
-    val filter = Filters.and(
-      Filters.eq("zRef", summary.zRef),
-      Filters.eq("taxYear", summary.taxYear),
-      Filters.eq("month", summary.month.toString)
-    )
+    val now    = Instant.now()
+    val filter = Filters.eq("zRef", summary.zRef)
 
     val setOnInsert = Updates.combine(
       Updates.setOnInsert("zRef", summary.zRef),
-      Updates.setOnInsert("taxYear", summary.taxYear),
-      Updates.setOnInsert("month", summary.month.toString),
       Updates.setOnInsert("createdAt", now)
     )
 

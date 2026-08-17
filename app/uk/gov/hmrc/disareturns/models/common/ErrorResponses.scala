@@ -84,15 +84,6 @@ case object InvalidZReference extends ErrorResponse {
   val message = "Z reference is not formatted correctly"
 }
 
-case object InvalidTaxYear extends ErrorResponse {
-  val code    = "INVALID_TAX_YEAR"
-  val message = "Tax year is not formatted correctly"
-}
-
-case object InvalidMonth extends ErrorResponse {
-  val code    = "INVALID_MONTH"
-  val message = "Month is not formatted correctly"
-}
 case object EmptyPayload extends ErrorResponse {
   val code    = "EMPTY_PAYLOAD"
   val message = "NDJSON payload is empty. Please ensure the request body contains a valid NDJSON payload before resubmitting."
@@ -139,8 +130,6 @@ object ErrorResponse {
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
     InvalidZReference.code          -> InvalidZReference,
-    InvalidTaxYear.code             -> InvalidTaxYear,
-    InvalidMonth.code               -> InvalidMonth,
     InvalidPageErr.code             -> InvalidPageErr,
     EmptyPayload.code               -> EmptyPayload,
     DuplicateNilReturnField.code    -> DuplicateNilReturnField,

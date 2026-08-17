@@ -42,61 +42,57 @@ class ReturnsSummaryController @Inject() (
     with Logging
     with WithJsonBodyWithBadRequest {
 
-  def retrieveReturnSummary(zReference: String, taxYear: String, month: String): Action[AnyContent] =
-    ValidationHelper.validateParams(zReference, taxYear, month) match {
+  def retrieveReturnSummary(zReference: String): Action[AnyContent] =
+    ValidationHelper.validateParams(zReference) match {
       case Left(errors) =>
         Action(_ => BadRequest(Json.toJson(errors)))
-      case Right((zReference, taxYear, month, _)) =>
+      case Right((zReference, _)) =>
         (Action andThen authAction(zReference)).async { _ =>
-          returnsSummaryService.retrieveReturnSummary(zReference, taxYear, month).map {
+          returnsSummaryService.retrieveReturnSummary(zReference).map {
             case Left(e: InternalServerErr) =>
               InternalServerError(Json.toJson(e))
             case Left(e: ReturnNotFoundErr) =>
               logger
-                .warn(s"[ReturnsSummaryController][retrieveReturnSummary] Return summary not found for IM ref: [$zReference] for [$month][$taxYear]")
+                .warn(s"[ReturnsSummaryController][retrieveReturnSummary] Return summary not found for IM ref: [$zReference]")
               NotFound(Json.toJson(e))
             case Left(e) =>
               logger.warn(
-                s"[ReturnsSummaryController][retrieveReturnSummary] Unexpected error [$e] retrieving return summary for IM ref: [$zReference] for [$month][$taxYear]"
+                s"[ReturnsSummaryController][retrieveReturnSummary] Unexpected error [$e] retrieving return summary for IM ref: [$zReference]"
               )
               InternalServerError(Json.toJson(e))
             case Right(summary) =>
               logger.info(
-                s"[ReturnsSummaryController][retrieveReturnSummary] Retrieval of return summary successful for IM ref: [$zReference] for [$month][$taxYear]"
+                s"[ReturnsSummaryController][retrieveReturnSummary] Retrieval of return summary successful for IM ref: [$zReference]"
               )
               Ok(Json.toJson(summary))
           }
         }
     }
 
-  def returnsSummaryCallback(
-    zReference: String,
-    taxYear:    String,
-    month:      String
-  ): Action[JsValue] =
+  def returnsSummaryCallback(zReference: String): Action[JsValue] =
     Action.async(parse.json) { implicit request =>
       withJsonBody[MonthlyReturnsSummaryReq] { body =>
-        ValidationHelper.validateParams(zReference, taxYear, month) match {
+        ValidationHelper.validateParams(zReference) match {
           case Left(errors) => Future.successful(BadRequest(Json.toJson(errors)))
-          case Right((zReference, taxYear, month, _)) =>
-            val summary = MonthlyReturnsSummary(zReference, taxYear, month, body.totalRecords)
+          case Right((zReference, _)) =>
+            val summary = MonthlyReturnsSummary(zReference, body.totalRecords)
             //TODO Should we consider doing the logic for the numberOfPages etc as part of saving the summary instead of doing it on retrieveReturnSummary???
             returnsSummaryService.saveReturnsSummary(summary).flatMap {
               case Left(err: InternalServerErr) =>
                 Future.successful(InternalServerError(Json.toJson(err)))
               case Left(err) =>
                 logger.warn(
-                  s"[ReturnsSummaryController][returnsSummaryCallback] Unexpected error [$err] saving return summary for IM ref: [$zReference] for [$month][$taxYear]"
+                  s"[ReturnsSummaryController][returnsSummaryCallback] Unexpected error [$err] saving return summary for IM ref: [$zReference]"
                 )
                 Future.successful(InternalServerError(Json.toJson(err)))
               case Right(_) =>
-                returnsSummaryService.retrieveReturnSummary(zReference, taxYear, month).flatMap {
+                returnsSummaryService.retrieveReturnSummary(zReference).flatMap {
                   case Left(_) =>
                     Future.successful(NoContent)
                   case Right(returnSummaryResults) =>
                     ppnsService.sendNotification(zReference, returnSummaryResults).map { _ =>
                       logger.info(
-                        s"[ReturnsSummaryController][returnsSummaryCallback] Callback with return summary successful for IM ref: [$zReference] for [$month][$taxYear]"
+                        s"[ReturnsSummaryController][returnsSummaryCallback] Callback with return summary successful for IM ref: [$zReference]"
                       )
                       NoContent
                     }

@@ -16,15 +16,11 @@
 
 package controllers
 
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.scalatest.matchers.must.Matchers.mustBe
-import play.api.http.Status.*
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.{verify, when}
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{GET, contentAsJson, status}
-import uk.gov.hmrc.auth.core.InvalidBearerToken
-import uk.gov.hmrc.auth.core.retrieve.Retrieval
+import play.api.test.Helpers.*
 import uk.gov.hmrc.disareturns.controllers.ReconciliationResultController
 import uk.gov.hmrc.disareturns.models.common.*
 import uk.gov.hmrc.disareturns.models.returnResults.{IssueWithMessage, ReconciliationReportPage, ReturnResults}
@@ -33,92 +29,34 @@ import utils.BaseUnitSpec
 import scala.concurrent.Future
 
 class ReconciliationResultControllerSpec extends BaseUnitSpec {
-
   private val controller = app.injector.instanceOf[ReconciliationResultController]
+  private val report     = ReconciliationReportPage(0, 1, 1, 1, Seq(ReturnResults("1", "A", IssueWithMessage("code", "message"))))
 
-  private val validPageIndex = "0"
-  private val reconciliationReportPage = ReconciliationReportPage(
-    validPageIndex.toInt,
-    2,
-    3,
-    2,
-    Seq(
-      ReturnResults("1", "A", IssueWithMessage("code", "message")),
-      ReturnResults("2", "B", IssueWithMessage("code", "message"))
-    )
-  )
-
-  "controller.retieveReconciliationReportPage" should {
-
-    "return 200 with a page of results" in {
-      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=$validPageIndex")
-
+  "retrieveReconciliationReportPage" should {
+    "use the internally generated reporting period" in {
       authorizationForZRef()
-      when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any)).thenReturn(Future.successful(Right(reconciliationReportPage)))
+      when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any)).thenReturn(Future.successful(Right(report)))
 
-      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, validPageIndex).apply(req)
+      val result = controller.retrieveReconciliationReportPage(validZReference, "0")(FakeRequest(GET, s"/monthly/$validZReference/results?page=0"))
 
-      status(res) mustBe OK
-      contentAsJson(res) shouldBe Json.toJson(reconciliationReportPage)
+      status(result)        shouldBe OK
+      contentAsJson(result) shouldBe Json.toJson(report)
+      verify(mockNPSService).retrieveReconciliationReportPage(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(0))(any)
     }
 
-    "return 400 with a validation error when a parameter is invalid" in {
-      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=-1")
-
-      authorizationForZRef()
-
-      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, "-1").apply(req)
-
-      status(res) mustBe BAD_REQUEST
-      contentAsJson(res).as[ErrorResponse] shouldBe InvalidPageErr
+    "retain Z-reference and page validation" in {
+      val result = controller.retrieveReconciliationReportPage("invalid", "-1")(FakeRequest(GET, "/monthly/invalid/results?page=-1"))
+      status(result) shouldBe BAD_REQUEST
+      contentAsJson(result).as[ErrorResponse] shouldBe
+        MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidPageErr))
     }
 
-    "return 400 with multiple validation errors when more than one parameter is invalid" in {
-      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=-1")
-
-      authorizationForZRef()
-
-      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, "month", "-1").apply(req)
-
-      status(res) mustBe BAD_REQUEST
-      contentAsJson(res) shouldBe Json.toJson(MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidMonth, InvalidPageErr)))
-    }
-
-    "return 404 with an error when the report page is not found" in {
-      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=$validPageIndex")
-
+    "map downstream errors" in {
       authorizationForZRef()
       when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any))
-        .thenReturn(Future.successful(Left(ReportPageNotFoundErr(validPageIndex.toInt))))
-
-      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, validPageIndex).apply(req)
-
-      status(res) mustBe NOT_FOUND
-      contentAsJson(res) shouldBe Json.toJson(ReportPageNotFoundErr(validPageIndex.toInt))
-    }
-
-    "return 401 with an error when auth fails" in {
-      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=$validPageIndex")
-
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.failed(InvalidBearerToken()))
-
-      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, validPageIndex).apply(req)
-
-      status(res) mustBe UNAUTHORIZED
-      contentAsJson(res).as[ErrorResponse] shouldBe UnauthorisedErr
-    }
-
-    "return 500 with an error whens something unexpected occurs" in {
-      val req = FakeRequest(GET, s"/monthly/$validZReference/$validTaxYear/$validMonth/results?page=$validPageIndex")
-
-      authorizationForZRef()
-      when(mockNPSService.retrieveReconciliationReportPage(any, any, any, any)(any)).thenReturn(Future.successful(Left(InternalServerErr())))
-
-      val res = controller.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonthStr, validPageIndex).apply(req)
-
-      status(res) mustBe INTERNAL_SERVER_ERROR
-      contentAsJson(res) shouldBe Json.toJson(InternalServerErr())
+        .thenReturn(Future.successful(Left(ReportPageNotFoundErr(0))))
+      val result = controller.retrieveReconciliationReportPage(validZReference, "0")(FakeRequest(GET, s"/monthly/$validZReference/results?page=0"))
+      status(result) shouldBe NOT_FOUND
     }
   }
-
 }

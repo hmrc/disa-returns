@@ -16,58 +16,32 @@
 
 package models.helpers
 
-import uk.gov.hmrc.disareturns.models.common._
+import uk.gov.hmrc.disareturns.models.common.*
 import uk.gov.hmrc.disareturns.utils.ValidationHelper
 import utils.BaseUnitSpec
 
 class ValidationHelperSpec extends BaseUnitSpec {
 
   "ValidationHelper.validateParams" should {
-
-    "return Right for valid zReference(lowercase), taxYear and month" in {
-      val result = ValidationHelper.validateParams(validZReference.toLowerCase, validTaxYear, validMonthStr)
-      result shouldBe Right(validZReference, validTaxYear, validMonth, None)
+    "normalise a valid lowercase Z-reference" in {
+      ValidationHelper.validateParams(validZReference.toLowerCase) shouldBe Right((validZReference, None))
     }
 
-    "return Right for valid zReference(uppercase), taxYear and month" in {
-      val result = ValidationHelper.validateParams(validZReference, validTaxYear, validMonthStr)
-      result shouldBe Right((validZReference, validTaxYear, validMonth, None))
+    "parse a valid page" in {
+      ValidationHelper.validateParams(validZReference, Some("1")) shouldBe Right((validZReference, Some(1)))
     }
 
-    "return Right for valid zReference(uppercase), taxYear, month and page" in {
-      val result = ValidationHelper.validateParams(validZReference, validTaxYear, validMonthStr, Some("1"))
-      result shouldBe Right((validZReference, validTaxYear, validMonth, Some(1)))
+    "reject an invalid Z-reference" in {
+      ValidationHelper.validateParams("Invalid") shouldBe Left(InvalidZReference)
     }
 
-    "return InvalidZReference when ISA Manager Reference Number is invalid" in {
-      val result = ValidationHelper.validateParams("Invalid", validTaxYear, validMonthStr)
-      result shouldBe Left(InvalidZReference)
+    "reject an invalid page" in {
+      ValidationHelper.validateParams(validZReference, Some("-1")) shouldBe Left(InvalidPageErr)
     }
 
-    "return InvalidTaxYear when tax year is invalid" in {
-      val result = ValidationHelper.validateParams(validZReference, "20-24", validMonthStr)
-      result shouldBe Left(InvalidTaxYear)
-    }
-
-    "return InvalidMonth when month is invalid" in {
-      val result = ValidationHelper.validateParams(validZReference, validTaxYear, "13")
-      result shouldBe Left(InvalidMonth)
-    }
-
-    "return InvalidPageErr when page is invalid" in {
-      val result = ValidationHelper.validateParams(validZReference, validTaxYear, validMonthStr, Some("-1"))
-      result shouldBe Left(InvalidPageErr)
-    }
-
-    "return MultipleErrorResponse when all parameters are invalid" in {
-      val result = ValidationHelper.validateParams("1234", "20-24", "13", Some("-12"))
-      result.left.value shouldBe
-        MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear, InvalidMonth, InvalidPageErr))
-    }
-
-    "return MultipleErrorResponse when two parameters are invalid" in {
-      val result = ValidationHelper.validateParams("Invalid", "20-24", "MAY")
-      result.left.value shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear))
+    "aggregate invalid Z-reference and page errors" in {
+      ValidationHelper.validateParams("1234", Some("-1")) shouldBe
+        Left(MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidPageErr)))
     }
   }
 }
