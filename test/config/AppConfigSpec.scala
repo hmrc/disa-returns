@@ -30,7 +30,7 @@ class AppConfigSpec extends BaseUnitSpec {
     "microservice.services.internal-auth.host" -> "internal-auth",
     "microservice.services.internal-auth.port" -> "8470",
     "internal-auth.token"                      -> "valid-internal-auth-token-disa-returns",
-    "urls.returnResultsLocation"               -> "/monthly/{zReference}/{taxYear}/{month}/results",
+    "urls.returnResultsLocation"               -> "/monthly/{zReference}/results",
     "mongodb.timeToLive"                       -> 30,
     "returnResultsRecordsPerPage"              -> 10
   )

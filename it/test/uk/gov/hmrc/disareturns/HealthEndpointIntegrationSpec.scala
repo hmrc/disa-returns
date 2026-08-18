@@ -33,7 +33,7 @@ class HealthEndpointIntegrationSpec extends AnyWordSpec with Matchers with Scala
     GuiceApplicationBuilder()
       .configure(
         Map(
-          "urls.returnResultsSummaryLocation"   -> "/monthly/{zReference}/{returnId}/results/summary",
+          "urls.returnResultsSummaryLocation"   -> "/monthly/{zReference}/results/summary",
           "create-internal-auth-token-on-start" -> false
         )
       )

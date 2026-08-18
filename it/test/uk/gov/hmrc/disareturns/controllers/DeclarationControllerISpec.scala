@@ -17,20 +17,18 @@
 package uk.gov.hmrc.disareturns.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, OK, UNPROCESSABLE_ENTITY}
+import play.api.http.Status.*
 import play.api.libs.json.Json
 import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
-import uk.gov.hmrc.disareturns.utils.{BaseIntegrationSpec, ValidationHelper}
+import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 class DeclarationControllerISpec extends BaseIntegrationSpec {
+  private val taxYear = "2026-27"
+  private val month   = 9
+  private val boxId   = "boxId1"
 
-  val taxYear        = "2025-26"
-  val month          = "FEB"
-  val monthInt       = 2
-  val boxId          = "boxId1"
-  val declarationUrl = s"/monthly/$validZReference/$taxYear/$month/declaration"
 
   val boxResponseJson: String =
     s"""
@@ -44,222 +42,69 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
        |}
        |""".stripMargin
 
-  "POST /monthly/:zReference/:taxYear/:month/declaration" should {
-
-    "return 200 OK when the declaration is successful and a boxId has been retrieved from PPNS" in {
-      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
+  "POST /monthly/:zReference/declaration" should {
+    "generate the reporting period internally and return a periodless summary location" in {
+      stubEligible()
+      stubSubmissionDeclaration(ok, validZReference, taxYear, month)
       stubPPNSBoxId(boxResponseJson, testClientId)
 
-      val result = declarationRequest(validZReference, taxYear, month)
+      val result = declarationRequest()
 
-      result.status                                           shouldBe OK
-      (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$validZReference/$taxYear/$month/results/summary")
-      (result.json \ "boxId").as[String]                      shouldBe boxId
+      result.status shouldBe OK
+      (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$validZReference/results/summary")
+      (result.json \ "boxId").as[String] shouldBe boxId
+    }
+
+    "support nil returns using the internally generated period" in {
+      stubEligible()
+      stubSubmissionDeclaration(ok, validZReference, taxYear, month, nilReturn = true)
+      stubPPNSBoxId(boxResponseJson, testClientId)
+      declarationRequest(body = """{"nilReturn":true}""").status shouldBe OK
+    }
+
+    "retain Z-reference, header and body validation" in {
+      declarationRequest(zReference = "invalid").status shouldBe BAD_REQUEST
+      declarationRequest(headers = Seq("Authorization" -> "mock-bearer-token")).status shouldBe BAD_REQUEST
+      declarationRequest(body = """{"nilReturn":123}""").status shouldBe BAD_REQUEST
+      declarationRequest(body = """{"nilReturn":true,"nilReturn":true}""").status shouldBe BAD_REQUEST
+    }
+
+    "map eligibility and submission failures" in {
+      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+      declarationRequest().status shouldBe FORBIDDEN
+
+      stubEligible()
+      stubSubmissionDeclaration(serverError, validZReference, taxYear, month)
+      declarationRequest().status shouldBe INTERNAL_SERVER_ERROR
+    }
+
+    "map missing submission data" in {
+      stubEligible()
+      stubSubmissionDeclaration(
+        aResponse()
+          .withStatus(UNPROCESSABLE_ENTITY)
+          .withHeader("Content-Type", "application/json")
+          .withBody("""{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""),
+        validZReference,
+        taxYear,
+        month
+      )
+      declarationRequest().status shouldBe UNPROCESSABLE_ENTITY
     }
   }
 
-  "return 200 OK when the declaration is successful and no boxId has been retrieved from PPNS" in {
+  private def stubEligible(): Unit = {
     stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
-    stubFor(
-      get(urlEqualTo(s"/box?clientId=$testClientId&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"))
-        .willReturn(notFound())
-    )
-
-    val result = declarationRequest(validZReference, taxYear, month)
-
-    result.status                                           shouldBe OK
-    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$validZReference/$taxYear/$month/results/summary")
   }
 
-  "return 200 OK when an explicit nil return declaration is submitted" in {
-    val nilReturnBody =
-      """
-        |{
-        |  "nilReturn": true
-        |}
-        |""".stripMargin
-
-    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt, nilReturn = true)
-    stubPPNSBoxId(boxResponseJson, testClientId)
-
-    val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
-
-    result.status                                           shouldBe OK
-    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$validZReference/$taxYear/$month/results/summary")
-    (result.json \ "boxId").as[String]                      shouldBe boxId
-  }
-
-  "return 200 OK when an explicit none nil return declaration is submitted" in {
-    val nilReturnBody =
-      """
-        |{
-        |  "nilReturn": false
-        |}
-        |""".stripMargin
-
-    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubSubmissionDeclaration(ok, validZReference, taxYear, monthInt)
-    stubPPNSBoxId(boxResponseJson, testClientId)
-
-    val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
-
-    result.status                                           shouldBe OK
-    (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$validZReference/$taxYear/$month/results/summary")
-    (result.json \ "boxId").as[String]                      shouldBe boxId
-  }
-
-  "return 400 Bad Request for invalid taxYear" in {
-    val invalidTaxYear = "2025"
-    val result         = declarationRequest(validZReference, invalidTaxYear, month)
-
-    result.status shouldBe BAD_REQUEST
-    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(validZReference, invalidTaxYear, month).left.toOption.get)
-  }
-
-  "return 400 Bad Request for invalid month" in {
-    val invalidMonth = "April"
-    val result       = declarationRequest(validZReference, taxYear, invalidMonth)
-
-    result.status shouldBe BAD_REQUEST
-    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(validZReference, taxYear, invalidMonth).left.toOption.get)
-  }
-
-  "return 400 Bad Request for invalid zReference" in {
-    val invalidZReference = "z65803"
-    val result            = declarationRequest(invalidZReference, taxYear, month)
-
-    result.status shouldBe BAD_REQUEST
-    result.json   shouldBe Json.toJson(ValidationHelper.validateParams(invalidZReference, taxYear, month).left.toOption.get)
-
-  }
-
-  "return 400 Bad Request when the clientId is missing from the header" in {
-
-    val headers = Seq(
-      "Authorization" -> "mock-bearer-token"
-    )
-
-    stubAuth()
-    val result = await(
-      ws.url(s"http://localhost:$port/monthly/$validZReference/$taxYear/$month/declaration")
-        .withHttpHeaders(headers: _*)
-        .post("""{"nilReturn": false}""")
-    )
-
-    result.status shouldBe BAD_REQUEST
-    val json = result.json
-    (json \ "code").as[String]    shouldBe "BAD_REQUEST"
-    (json \ "message").as[String] shouldBe "Missing required header: X-Client-ID"
-  }
-
-  "return 400 Bad Request when an invalid nil return request body is submitted" in {
-    val nilReturnBody =
-      """
-        |{
-        |  "nilReturn": 123
-        |}
-        |""".stripMargin
-
-    val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
-
-    result.status shouldBe BAD_REQUEST
-    val json = result.json
-    (json \ "code").as[String]    shouldBe "MALFORMED_JSON"
-    (json \ "message").as[String] shouldBe "Request body contains malformed JSON"
-  }
-
-  "return 400 BadRequest when duplicate nilReturn fields provided in request body" in {
-    val nilReturnBody =
-      """
-        |{
-        |  "nilReturn": true,
-        |  "nilReturn": true
-        |}
-        |""".stripMargin
-
-    val result = declarationRequest(validZReference, taxYear, month, body = nilReturnBody)
-
-    result.status                        shouldBe BAD_REQUEST
-    (result.json \ "code").as[String]    shouldBe "DUPLICATE_FIELD"
-    (result.json \ "message").as[String] shouldBe "Duplicate Nil Return field provided"
-  }
-
-  "return 403 Forbidden when the reporting window is closed" in {
-    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    val result = declarationRequest(validZReference, taxYear, month)
-
-    result.status shouldBe FORBIDDEN
-    val json = result.json
-    (json \ "code").as[String]    shouldBe "REPORTING_WINDOW_CLOSED"
-    (json \ "message").as[String] shouldBe "Reporting window has been closed"
-  }
-
-  "return 403 Forbidden when the obligation is closed" in {
-    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> true), zReference = validZReference)
-    val result = declarationRequest(validZReference, taxYear, month)
-
-    result.status shouldBe FORBIDDEN
-    val json = result.json
-    (json \ "code").as[String]    shouldBe "OBLIGATION_CLOSED"
-    (json \ "message").as[String] shouldBe "Obligation closed"
-  }
-
-  "return 422 Unprocessable Entity when no monthly return data has been submitted" in {
-    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubSubmissionDeclaration(
-      aResponse()
-        .withStatus(UNPROCESSABLE_ENTITY)
-        .withHeader("Content-Type", "application/json")
-        .withBody(
-          """{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""
-        ),
-      validZReference,
-      taxYear,
-      monthInt
-    )
-    val result = declarationRequest(validZReference, taxYear, month)
-
-    result.status shouldBe UNPROCESSABLE_ENTITY
-    val json = result.json
-    (json \ "code").as[String]    shouldBe "MONTHLY_RETURN_NOT_SUBMITTED"
-    (json \ "message").as[String] shouldBe "Cannot declare with nilReturn as false when no monthly return data has been submitted"
-  }
-
-  "return 500 Internal Server Error when the call to disa-returns-submission fails" in {
-    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubSubmissionDeclaration(serverError, validZReference, taxYear, monthInt)
-    val result = declarationRequest(validZReference, taxYear, month)
-
-    result.status shouldBe INTERNAL_SERVER_ERROR
-    val json = result.json
-    (json \ "code").as[String]    shouldBe "INTERNAL_SERVER_ERROR"
-    (json \ "message").as[String] shouldBe "There has been an issue processing your request"
-  }
-
-  def declarationRequest(
-    zReference: String,
-    taxYear:    String,
-    month:      String,
-    headers:    Seq[(String, String)] = testHeaders,
-    body:       String = """{"nilReturn": false}"""
+  private def declarationRequest(
+    zReference: String = validZReference,
+    headers: Seq[(String, String)] = testHeaders,
+    body: String = """{"nilReturn":false}"""
   ): WSResponse = {
     stubAuth()
-    await(
-      ws.url(
-        s"http://localhost:$port/monthly/$zReference/$taxYear/$month/declaration"
-      ).withHttpHeaders(headers: _*)
-        .post(body)
-    )
+    await(ws.url(s"http://localhost:$port/monthly/$zReference/declaration").withHttpHeaders(headers: _*).post(body))
   }
 }

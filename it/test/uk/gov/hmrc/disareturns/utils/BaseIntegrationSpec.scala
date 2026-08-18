@@ -39,12 +39,14 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, EitherValues}
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.inject.bind
 import play.api.libs.ws.WSClient
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.disareturns.utils.WiremockHelper.{wiremockHost, wiremockPort}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext
+import java.time.{Clock, Instant, ZoneOffset}
 
 trait BaseIntegrationSpec
     extends AnyWordSpec
@@ -59,9 +61,12 @@ trait BaseIntegrationSpec
     with TestData {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
+  val testReportingPeriod: Instant   = Instant.parse("2026-10-15T12:00:00Z")
+  val testReportingPeriodClock: Clock = Clock.fixed(testReportingPeriod, ZoneOffset.UTC)
 
   override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(config)
+    .overrides(bind[Clock].toInstance(testReportingPeriodClock))
     .build()
 
   def config: Map[String, Any] =

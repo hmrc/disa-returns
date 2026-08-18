@@ -23,90 +23,53 @@ import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, ReturnNotFoundE
 import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.services.ReturnsSummaryService
-import org.scalatest.matchers.must.Matchers.mustBe
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
 
 class ReturnsSummaryServiceSpec extends BaseUnitSpec {
-
-  private val service = new ReturnsSummaryService(mockReturnsSummaryRepository, mockAppConfig)
-
+  private val service      = new ReturnsSummaryService(mockReturnsSummaryRepository, mockAppConfig)
   private val totalRecords = 3
 
   override def beforeEach(): Unit = reset(mockReturnsSummaryRepository)
 
-  "ReturnsSummaryService#retrieveReturnSummary" should {
-
-    "return a ReturnSummaryResults object when a matching summary is found" in {
-      val returnSummaryResults = MonthlyReturnsSummary(validZReference, validTaxYear, validMonth, 1)
-      when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
+  "retrieveReturnSummary" should {
+    "return a summary with a periodless results location" in {
+      when(mockReturnsSummaryRepository.retrieveReturnSummary(any)).thenReturn(Future.successful(Some(MonthlyReturnsSummary(validZReference, 1))))
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(Some(1))
       when(mockAppConfig.selfHost).thenReturn("localhost")
 
-      val result = await(service.retrieveReturnSummary(validZReference, validTaxYear, validMonth))
-
-      verify(mockAppConfig).getNoOfPagesForReturnResults(any)
-
-      result mustBe Right(ReturnSummaryResults(s"localhost/monthly/$validZReference/2026-27/SEP/results?page=0", 1, 1))
+      await(service.retrieveReturnSummary(validZReference)) shouldBe
+        Right(ReturnSummaryResults(s"localhost/monthly/$validZReference/results?page=0", 1, 1))
     }
 
-    "return a ReturnNotFound error when no summary is found" in {
-      when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(None))
-
-      val result = await(service.retrieveReturnSummary(validZReference, validTaxYear, validMonth))
-
-      result mustBe Left(ReturnNotFoundErr(s"No return found for $validZReference for SEP 2026-27"))
+    "return not found when no current summary exists" in {
+      when(mockReturnsSummaryRepository.retrieveReturnSummary(any)).thenReturn(Future.successful(None))
+      await(service.retrieveReturnSummary(validZReference)) shouldBe Left(ReturnNotFoundErr(s"No return found for $validZReference"))
     }
 
-    "return a InternalServerErr when NPS sends back an invalid number of records" in {
-      val returnSummaryResults = MonthlyReturnsSummary(validZReference, validTaxYear, validMonth, -1)
-      when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.successful(Some(returnSummaryResults)))
+    "handle invalid record counts and repository failures" in {
+      when(mockReturnsSummaryRepository.retrieveReturnSummary(any)).thenReturn(Future.successful(Some(MonthlyReturnsSummary(validZReference, -1))))
       when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(None)
+      await(service.retrieveReturnSummary(validZReference)) shouldBe Left(InternalServerErr())
 
-      val result = await(service.retrieveReturnSummary(validZReference, validTaxYear, validMonth))
-
-      result mustBe Left(InternalServerErr())
-    }
-
-    "return a InternalServerErr when something goes wrong on the server" in {
-      when(mockReturnsSummaryRepository.retrieveReturnSummary(any, any, any)).thenReturn(Future.failed(new Exception("fubar")))
-
-      val result = await(service.retrieveReturnSummary(validZReference, validTaxYear, validMonth))
-
-      result mustBe Left(InternalServerErr())
+      when(mockReturnsSummaryRepository.retrieveReturnSummary(any)).thenReturn(Future.failed(new Exception("fubar")))
+      await(service.retrieveReturnSummary(validZReference)) shouldBe Left(InternalServerErr())
     }
   }
 
-  "ReturnsSummaryService#saveReturnsSummary" should {
-
-    "return Saved when repository upsert succeeds" in {
+  "saveReturnsSummary" should {
+    "upsert a Z-reference and total record count" in {
       when(mockReturnsSummaryRepository.upsert(any[MonthlyReturnsSummary])).thenReturn(Future.successful(()))
-
-      val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZReference, validTaxYear, validMonth, totalRecords)))
-
-      result mustBe Right(())
-      verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
-        summary.zRef == validZReference &&
-        summary.taxYear == validTaxYear &&
-        summary.month == validMonth &&
-        summary.totalRecords == totalRecords
-      })
+      await(service.saveReturnsSummary(MonthlyReturnsSummary(validZReference, totalRecords))) shouldBe Right(())
+      verify(mockReturnsSummaryRepository).upsert(
+        argThat[MonthlyReturnsSummary](summary => summary.zRef == validZReference && summary.totalRecords == totalRecords)
+      )
     }
 
-    "return InternalServerErr if repository upsert throws an exception" in {
-      when(mockReturnsSummaryRepository.upsert(any[MonthlyReturnsSummary]))
-        .thenReturn(Future.failed(new Exception("fail")))
-
-      val result = await(service.saveReturnsSummary(MonthlyReturnsSummary(validZReference, validTaxYear, validMonth, totalRecords)))
-
-      result mustBe Left(InternalServerErr())
-      verify(mockReturnsSummaryRepository).upsert(argThat[MonthlyReturnsSummary] { summary =>
-        summary.zRef == validZReference &&
-        summary.taxYear == validTaxYear &&
-        summary.month == validMonth &&
-        summary.totalRecords == totalRecords
-      })
+    "map repository failures" in {
+      when(mockReturnsSummaryRepository.upsert(any[MonthlyReturnsSummary])).thenReturn(Future.failed(new Exception("fail")))
+      await(service.saveReturnsSummary(MonthlyReturnsSummary(validZReference, totalRecords))) shouldBe Left(InternalServerErr())
     }
   }
 }

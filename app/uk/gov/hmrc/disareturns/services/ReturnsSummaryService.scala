@@ -20,7 +20,6 @@ import play.api.Logging
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.controllers.routes
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReturnNotFoundErr}
-import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
@@ -43,28 +42,24 @@ class ReturnsSummaryService @Inject() (
       .map(_ => Right(()))
       .recover { case e =>
         logger.error(
-          s"[ReturnsSummaryService][saveReturnsSummary] Failed to save return summary for IM ref: [${summary.zRef}] for [${summary.month}][${summary.taxYear}] due to error: [$e]"
+          s"[ReturnsSummaryService][saveReturnsSummary] Failed to save return summary for IM ref: [${summary.zRef}] due to error: [$e]"
         )
         Left(InternalServerErr())
       }
   }
 
-  def retrieveReturnSummary(
-    zReference: String,
-    taxYear:    String,
-    month:      Month
-  ): Future[Either[ErrorResponse, ReturnSummaryResults]] = {
-    logger.info(s"[ReturnsSummaryService][retrieveReturnSummary] Retrieving return summary for IM ref: [$zReference] for [$month][$taxYear]")
+  def retrieveReturnSummary(zReference: String): Future[Either[ErrorResponse, ReturnSummaryResults]] = {
+    logger.info(s"[ReturnsSummaryService][retrieveReturnSummary] Retrieving return summary for IM ref: [$zReference]")
 
     lazy val returnResultsLocation =
-      s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReportPage(zReference, taxYear, month.toString).url}?page=0"
+      s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReportPage(zReference).url}?page=0"
 
     def returnSummaryResults(totalRecords: Int): Either[ErrorResponse, ReturnSummaryResults] = {
       val numberOfPages = appConfig.getNoOfPagesForReturnResults(totalRecords)
 
       numberOfPages.fold[Either[ErrorResponse, ReturnSummaryResults]] {
         logger.error(
-          s"[ReturnsSummaryService][returnSummaryResults] Invalid number of total records [$totalRecords] received from upstream for IM Ref: [$zReference] for [$taxYear] [$month]"
+          s"[ReturnsSummaryService][returnSummaryResults] Invalid number of total records [$totalRecords] received from upstream for IM Ref: [$zReference]"
         )
         Left(InternalServerErr())
       } { numberOfPages =>
@@ -73,14 +68,14 @@ class ReturnsSummaryService @Inject() (
     }
 
     summaryRepo
-      .retrieveReturnSummary(zReference, taxYear, month)
+      .retrieveReturnSummary(zReference)
       .map {
         case Some(summary) => returnSummaryResults(summary.totalRecords)
-        case _             => Left(ReturnNotFoundErr(s"No return found for $zReference for ${month.toString} $taxYear"))
+        case _             => Left(ReturnNotFoundErr(s"No return found for $zReference"))
       }
       .recover { case e =>
         logger.error(
-          s"[ReturnsSummaryService][retrieveReturnSummary] Failed to retrieve return summary for IM ref: [$zReference] for [$month][$taxYear] due to error: [$e]"
+          s"[ReturnsSummaryService][retrieveReturnSummary] Failed to retrieve return summary for IM ref: [$zReference] due to error: [$e]"
         )
         Left(InternalServerErr())
       }

@@ -17,175 +17,77 @@
 package uk.gov.hmrc.disareturns.controllers
 
 import org.mongodb.scala.ObservableFuture
-import org.scalatest.matchers.must.Matchers.{must, mustBe}
 import play.api.libs.json.*
-import play.api.libs.ws.DefaultBodyReadables.readableAsByteArray
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.*
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.common.*
 import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
 import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
-
   private lazy val repo      = app.injector.instanceOf[MonthlyReturnsSummaryRepository]
   private lazy val appConfig = app.injector.instanceOf[AppConfig]
+  private val totalRecords   = 3
+  private val invalidZRef    = "Z1111000000000"
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
+  override def beforeEach(): Unit = {
+    super.beforeEach()
     await(repo.collection.drop().toFuture())
   }
 
-  private val taxYear      = "2025-26"
-  private val monthEnum    = Month.SEP
-  private val monthToken   = monthEnum.toString
-  private val totalRecords = 3
-  val invalidZRef          = "Z1111000000000"
-  val invalidTaxYear       = "2025-27"
-  val invalidMonth         = "SEPT"
-
-  private val returnsSummaryJson = Json.obj("totalRecords" -> totalRecords)
-
-  "POST /callback/monthly/:zRef/:year/:month" should {
-
-    "return 204 and persist a MonthlyReturnsSummary document" in {
-      val result = returnsSummaryCallbackRequest(requestBody = returnsSummaryJson)
-
-      result.status mustBe NO_CONTENT
-      result.body mustBe empty
+  "POST /callback/monthly/:zReference" should {
+    "persist the current summary by Z-reference" in {
+      val result = callback(validZReference, Json.obj("totalRecords" -> totalRecords))
+      result.status shouldBe NO_CONTENT
 
       val stored = await(repo.collection.find().toFuture())
-
-      stored must have size 1
-      val doc = stored.head
-      doc.zRef mustBe validZReference
-      doc.taxYear mustBe taxYear
-      doc.month mustBe monthEnum
-      doc.totalRecords mustBe totalRecords
+      stored should have size 1
+      stored.head.zRef shouldBe validZReference
+      stored.head.totalRecords shouldBe totalRecords
     }
 
-    "return 400 with aggregated issues when zRef, taxYear and month are all invalid" in {
+    "replace the current summary while preserving its creation timestamp" in {
+      callback(validZReference, Json.obj("totalRecords" -> 1)).status shouldBe NO_CONTENT
+      val first = await(repo.collection.find().head())
+      callback(validZReference, Json.obj("totalRecords" -> 4)).status shouldBe NO_CONTENT
+      val second = await(repo.collection.find().head())
 
-      val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), invalidZRef, invalidTaxYear, invalidMonth)
-
-      res.status mustBe BAD_REQUEST
-      res.json
-        .as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear, InvalidMonth))
+      second.totalRecords shouldBe 4
+      second.createdAt shouldBe first.createdAt
+      second.updatedAt should be >= first.updatedAt
     }
 
-    "return 400 with correct error response when an invalid zReference is provided" in {
-      val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), zReference = invalidZRef)
-
-      res.status mustBe BAD_REQUEST
-      res.json
-        .as[ErrorResponse] shouldBe InvalidZReference
-    }
-
-    "return 400 with correct error response when an invalid taxYear is provided" in {
-      val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), taxYear = invalidTaxYear)
-
-      res.status mustBe BAD_REQUEST
-      res.status                        shouldBe BAD_REQUEST
-      (res.json \ "code").as[String]    shouldBe "INVALID_TAX_YEAR"
-      (res.json \ "message").as[String] shouldBe "Tax year is not formatted correctly"
-    }
-
-    "return 400 with correct error response when an invalid month is provided" in {
-      val res = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> 1), month = invalidMonth)
-
-      res.status mustBe BAD_REQUEST
-      res.json
-        .as[ErrorResponse] shouldBe InvalidMonth
-    }
-
-    "return 400 when the JSON body is invalid or missing required fields" in {
-      val res1 = returnsSummaryCallbackRequest(Json.obj())
-      res1.status mustBe BAD_REQUEST
-
-      val res2 = returnsSummaryCallbackRequest(Json.obj("totalRecords" -> "three"))
-      res2.status mustBe BAD_REQUEST
+    "retain Z-reference and body validation" in {
+      callback(invalidZRef, Json.obj("totalRecords" -> 1)).status shouldBe BAD_REQUEST
+      callback(validZReference, Json.obj()).status shouldBe BAD_REQUEST
     }
   }
 
-  "GET /monthly/:zRef/:year/:month/results/summary" should {
-
-    "return 200 and a ReturnResultsSummary when the summary exists" in {
-      await(repo.collection.drop().toFuture())
-      await(repo.collection.insertOne(MonthlyReturnsSummary(validZReference, taxYear, monthEnum, totalRecords)).toFuture())
-
+  "GET /monthly/:zReference/results/summary" should {
+    "return the current summary with a periodless results location" in {
+      await(repo.collection.insertOne(MonthlyReturnsSummary(validZReference, totalRecords)).toFuture())
       stubAuth()
-      val res: WSResponse =
-        await(
-          ws.url(s"http://localhost:$port/monthly/$validZReference/$taxYear/$monthToken/results/summary")
-            .withFollowRedirects(follow = false)
-            .withHttpHeaders(testHeaders: _*)
-            .get()
-        )
+      val result = getSummary(validZReference)
 
-      res.status mustBe OK
-      (res.json \ "returnResultsLocation").as[String] mustBe s"${appConfig.selfHost}/monthly/$validZReference/$taxYear/$monthToken/results?page=0"
-      (res.json \ "numberOfPages").as[Int] mustBe 2
-      (res.json \ "totalRecords").as[Int] mustBe 3
+      result.status shouldBe OK
+      (result.json \ "returnResultsLocation").as[String] shouldBe s"${appConfig.selfHost}/monthly/$validZReference/results?page=0"
+      (result.json \ "totalRecords").as[Int] shouldBe totalRecords
     }
 
-    "return 404 when no summary is found" in {
-      val res = retrieveReturnsSummaryRequest()
-
-      res.status mustBe NOT_FOUND
-      (res.json \ "code").as[String] mustBe "RETURN_NOT_FOUND"
-      (res.json \ "message").as[String] mustBe s"No return found for $validZReference for SEP 2025-26"
-    }
-
-    "return 400 with aggregated issues when zRef, taxYear and month are invalid" in {
-      val res = retrieveReturnsSummaryRequest(
-        zReference = invalidZRef,
-        taxYear = invalidTaxYear,
-        month = invalidMonth
-      )
-      res.status mustBe BAD_REQUEST
-      res.json
-        .as[ErrorResponse] shouldBe MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidTaxYear, InvalidMonth))
+    "return not found or reject an invalid Z-reference" in {
+      stubAuth()
+      val notFound = getSummary(validZReference)
+      notFound.status shouldBe NOT_FOUND
+      (notFound.json \ "message").as[String] shouldBe s"No return found for $validZReference"
+      getSummary(invalidZRef).status shouldBe BAD_REQUEST
     }
   }
 
-  def retrieveReturnsSummaryRequest(
-    headers:    Seq[(String, String)] = testHeaders,
-    zReference: String = validZReference,
-    taxYear:    String = taxYear,
-    month:      String = monthEnum.toString
-  ): WSResponse = {
-    stubAuth()
-    await(repo.collection.drop().toFuture())
-    await(
-      ws.url(
-        s"http://localhost:$port/monthly/$zReference/$taxYear/$month/results/summary"
-      ).withFollowRedirects(follow = false)
-        .withHttpHeaders(
-          headers: _*
-        )
-        .get()
-    )
-  }
+  private def getSummary(zReference: String): WSResponse =
+    await(ws.url(s"http://localhost:$port/monthly/$zReference/results/summary").withHttpHeaders(testHeaders: _*).get())
 
-  def returnsSummaryCallbackRequest(
-    requestBody: JsObject,
-    zReference:  String = validZReference,
-    taxYear:     String = taxYear,
-    month:       String = monthEnum.toString,
-    headers:     Seq[(String, String)] = Seq("Authorization" -> "mock-bearer-token")
-  ): WSResponse = {
-    await(repo.collection.drop().toFuture())
-    await(
-      ws.url(
-        s"http://localhost:$port/callback/monthly/$zReference/$taxYear/$month"
-      ).withFollowRedirects(follow = false)
-        .withHttpHeaders(
-          headers: _*
-        )
-        .post(requestBody)
-    )
-  }
+  private def callback(zReference: String, body: JsObject): WSResponse =
+    await(ws.url(s"http://localhost:$port/callback/monthly/$zReference").post(body))
 }

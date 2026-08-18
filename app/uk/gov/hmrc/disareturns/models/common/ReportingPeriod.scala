@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.summary
+package uk.gov.hmrc.disareturns.models.common
 
-import scala.util.matching.Regex
+import uk.gov.hmrc.disareturns.models.common.Month.Month
 
-object TaxYearValidator {
-
-  private val pattern: Regex = raw"^20(\d{2})-(\d{2})$$".r
-
-  def isValid(ref: String): Boolean =
-    ref match {
-      case pattern(startYr, endYr) if endYr.toInt == startYr.toInt + 1 => true
-      case _                                                           => false
-    }
-}
+case class ReportingPeriod(taxYear: String, month: Month)

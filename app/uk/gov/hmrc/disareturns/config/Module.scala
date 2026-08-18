@@ -24,6 +24,7 @@ import uk.gov.hmrc.disareturns.AppInitialiser
 import uk.gov.hmrc.http.client.HttpClientV2
 
 import javax.inject.Singleton
+import java.time.Clock
 import scala.concurrent.ExecutionContext
 
 class Module extends AbstractModule {
@@ -32,6 +33,10 @@ class Module extends AbstractModule {
     bind(classOf[AppConfig]).asEagerSingleton()
     bind(classOf[AppInitialiser]).asEagerSingleton()
   }
+
+  @Provides
+  @Singleton
+  def provideClock(): Clock = Clock.systemUTC()
 
   @Provides
   @Singleton

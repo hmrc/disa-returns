@@ -17,15 +17,12 @@
 package uk.gov.hmrc.disareturns.models.summary.repository
 
 import play.api.libs.json._
-import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 
 case class MonthlyReturnsSummary(
   zRef:         String,
-  taxYear:      String,
-  month:        Month,
   totalRecords: Int,
   createdAt:    Instant = Instant.now(),
   updatedAt:    Instant = Instant.now()

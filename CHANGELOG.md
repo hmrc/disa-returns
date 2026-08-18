@@ -2,6 +2,17 @@
 
 All notable changes to this API will be documented in this file. Learn about API features, fixes, deprecations and documentation changes.
 
+## 14 August 2026
+
+### Updates
+
+- Removed tax year and month from the paths for submitting and declaring monthly reports, retrieving report summaries and reconciliation results, and receiving report summary callbacks.
+- The API now automatically applies the previous calendar month and its corresponding tax year to each monthly report in internal calls.
+
+### What impact does this have?
+
+- Consumers must stop including tax year and month in ISA Returns API request paths.
+
 ## 25 June 2026
 
 ### Updates

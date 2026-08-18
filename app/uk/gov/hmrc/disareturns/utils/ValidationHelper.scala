@@ -20,31 +20,15 @@ import cats.data.ValidatedNel
 import cats.syntax.all.*
 import play.api.Logging
 import uk.gov.hmrc.disareturns.models.common.*
-import uk.gov.hmrc.disareturns.models.common.Month.Month
-import uk.gov.hmrc.disareturns.models.summary.TaxYearValidator
-
 import scala.util.Try
 
 object ValidationHelper extends Logging {
 
-  def validateParams(
-    zReference: String,
-    year:       String,
-    month:      String,
-    pageIndex:  Option[String] = None
-  ): Either[ErrorResponse, (String, String, Month, Option[Int])] = {
+  def validateParams(zReference: String, pageIndex: Option[String] = None): Either[ErrorResponse, (String, Option[Int])] = {
 
     val zRefValidated: ValidatedNel[ErrorResponse, String] =
       if (ZReferenceValidator.isValid(zReference)) zReference.toUpperCase.validNel
       else InvalidZReference.invalidNel
-
-    val yearValidated: ValidatedNel[ErrorResponse, String] =
-      if (TaxYearValidator.isValid(year)) year.validNel
-      else InvalidTaxYear.invalidNel
-
-    val monthValidated: ValidatedNel[ErrorResponse, Month] =
-      if (Month.isValid(month)) Month.withName(month).validNel
-      else InvalidMonth.invalidNel
 
     val pageValidated: ValidatedNel[ErrorResponse, Option[Int]] =
       pageIndex match {
@@ -56,7 +40,7 @@ object ValidationHelper extends Logging {
             .toValidNel(InvalidPageErr)
       }
 
-    val combined = (zRefValidated, yearValidated, monthValidated, pageValidated).mapN((im, yr, mo, pg) => (im, yr, mo, pg))
+    val combined = (zRefValidated, pageValidated).mapN((zRef, page) => (zRef, page))
 
     combined.toEither.leftMap { nonEmptyList =>
       val errs = nonEmptyList.toList
