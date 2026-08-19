@@ -20,5 +20,6 @@ import play.api.mvc.{Request, WrappedRequest}
 
 case class DeclarationRequest[A](
   request:  Request[A],
-  clientId: String
+  clientId: String,
+  credId:   String
 ) extends WrappedRequest[A](request)

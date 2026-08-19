@@ -16,10 +16,12 @@
 
 package actions
 
+import play.api.http.MimeTypes.JSON
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.ClientIdAction
+import uk.gov.hmrc.disareturns.models.common.AuthenticatedRequest
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -32,7 +34,7 @@ class ClientIdActionSpec extends BaseUnitSpec {
       val action  = new ClientIdAction()
       val request = FakeRequest().withHeaders("X-Client-ID" -> "client-123")
 
-      whenReady(action.refine(request)) {
+      whenReady(action.refine(AuthenticatedRequest(request, testCredentialId))) {
         case Right(clientIdRequest) =>
           clientIdRequest.clientId shouldBe "client-123"
           clientIdRequest.request  shouldBe request
@@ -46,11 +48,11 @@ class ClientIdActionSpec extends BaseUnitSpec {
       val action  = new ClientIdAction()
       val request = FakeRequest()
 
-      whenReady(action.refine(request)) {
+      whenReady(action.refine(AuthenticatedRequest(request, testCredentialId))) {
         case Left(result) =>
           val resultF = Future.successful(result)
           status(resultF)        shouldBe BAD_REQUEST
-          contentType(resultF)   shouldBe Some("application/json")
+          contentType(resultF)   shouldBe Some(JSON)
           contentAsJson(resultF) shouldBe Json.obj("code" -> "BAD_REQUEST", "message" -> "Missing required header: X-Client-ID")
 
         case Right(_) =>

@@ -18,6 +18,7 @@ package uk.gov.hmrc.disareturns.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, stubFor, urlEqualTo}
 import org.scalatest.matchers.must.Matchers.mustBe
+import play.api.http.HeaderNames.AUTHORIZATION
 import play.api.http.Status._
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
@@ -154,7 +155,7 @@ class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
   def retrieveReconciliationReportPageRequest(
     zReference: String,
     pageIndex:  Int,
-    headers:    Seq[(String, String)] = Seq("Authorization" -> "mock-bearer-token")
+    headers:    Seq[(String, String)] = Seq(AUTHORIZATION -> "mock-bearer-token")
   ): WSResponse =
     await(
       ws.url(s"http://localhost:$port/monthly/$zReference/results?page=$pageIndex")

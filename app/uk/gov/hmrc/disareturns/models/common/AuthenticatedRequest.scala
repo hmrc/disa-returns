@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.utils
+package uk.gov.hmrc.disareturns.models.common
 
-import org.scalacheck.Gen
+import play.api.mvc.{Request, WrappedRequest}
 
-trait TestData {
-
-  val zReferenceGen: Gen[String] =
-    Gen.listOfN(4, Gen.numChar).map(digits => s"Z${digits.mkString}")
-
-  val validZReference:  String = zReferenceGen.sample.get
-  val testCredentialId: String = "cred-id"
-}
+final case class AuthenticatedRequest[A](request: Request[A], credId: String) extends WrappedRequest[A](request)

@@ -20,6 +20,7 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
+import play.api.http.HeaderNames.AUTHORIZATION
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.connectors.SubmissionConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
@@ -53,7 +54,9 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       .thenReturn(mockRequestBuilder)
     when(mockHttpClient.get(url"$testUrl/disa-returns-submission/reporting-window/status"))
       .thenReturn(mockRequestBuilder)
-    when(mockRequestBuilder.setHeader("Authorization" -> internalAuthToken)).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.setHeader(AUTHORIZATION -> internalAuthToken)).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.setHeader(AUTHORIZATION -> internalAuthToken, "X-Cred-Id" -> testCredentialId))
+      .thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
   }
 
@@ -68,8 +71,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       val result: Either[UpstreamErrorResponse, HttpResponse] =
         connector.sendDeclaration(validZReference, validTaxYear, validMonth, nilReturnReported).value.futureValue
 
-      result                                         shouldBe Right(httpResponse)
-      verify(mockRequestBuilder).setHeader("Authorization" -> internalAuthToken)
+      result                                       shouldBe Right(httpResponse)
+      verify(mockRequestBuilder).setHeader(AUTHORIZATION -> internalAuthToken)
     }
 
     "return Left(UpstreamErrorResponse) with raw body when the POST returns a 422" in new TestSetup {
@@ -136,8 +139,8 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       val result: Either[UpstreamErrorResponse, Unit] =
         connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
 
-      result                                         shouldBe Right(())
-      verify(mockRequestBuilder).setHeader("Authorization" -> internalAuthToken)
+      result                                       shouldBe Right(())
+      verify(mockRequestBuilder).setHeader(AUTHORIZATION -> internalAuthToken)
     }
 
     "return Left(UpstreamErrorResponse) when the POST returns a 409" in new TestSetup {
@@ -212,7 +215,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       verify(mockHttpClient).put(
         url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions/$submissionId"
       )
-      verify(mockRequestBuilder).setHeader("Authorization" -> internalAuthToken)
+      verify(mockRequestBuilder).setHeader(AUTHORIZATION -> internalAuthToken)
     }
 
     "return Left(UpstreamErrorResponse) when the PUT returns a 400" in new TestSetup {
@@ -271,13 +274,16 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
   }
 
   "SubmissionConnector.getReportingWindowStatus" should {
-    "return the successful response and send internal authorization" in new TestSetup {
+    "return the successful response and send internal authorization and credential ID" in new TestSetup {
       val response = HttpResponse(OK, """{"reportingWindowOpen":true}""")
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(response)))
 
-      connector.getReportingWindowStatus.value.futureValue shouldBe Right(response)
-      verify(mockRequestBuilder).setHeader("Authorization"       -> internalAuthToken)
+      connector.getReportingWindowStatus(testCredentialId).value.futureValue shouldBe Right(response)
+      verify(mockRequestBuilder).setHeader(
+        AUTHORIZATION -> internalAuthToken,
+        "X-Cred-Id"   -> testCredentialId
+      )
     }
 
     "return a client error without retrying" in new TestSetup {
@@ -285,7 +291,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(error)))
 
-      connector.getReportingWindowStatus.value.futureValue shouldBe Left(error)
+      connector.getReportingWindowStatus(testCredentialId).value.futureValue shouldBe Left(error)
       verify(mockRequestBuilder, times(1)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
@@ -294,7 +300,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(error)))
 
-      connector.getReportingWindowStatus.value.futureValue shouldBe Left(error)
+      connector.getReportingWindowStatus(testCredentialId).value.futureValue shouldBe Left(error)
       verify(mockRequestBuilder, times(4)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
@@ -302,7 +308,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(new RuntimeException("Connection timeout")))
 
-      val result = connector.getReportingWindowStatus.value.futureValue.left.value
+      val result = connector.getReportingWindowStatus(testCredentialId).value.futureValue.left.value
       result.statusCode shouldBe INTERNAL_SERVER_ERROR
       result.message      should include("Unexpected error: Connection timeout")
     }

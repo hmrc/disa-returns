@@ -17,6 +17,7 @@
 package uk.gov.hmrc.disareturns.controllers
 
 import org.scalatest.matchers.must.Matchers.mustBe
+import play.api.http.MimeTypes.JSON
 import play.api.http.Status.OK
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{GET, contentAsString, contentType, route, status, writeableOf_AnyContentAsEmpty}
@@ -30,7 +31,7 @@ class DocumentationControllerISpec extends BaseIntegrationSpec {
       val result  = route(app, request).get
 
       status(result) mustBe OK
-      contentType(result) mustBe Some("application/json")
+      contentType(result) mustBe Some(JSON)
       contentAsString(result) should include("api")
     }
   }

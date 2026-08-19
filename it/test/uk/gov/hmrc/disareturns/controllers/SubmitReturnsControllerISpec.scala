@@ -17,6 +17,7 @@
 package uk.gov.hmrc.disareturns.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock.*
+import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
 import play.api.http.Status.*
 import play.api.libs.json.*
 import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
@@ -30,9 +31,9 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
   val testTaxYear = "2026-27"
 
   override val testHeaders: Seq[(String, String)] = Seq(
-    "X-Client-ID"   -> testClientId,
-    "Authorization" -> "mock-bearer-token",
-    "Content-Type"  -> "application/x-ndjson"
+    "X-Client-ID" -> testClientId,
+    AUTHORIZATION -> "mock-bearer-token",
+    CONTENT_TYPE  -> "application/x-ndjson"
   )
 
   val validLifetimeIsaSubscription =

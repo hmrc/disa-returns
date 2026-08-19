@@ -69,7 +69,7 @@ class DeclarationController @Inject() (
             case _ =>
               val nilReturnReported = request.body.as[ReportingNilReturn].nilReturn
               val result = for {
-                _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(zReference))
+                _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(zReference, request.credId))
                 _             <- submissionService.declare(zReference, reportingPeriod.taxYear, reportingPeriod.month, nilReturnReported)
                 boxIdResponse <- EitherT(ppnsService.getBoxId(request.clientId))
               } yield boxIdResponse
