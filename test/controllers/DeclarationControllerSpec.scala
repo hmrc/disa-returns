@@ -23,7 +23,6 @@ import org.mockito.Mockito.when
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.disareturns.controllers.DeclarationController
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
@@ -40,7 +39,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
   val controller:            DeclarationController = app.injector.instanceOf[DeclarationController]
   implicit val materializer: Materializer          = app.materializer
 
-  val clientId = "client-999"
+  val clientId = "client-id"
   val boxId    = "box-123"
   val obligation:      EtmpObligations       = EtmpObligations(false)
   val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(true)
@@ -53,7 +52,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 200 OK when the declaration is successful" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockAppConfig.selfHost).thenReturn(testUrl)
@@ -79,7 +78,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 200 OK when the declaration is successful but no boxId has been retrieved from PPNS" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockAppConfig.selfHost).thenReturn(testUrl)
@@ -141,7 +140,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 403 Forbidden when the reporting window is closed" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Left(ReportingWindowClosed)))
 
       val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
@@ -159,7 +158,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 403 Forbidden when the obligation is closed" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
       val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
@@ -177,7 +176,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 500 Internal Server Error when the call to PPNS fails" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
@@ -199,8 +198,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
     }
 
     "return 500 Internal Server Error when there is a failure whilst saving the notification context" in {
-      when(mockAuthConnector.authorise(any, any[Retrieval[Unit]])(any, any)).thenReturn(Future.successful(()))
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      authorizationForZRef()
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))

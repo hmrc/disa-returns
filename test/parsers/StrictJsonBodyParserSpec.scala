@@ -23,6 +23,8 @@ import org.scalatest.EitherValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import play.api.http.HeaderNames.CONTENT_TYPE
+import play.api.http.MimeTypes.JSON
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test._
@@ -42,7 +44,7 @@ class StrictJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutur
   "StrictJsonBodyParser" should {
 
     "return BadRequest with MissingNilReturn when request body is empty" in {
-      val request = FakeRequest("POST", "/").withHeaders("Content-Type" -> "application/json")
+      val request = FakeRequest("POST", "/").withHeaders(CONTENT_TYPE -> JSON)
       val acc     = parser.apply(request)
 
       val result = await(acc.run())
@@ -56,7 +58,7 @@ class StrictJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutur
       val rawJson = """{ "nilReturn": true }"""
       val bytes   = ByteString(rawJson)
       val requestHeader = FakeRequest("POST", "/")
-        .withHeaders("Content-Type" -> "application/json")
+        .withHeaders(CONTENT_TYPE -> JSON)
 
       val acc    = parser(requestHeader)
       val result = await(acc.run(bytes))
@@ -73,7 +75,7 @@ class StrictJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutur
       val rawJson = """{ "nilReturn": true, "nilReturn": false }"""
       val bytes   = ByteString(rawJson)
       val requestHeader = FakeRequest("POST", "/")
-        .withHeaders("Content-Type" -> "application/json")
+        .withHeaders(CONTENT_TYPE -> JSON)
 
       val acc    = parser.apply(requestHeader)
       val result = await(acc.run(bytes))
@@ -88,7 +90,7 @@ class StrictJsonBodyParserSpec extends AnyWordSpec with Matchers with ScalaFutur
       val rawJson = """{ "nilReturn": true, "extraField": "value" }"""
       val bytes   = ByteString(rawJson)
       val requestHeader = FakeRequest("POST", "/")
-        .withHeaders("Content-Type" -> "application/json")
+        .withHeaders(CONTENT_TYPE -> JSON)
       val acc    = parser.apply(requestHeader)
       val result = await(acc.run(bytes))
 

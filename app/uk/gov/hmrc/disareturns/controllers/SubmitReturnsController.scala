@@ -59,7 +59,7 @@ class SubmitReturnsController @Inject() (
         (Action andThen authAction(zRef)).async(streamingParser) { implicit request =>
           val reportingPeriod = reportingPeriodService.previousMonthPeriod
           etmpService
-            .validateEtmpSubmissionEligibility(zRef)
+            .validateEtmpSubmissionEligibility(zRef, request.credId)
             .flatMap {
               case Right(_) =>
                 streamingParserService.processToTempFile(request.body).flatMap {

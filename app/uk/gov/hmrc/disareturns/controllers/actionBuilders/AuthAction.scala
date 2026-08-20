@@ -21,8 +21,9 @@ import play.api.libs.json.Json
 import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
-import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
+import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{authorisedEnrolments, credentials}
+import uk.gov.hmrc.disareturns.models.common.{AuthenticatedRequest, InternalServerErr, UnauthorisedErr}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
@@ -36,22 +37,28 @@ class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implici
     override def authConnector: AuthConnector = ac
   }
 
-  def apply(zRef: String): ActionBuilder[Request, AnyContent] =
-    new ActionBuilder[Request, AnyContent] with Logging {
+  def apply(zRef: String): ActionBuilder[AuthenticatedRequest, AnyContent] =
+    new ActionBuilder[AuthenticatedRequest, AnyContent] with Logging {
 
       override def parser:                     BodyParser[AnyContent] = cc.parsers.defaultBodyParser
       override protected def executionContext: ExecutionContext       = cc.executionContext
 
-      override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
+      override def invokeBlock[A](
+        request: Request[A],
+        block:   AuthenticatedRequest[A] => Future[Result]
+      ): Future[Result] = {
         implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
-        auth.authorised(Enrolment(enrolmentKey)).retrieve(authorisedEnrolments) { enrolments =>
+        auth.authorised(Enrolment(enrolmentKey)).retrieve(authorisedEnrolments and credentials) { case enrolments ~ maybeCredentials =>
           val zRefMatchesEnrolment = enrolments
             .getEnrolment(enrolmentKey)
             .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
 
-          if (zRefMatchesEnrolment) block(request)
-          else throw InternalError("Z-Ref does not match enrolment.")
+          (zRefMatchesEnrolment, maybeCredentials) match {
+            case (true, Some(userCredentials)) => block(AuthenticatedRequest(request, userCredentials.providerId))
+            case (false, _)                    => throw InternalError("Z-Ref does not match enrolment.")
+            case (_, None)                     => throw InternalError("Credential ID not found.")
+          }
         } recover {
           case ex: AuthorisationException =>
             logger.warn(s"[AuthAction][invokeBlock] Authorization failed. Error: ${ex.reason}")

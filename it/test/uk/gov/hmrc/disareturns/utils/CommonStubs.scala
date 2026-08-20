@@ -18,6 +18,8 @@ package uk.gov.hmrc.disareturns.utils
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import com.github.tomakehurst.wiremock.client.WireMock._
+import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
+import play.api.http.MimeTypes.JSON
 import play.api.http.Status
 import play.api.http.Status.OK
 import play.api.libs.json.{JsObject, Json}
@@ -33,7 +35,11 @@ trait CommonStubs { self: TestData =>
         "key": "HMRC-DISA-ORG",
         "identifiers": [{ "key": "ZREF", "value": "$zRef" }],
         "state": "Activated"
-      }]
+      }],
+      "optionalCredentials": {
+        "providerId": "$testCredentialId",
+        "providerType": "GovernmentGateway"
+      }
       }"""
 
     stubFor {
@@ -57,6 +63,7 @@ trait CommonStubs { self: TestData =>
   def stubReportingWindow(status: Int, body: JsObject): Unit =
     stubFor(
       get(urlEqualTo("/disa-returns-submission/reporting-window/status"))
+        .withHeader("X-Cred-Id", equalTo(testCredentialId))
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
     )
 
@@ -134,9 +141,9 @@ trait CommonStubs { self: TestData =>
 
   val testClientId = "test-client-id"
   val testHeaders: Seq[(String, String)] = Seq(
-    "X-Client-ID"   -> testClientId,
-    "Authorization" -> "mock-bearer-token",
-    "Content-Type"  -> "application/json"
+    "X-Client-ID" -> testClientId,
+    AUTHORIZATION -> "mock-bearer-token",
+    CONTENT_TYPE  -> JSON
   )
 
 }

@@ -20,6 +20,7 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
+import play.api.http.HeaderNames.CONTENT_TYPE
 import play.api.libs.json._
 import play.api.mvc.Request
 import play.api.test.FakeRequest
@@ -45,8 +46,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
   def fakeRequestWithStream(ndJsonString: String = ndJsonLine): Request[Source[ByteString, _]] = FakeRequest()
     .withBody(Source.single(ByteString(ndJsonString + "\n")))
-    .withHeaders("X-Client-ID" -> "client-999")
-    .withHeaders("Content-Type" -> "application/x-ndjson")
+    .withHeaders(CONTENT_TYPE -> "application/x-ndjson")
 
   "ReturnsSubmissionController#submit" should {
 
@@ -54,7 +54,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       val tempFile: TemporaryFile = SingletonTemporaryFileCreator.create("test-submit-", ".ndjson")
 
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(tempFile)))
@@ -70,7 +70,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       val ndJsonLineError =
         """{"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Left(FirstLevelValidationFailure(NinoOrAccountNumMissingErr))))
@@ -87,7 +87,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
@@ -129,7 +129,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
@@ -173,7 +173,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
           |""".stripMargin
 
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
@@ -223,7 +223,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 401 Unauthorised  when ETMP responds with an unauthorised error" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Left(UnauthorisedErr)))
 
       val result = controller.submit(validZReference).apply(fakeRequestWithStream())
@@ -235,7 +235,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 403 when ETMP returns ErrorResponse" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
       val result = controller.submit(validZReference).apply(fakeRequestWithStream())
@@ -249,7 +249,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       val tempFile: TemporaryFile = SingletonTemporaryFileCreator.create("test-submit-", ".ndjson")
 
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(tempFile)))
@@ -264,7 +264,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 500 for unexpected errors" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(
         mockStreamingParserService.processToTempFile(any[Source[ByteString, _]])

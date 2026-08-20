@@ -27,6 +27,7 @@ trait TestData {
     Gen.listOfN(4, Gen.numChar).map(digits => s"Z${digits.mkString}")
 
   val validZReference:      String               = zReferenceGen.sample.get
+  val testCredentialId:     String               = "cred-id"
   val validTaxYear:         String               = "2026-27"
   val validMonth:           Month.Value          = Month.SEP
   val validMonthStr:        String               = "SEP"

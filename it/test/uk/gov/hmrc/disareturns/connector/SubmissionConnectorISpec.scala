@@ -126,7 +126,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
   "SubmissionConnector.getReportingWindowStatus" should {
     "return a successful reporting window response" in {
       stubGet(reportingWindowUrl, OK, """{"reportingWindowOpen":true}""")
-      val response = await(connector.getReportingWindowStatus.value).value
+      val response = await(connector.getReportingWindowStatus(testCredentialId).value).value
       response.status                                     shouldBe OK
       (response.json \ "reportingWindowOpen").as[Boolean] shouldBe true
       verifyGet(reportingWindowUrl, count = 1)
@@ -134,13 +134,13 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
 
     "retry a persistent server error exactly four times" in {
       stubGet(reportingWindowUrl, INTERNAL_SERVER_ERROR, "failed")
-      await(connector.getReportingWindowStatus.value).left.value.statusCode shouldBe INTERNAL_SERVER_ERROR
+      await(connector.getReportingWindowStatus(testCredentialId).value).left.value.statusCode shouldBe INTERNAL_SERVER_ERROR
       verifyGet(reportingWindowUrl, count = 4)
     }
 
     "not retry a client error" in {
       stubGet(reportingWindowUrl, BAD_REQUEST, "bad request")
-      await(connector.getReportingWindowStatus.value).left.value.statusCode shouldBe BAD_REQUEST
+      await(connector.getReportingWindowStatus(testCredentialId).value).left.value.statusCode shouldBe BAD_REQUEST
       verifyGet(reportingWindowUrl, count = 1)
     }
   }

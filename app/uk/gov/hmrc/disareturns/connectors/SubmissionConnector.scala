@@ -21,6 +21,7 @@ import com.typesafe.config.Config
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
+import play.api.http.HeaderNames.AUTHORIZATION
 import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR}
 import play.api.libs.json.Json
 import play.api.libs.ws.{BodyWritable, SourceBody}
@@ -128,13 +129,13 @@ class SubmissionConnector @Inject() (
       }
   }
 
-  def getReportingWindowStatus(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+  def getReportingWindowStatus(credId: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
     val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/reporting-window/status"
     read(
       retryFor("get submission reporting window status")(retryCondition) {
         httpClient
           .get(url"$url")
-          .setHeader(authorizationHeader)
+          .setHeader(authorizationHeader, "X-Cred-Id" -> credId)
           .executeOrFail
           .map(Right(_))
       },
@@ -143,5 +144,5 @@ class SubmissionConnector @Inject() (
   }
 
   private def authorizationHeader: (String, String) =
-    "Authorization" -> appConfig.internalAuthToken
+    AUTHORIZATION -> appConfig.internalAuthToken
 }

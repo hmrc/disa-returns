@@ -17,6 +17,8 @@
 package uk.gov.hmrc.disareturns.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock.*
+import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
+import play.api.http.MimeTypes.JSON
 import play.api.http.Status.*
 import play.api.libs.json.Json
 import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
@@ -64,7 +66,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
 
     "retain Z-reference, header and body validation" in {
       declarationRequest(zReference = "invalid").status shouldBe BAD_REQUEST
-      declarationRequest(headers = Seq("Authorization" -> "mock-bearer-token")).status shouldBe BAD_REQUEST
+      declarationRequest(headers = Seq(AUTHORIZATION -> "mock-bearer-token")).status shouldBe BAD_REQUEST
       declarationRequest(body = """{"nilReturn":123}""").status shouldBe BAD_REQUEST
       declarationRequest(body = """{"nilReturn":true,"nilReturn":true}""").status shouldBe BAD_REQUEST
     }
@@ -84,7 +86,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
       stubSubmissionDeclaration(
         aResponse()
           .withStatus(UNPROCESSABLE_ENTITY)
-          .withHeader("Content-Type", "application/json")
+          .withHeader(CONTENT_TYPE, JSON)
           .withBody("""{"code":"NO_SUBMISSION_DATA","error":"Cannot declare with nilReturn as false when no monthly return data has been submitted"}"""),
         validZReference,
         taxYear,

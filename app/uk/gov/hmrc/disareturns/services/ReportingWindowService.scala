@@ -30,10 +30,10 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class ReportingWindowService @Inject() (connector: SubmissionConnector)(implicit ec: ExecutionContext) extends Logging {
 
-  def getReportingWindowStatus()(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, ReportingWindowStatus] = {
+  def getReportingWindowStatus(credId: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, ReportingWindowStatus] = {
     logger.info("[ReportingWindowService][getReportingWindowStatus] Getting reporting window status")
     EitherT {
-      connector.getReportingWindowStatus.value.map {
+      connector.getReportingWindowStatus(credId).value.map {
         case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
         case Right(response) =>
           response.json

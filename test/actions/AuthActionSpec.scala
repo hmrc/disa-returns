@@ -19,13 +19,14 @@ package actions
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.verify
+import play.api.http.HeaderNames.AUTHORIZATION
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.authorise.Predicate
-import uk.gov.hmrc.auth.core.retrieve.Retrieval
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval, ~}
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{authorisedEnrolments, credentials}
 import uk.gov.hmrc.auth.core.{Enrolment, Enrolments, UnsupportedAuthProvider}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
@@ -46,7 +47,7 @@ class AuthActionSpec extends BaseUnitSpec {
     "allow the request when user is authorised" in {
       authorizationForZRef()
 
-      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
+      val request = FakeRequest().withHeaders(AUTHORIZATION -> "Bearer abc123")
 
       val result = authAction(validZReference).invokeBlock(request, testBlock)
 
@@ -56,8 +57,8 @@ class AuthActionSpec extends BaseUnitSpec {
       val predicateCaptor: ArgumentCaptor[Predicate] =
         ArgumentCaptor.forClass(classOf[Predicate])
 
-      val retrievalCaptor: ArgumentCaptor[Retrieval[Enrolments]] =
-        ArgumentCaptor.forClass(classOf[Retrieval[Enrolments]])
+      val retrievalCaptor: ArgumentCaptor[Retrieval[Enrolments ~ Option[Credentials]]] =
+        ArgumentCaptor.forClass(classOf[Retrieval[Enrolments ~ Option[Credentials]]])
 
       verify(mockAuthConnector).authorise(
         predicateCaptor.capture(),
@@ -68,7 +69,7 @@ class AuthActionSpec extends BaseUnitSpec {
       val expectedPredicate = Enrolment("HMRC-DISA-ORG")
 
       val actualRetrieval   = retrievalCaptor.getValue
-      val expectedRetrieval = authorisedEnrolments
+      val expectedRetrieval = authorisedEnrolments and credentials
 
       withClue(
         s"""
@@ -94,7 +95,7 @@ class AuthActionSpec extends BaseUnitSpec {
     "return UNAUTHORISED when zRef does not match that retrieved from enrolment" in {
       authorizationForZRef(zRef = "MISMATCH")
 
-      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
+      val request = FakeRequest().withHeaders(AUTHORIZATION -> "Bearer abc123")
 
       val result = authAction(validZReference).invokeBlock(request, testBlock)
 
@@ -105,7 +106,7 @@ class AuthActionSpec extends BaseUnitSpec {
     "return UNAUTHORISED when enrolment key does not match" in {
       stubEnrolments(enrolmentKey = "HMRC-HELLO", zRef = validZReference)
 
-      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
+      val request = FakeRequest().withHeaders(AUTHORIZATION -> "Bearer abc123")
 
       val result = authAction(validZReference).invokeBlock(request, testBlock)
 
@@ -116,7 +117,7 @@ class AuthActionSpec extends BaseUnitSpec {
     "return UNAUTHORISED when identifier is missing" in {
       stubEnrolments(identifierKey = None)
 
-      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
+      val request = FakeRequest().withHeaders(AUTHORIZATION -> "Bearer abc123")
 
       val result = authAction(validZReference).invokeBlock(request, testBlock)
 
@@ -127,7 +128,7 @@ class AuthActionSpec extends BaseUnitSpec {
     "return UNAUTHORISED when AuthorisationException is thrown by auth connector" in {
       unauthorized(UnsupportedAuthProvider("fubar"))
 
-      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
+      val request = FakeRequest().withHeaders(AUTHORIZATION -> "Bearer abc123")
 
       val result = authAction(validZReference).invokeBlock(request, testBlock)
 
@@ -138,7 +139,7 @@ class AuthActionSpec extends BaseUnitSpec {
     "return InternalServerError for unexpected exceptions thrown by auth connector" in {
       unauthorized(new RuntimeException("Unexpected error"))
 
-      val request = FakeRequest().withHeaders("Authorization" -> "Bearer abc123")
+      val request = FakeRequest().withHeaders(AUTHORIZATION -> "Bearer abc123")
 
       val result = authAction(validZReference).invokeBlock(request, testBlock)
 
