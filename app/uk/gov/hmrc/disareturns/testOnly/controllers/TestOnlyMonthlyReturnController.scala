@@ -27,9 +27,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class TestOnlyMonthlyReturnController @Inject() (
-  cc: ControllerComponents,
+  cc:                              ControllerComponents,
   monthlyReturnsSummaryRepository: MonthlyReturnsSummaryRepository
-)(implicit ec: ExecutionContext)
+)(implicit ec:                     ExecutionContext)
     extends BackendController(cc) {
 
   def delete(): Action[JsValue] = Action.async(parse.json) { request =>
@@ -39,7 +39,7 @@ class TestOnlyMonthlyReturnController @Inject() (
 
         if (normalized.size != zReferences.distinct.size) Future.successful(BadRequest)
         else monthlyReturnsSummaryRepository.deleteByZReferences(normalized).map(_ => NoContent)
-      case _                                           => Future.successful(BadRequest)
+      case _ => Future.successful(BadRequest)
     }
   }
 }
