@@ -18,8 +18,8 @@ package controllers
 
 import cats.data.EitherT
 import org.apache.pekko.stream.Materializer
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito.{verify, when}
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -52,7 +52,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 200 OK when the declaration is successful" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockAppConfig.selfHost).thenReturn(testUrl)
@@ -74,11 +74,12 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       status(result)                                                      shouldBe OK
       (contentAsJson(result) \ "returnResultsSummaryLocation").as[String] shouldBe summaryLocation
       (contentAsJson(result) \ "boxId").as[String]                        shouldBe boxId
+      verify(mockETMPService).validateEtmpSubmissionEligibility(eqTo(validZReference))(any(), any())
     }
 
     "return 200 OK when the declaration is successful but no boxId has been retrieved from PPNS" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockAppConfig.selfHost).thenReturn(testUrl)
@@ -140,7 +141,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 403 Forbidden when the reporting window is closed" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ReportingWindowClosed)))
 
       val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
@@ -158,7 +159,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 403 Forbidden when the obligation is closed" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
       val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
@@ -176,7 +177,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 500 Internal Server Error when the call to PPNS fails" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
@@ -199,7 +200,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 500 Internal Server Error when there is a failure whilst saving the notification context" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))

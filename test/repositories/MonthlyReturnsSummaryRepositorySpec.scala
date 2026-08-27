@@ -80,4 +80,16 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
       stored.head.updatedAt must be >= originallyStored.updatedAt
     }
   }
+
+  "deleteByZReferences" should {
+    "delete only summaries for the supplied Z-references" in {
+      await(repository.upsert(MonthlyReturnsSummary(zRef = validZReference, totalRecords = 3)))
+      await(repository.upsert(MonthlyReturnsSummary(zRef = "Z5678", totalRecords = 4)))
+
+      await(repository.deleteByZReferences(Seq(validZReference)))
+
+      await(repository.retrieveReturnSummary(validZReference)) mustBe None
+      await(repository.retrieveReturnSummary("Z5678")) must not be empty
+    }
+  }
 }

@@ -18,7 +18,7 @@ package controllers
 
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import play.api.http.HeaderNames.CONTENT_TYPE
 import play.api.libs.json._
@@ -54,7 +54,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       val tempFile: TemporaryFile = SingletonTemporaryFileCreator.create("test-submit-", ".ndjson")
 
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(tempFile)))
@@ -64,13 +64,14 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       val result = controller.submit(validZReference)(fakeRequestWithStream())
 
       status(result) shouldBe NO_CONTENT
+      verify(mockETMPService).validateEtmpSubmissionEligibility(eqTo(validZReference))(any(), any())
     }
 
     "return 400 for FirstLevelValidationException - missing accountNumber" in {
       val ndJsonLineError =
         """{"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Left(FirstLevelValidationFailure(NinoOrAccountNumMissingErr))))
@@ -87,7 +88,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
@@ -129,7 +130,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"","middleName":null,"lastName":"Last1","dateOfBirth":"1980-0-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
@@ -173,7 +174,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
           |""".stripMargin
 
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
@@ -223,7 +224,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 401 Unauthorised  when ETMP responds with an unauthorised error" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(UnauthorisedErr)))
 
       val result = controller.submit(validZReference).apply(fakeRequestWithStream())
@@ -235,7 +236,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 403 when ETMP returns ErrorResponse" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
       val result = controller.submit(validZReference).apply(fakeRequestWithStream())
@@ -249,7 +250,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       val tempFile: TemporaryFile = SingletonTemporaryFileCreator.create("test-submit-", ".ndjson")
 
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(tempFile)))
@@ -264,7 +265,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
     "return 500 for unexpected errors" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any(), any())(any(), any()))
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(
         mockStreamingParserService.processToTempFile(any[Source[ByteString, _]])

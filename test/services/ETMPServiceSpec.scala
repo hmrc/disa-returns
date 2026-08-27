@@ -93,9 +93,10 @@ class ETMPServiceSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](HttpResponse(200, Json.toJson(obligations).toString())))
 
       val result: Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)] =
-        service.validateEtmpSubmissionEligibility(validZReference, testCredentialId).futureValue
+        service.validateEtmpSubmissionEligibility(validZReference).futureValue
 
       result shouldBe Right((reportingWindow, obligations))
+      verify(mockReportingWindowService).getReportingWindowStatus(validZReference)
     }
 
     "return Left(ReportingWindowClosed) when the reporting window is closed" in new TestSetup {
@@ -108,7 +109,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](HttpResponse(200, Json.toJson(obligations).toString())))
 
       val result: Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)] =
-        service.validateEtmpSubmissionEligibility(validZReference, testCredentialId).futureValue
+        service.validateEtmpSubmissionEligibility(validZReference).futureValue
 
       result shouldBe Left(ReportingWindowClosed)
     }
@@ -123,7 +124,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](HttpResponse(200, Json.toJson(obligations).toString())))
 
       val result: Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)] =
-        service.validateEtmpSubmissionEligibility(validZReference, testCredentialId).futureValue
+        service.validateEtmpSubmissionEligibility(validZReference).futureValue
 
       result shouldBe Left(ObligationClosed)
     }
@@ -138,7 +139,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](HttpResponse(200, Json.toJson(obligations).toString())))
 
       val result: Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)] =
-        service.validateEtmpSubmissionEligibility(validZReference, testCredentialId).futureValue
+        service.validateEtmpSubmissionEligibility(validZReference).futureValue
 
       result shouldBe Left(MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ReportingWindowClosed, ObligationClosed)))
     }
@@ -150,7 +151,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](HttpResponse(200, Json.toJson(EtmpObligations(false)).toString())))
 
       val result: Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)] =
-        service.validateEtmpSubmissionEligibility(validZReference, testCredentialId).futureValue
+        service.validateEtmpSubmissionEligibility(validZReference).futureValue
 
       result shouldBe Left(UnauthorisedErr)
     }

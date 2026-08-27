@@ -1,0 +1,1 @@
+POST       /monthly                   uk.gov.hmrc.disareturns.testOnly.controllers.TestOnlyMonthlyReturnController.delete()

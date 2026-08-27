@@ -20,8 +20,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval}
-import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.auth.core.retrieve.Retrieval
 
 import scala.concurrent.Future
 
@@ -33,8 +32,7 @@ trait MockAuthConnector { self: TestData =>
     enrolmentKey:  String = "HMRC-DISA-ORG",
     identifierKey: Option[String] = Some("ZREF"),
     zRef:          String = validZReference,
-    state:         String = "Activated",
-    credId:        String = testCredentialId
+    state:         String = "Activated"
   ): Unit = {
 
     val enrolment = Enrolments(
@@ -47,12 +45,12 @@ trait MockAuthConnector { self: TestData =>
       )
     )
 
-    when(mockAuthConnector.authorise(any(), any[Retrieval[Enrolments ~ Option[Credentials]]])(any(), any()))
-      .thenReturn(Future.successful(new ~(enrolment, Some(Credentials(credId, "GovernmentGateway")))))
+    when(mockAuthConnector.authorise(any(), any[Retrieval[Enrolments]])(any(), any()))
+      .thenReturn(Future.successful(enrolment))
   }
 
-  def authorizationForZRef(zRef: String = validZReference, credId: String = testCredentialId): Unit =
-    stubEnrolments(zRef = zRef, credId = credId)
+  def authorizationForZRef(zRef: String = validZReference): Unit =
+    stubEnrolments(zRef = zRef)
 
   def unauthorized(authException: Exception = InsufficientEnrolments("")): Unit =
     when(mockAuthConnector.authorise[Unit](any(), any())(any(), any()))

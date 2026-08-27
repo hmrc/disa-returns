@@ -36,10 +36,10 @@ class ReportingWindowServiceSpec extends BaseUnitSpec {
       val reportingWindowStatusJson: JsValue               = Json.toJson(expectedResponse)
       val httpResponse:              HttpResponse          = HttpResponse(200, reportingWindowStatusJson.toString())
 
-      when(mockSubmissionConnector.getReportingWindowStatus(testCredentialId))
+      when(mockSubmissionConnector.getReportingWindowStatus(validZReference))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result: Either[ErrorResponse, ReportingWindowStatus] = service.getReportingWindowStatus(testCredentialId).value.futureValue
+      val result: Either[ErrorResponse, ReportingWindowStatus] = service.getReportingWindowStatus(validZReference).value.futureValue
 
       result shouldBe Right(expectedResponse)
     }
@@ -52,10 +52,10 @@ class ReportingWindowServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockSubmissionConnector.getReportingWindowStatus(testCredentialId))
+      when(mockSubmissionConnector.getReportingWindowStatus(validZReference))
         .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
 
-      val result: Either[ErrorResponse, ReportingWindowStatus] = service.getReportingWindowStatus(testCredentialId).value.futureValue
+      val result: Either[ErrorResponse, ReportingWindowStatus] = service.getReportingWindowStatus(validZReference).value.futureValue
 
       result shouldBe Left(UnauthorisedErr)
     }
@@ -66,10 +66,10 @@ class ReportingWindowServiceSpec extends BaseUnitSpec {
                                       |}""".stripMargin
       val httpResponse: HttpResponse = HttpResponse(200, reportingWindow)
 
-      when(mockSubmissionConnector.getReportingWindowStatus(testCredentialId))
+      when(mockSubmissionConnector.getReportingWindowStatus(validZReference))
         .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
 
-      val result: Either[ErrorResponse, ReportingWindowStatus] = service.getReportingWindowStatus(testCredentialId).value.futureValue
+      val result: Either[ErrorResponse, ReportingWindowStatus] = service.getReportingWindowStatus(validZReference).value.futureValue
 
       result shouldBe Left(InternalServerErr())
     }
