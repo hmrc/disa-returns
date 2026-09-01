@@ -129,13 +129,13 @@ class SubmissionConnector @Inject() (
       }
   }
 
-  def getReportingWindowStatus(credId: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/reporting-window/status"
+  def getReportingWindowStatus(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/reporting-window/status/$zReference"
     read(
       retryFor("get submission reporting window status")(retryCondition) {
         httpClient
           .get(url"$url")
-          .setHeader(authorizationHeader, "X-Cred-Id" -> credId)
+          .setHeader(authorizationHeader)
           .executeOrFail
           .map(Right(_))
       },

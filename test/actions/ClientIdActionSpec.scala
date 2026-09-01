@@ -21,7 +21,6 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.ClientIdAction
-import uk.gov.hmrc.disareturns.models.common.AuthenticatedRequest
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -34,7 +33,7 @@ class ClientIdActionSpec extends BaseUnitSpec {
       val action  = new ClientIdAction()
       val request = FakeRequest().withHeaders("X-Client-ID" -> "client-123")
 
-      whenReady(action.refine(AuthenticatedRequest(request, testCredentialId))) {
+      whenReady(action.refine(request)) {
         case Right(clientIdRequest) =>
           clientIdRequest.clientId shouldBe "client-123"
           clientIdRequest.request  shouldBe request
@@ -48,7 +47,7 @@ class ClientIdActionSpec extends BaseUnitSpec {
       val action  = new ClientIdAction()
       val request = FakeRequest()
 
-      whenReady(action.refine(AuthenticatedRequest(request, testCredentialId))) {
+      whenReady(action.refine(request)) {
         case Left(result) =>
           val resultF = Future.successful(result)
           status(resultF)        shouldBe BAD_REQUEST

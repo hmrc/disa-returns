@@ -25,8 +25,8 @@ import play.api.mvc.{AnyContent, Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.authorise.Predicate
-import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval, ~}
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{authorisedEnrolments, credentials}
+import uk.gov.hmrc.auth.core.retrieve.Retrieval
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
 import uk.gov.hmrc.auth.core.{Enrolment, Enrolments, UnsupportedAuthProvider}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
@@ -57,8 +57,8 @@ class AuthActionSpec extends BaseUnitSpec {
       val predicateCaptor: ArgumentCaptor[Predicate] =
         ArgumentCaptor.forClass(classOf[Predicate])
 
-      val retrievalCaptor: ArgumentCaptor[Retrieval[Enrolments ~ Option[Credentials]]] =
-        ArgumentCaptor.forClass(classOf[Retrieval[Enrolments ~ Option[Credentials]]])
+      val retrievalCaptor: ArgumentCaptor[Retrieval[Enrolments]] =
+        ArgumentCaptor.forClass(classOf[Retrieval[Enrolments]])
 
       verify(mockAuthConnector).authorise(
         predicateCaptor.capture(),
@@ -69,7 +69,7 @@ class AuthActionSpec extends BaseUnitSpec {
       val expectedPredicate = Enrolment("HMRC-DISA-ORG")
 
       val actualRetrieval   = retrievalCaptor.getValue
-      val expectedRetrieval = authorisedEnrolments and credentials
+      val expectedRetrieval = authorisedEnrolments
 
       withClue(
         s"""

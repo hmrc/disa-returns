@@ -24,6 +24,10 @@ Reference instructions for [setting up docker](https://docs.tax.service.gov.uk/m
 ### Running the app
 
 ```bash
+sbt run -Dapplication.router=testOnlyDoNotUseInAppConf.Routes
+```
+
+```bash
 # Run the app locally with service manager
 sm2 --start DISA_RETURNS_ALL
 ```
@@ -45,6 +49,35 @@ To run the integration tests:
 ```bash
 sbt it/test
 ```
+
+#### Delete Monthly Return Summaries
+
+```text
+POST /test-only/monthly
+Content-Type: application/json
+```
+
+```json
+{
+  "zReferences": ["Z1000", "Z1001"]
+}
+```
+
+The endpoint deletes monthly-return summaries only for the supplied normalized Z-references. It returns `204 No
+Content` on success and `400 Bad Request` for an empty or invalid body. It must not run during active traffic for those
+Z-references.
+
+### API Paths
+
+Monthly-return API paths are periodless. The current routes are:
+
+- `POST /monthly/:zReference`
+- `POST /monthly/:zReference/declaration`
+- `GET /monthly/:zReference/results/summary`
+- `GET /monthly/:zReference/results?page=:page`
+- `POST /callback/monthly/:zReference`
+
+Tax year and month are derived by the service rather than supplied as path parameters.
 
 ### Before you commit
 
@@ -83,8 +116,8 @@ To view and test this documentation locally, follow the instructions below.
 # Run the API platform devhub preview locally with service manager
 sm2 -start DEVHUB_PREVIEW_OPENAPI
 
-# Run disa returns locally
-sbt run
+# Run disa returns locally with test-only routes enabled
+sbt run -Dapplication.router=testOnlyDoNotUseInAppConf.Routes
 
 # Open the API platform devhub preview in your browser
 open http://localhost:9680/api-documentation/docs/openapi/preview/

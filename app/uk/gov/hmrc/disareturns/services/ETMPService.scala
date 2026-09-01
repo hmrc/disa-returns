@@ -50,11 +50,10 @@ class ETMPService @Inject() (connector: ETMPConnector, reportingWindowService: R
   }
 
   def validateEtmpSubmissionEligibility(
-    zReference:  String,
-    credId:      String
+    zReference:  String
   )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)]] =
     for {
-      reportingWindowEither <- reportingWindowService.getReportingWindowStatus(credId).value
+      reportingWindowEither <- reportingWindowService.getReportingWindowStatus(zReference).value
       obligationsEither     <- getObligationStatus(zReference).value
     } yield for {
       reportingWindow <- reportingWindowEither

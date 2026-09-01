@@ -23,6 +23,5 @@ trait TestData {
   val zReferenceGen: Gen[String] =
     Gen.listOfN(4, Gen.numChar).map(digits => s"Z${digits.mkString}")
 
-  val validZReference:  String = zReferenceGen.sample.get
-  val testCredentialId: String = "cred-id"
+  val validZReference: String = zReferenceGen.sample.get
 }

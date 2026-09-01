@@ -69,4 +69,10 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
       .toFuture()
       .map(_ => ())
   }
+
+  def deleteByZReferences(zReferences: Seq[String]): Future[Unit] =
+    collection
+      .deleteMany(Filters.in("zRef", zReferences: _*))
+      .toFuture()
+      .map(_ => ())
 }

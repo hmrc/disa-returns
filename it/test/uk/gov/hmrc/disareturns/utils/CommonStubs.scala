@@ -35,11 +35,7 @@ trait CommonStubs { self: TestData =>
         "key": "HMRC-DISA-ORG",
         "identifiers": [{ "key": "ZREF", "value": "$zRef" }],
         "state": "Activated"
-      }],
-      "optionalCredentials": {
-        "providerId": "$testCredentialId",
-        "providerType": "GovernmentGateway"
-      }
+      }]
       }"""
 
     stubFor {
@@ -60,10 +56,10 @@ trait CommonStubs { self: TestData =>
         }
     }
 
-  def stubReportingWindow(status: Int, body: JsObject): Unit =
+  def stubReportingWindow(status: Int, body: JsObject, zReference: String = validZReference): Unit =
     stubFor(
-      get(urlEqualTo("/disa-returns-submission/reporting-window/status"))
-        .withHeader("X-Cred-Id", equalTo(testCredentialId))
+      get(urlEqualTo(s"/disa-returns-submission/reporting-window/status/$zReference"))
+        .withHeader(AUTHORIZATION, matching(".+"))
         .willReturn(aResponse().withStatus(status).withBody(body.toString))
     )
 

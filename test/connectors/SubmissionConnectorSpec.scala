@@ -52,11 +52,9 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       .thenReturn(mockRequestBuilder)
     when(mockHttpClient.put(url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions/$submissionId"))
       .thenReturn(mockRequestBuilder)
-    when(mockHttpClient.get(url"$testUrl/disa-returns-submission/reporting-window/status"))
+    when(mockHttpClient.get(url"$testUrl/disa-returns-submission/reporting-window/status/$validZReference"))
       .thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.setHeader(AUTHORIZATION -> internalAuthToken)).thenReturn(mockRequestBuilder)
-    when(mockRequestBuilder.setHeader(AUTHORIZATION -> internalAuthToken, "X-Cred-Id" -> testCredentialId))
-      .thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
   }
 
@@ -274,16 +272,14 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
   }
 
   "SubmissionConnector.getReportingWindowStatus" should {
-    "return the successful response and send internal authorization and credential ID" in new TestSetup {
+    "return the successful response and send internal authorization" in new TestSetup {
       val response = HttpResponse(OK, """{"reportingWindowOpen":true}""")
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(response)))
 
-      connector.getReportingWindowStatus(testCredentialId).value.futureValue shouldBe Right(response)
-      verify(mockRequestBuilder).setHeader(
-        AUTHORIZATION -> internalAuthToken,
-        "X-Cred-Id"   -> testCredentialId
-      )
+      connector.getReportingWindowStatus(validZReference).value.futureValue shouldBe Right(response)
+      verify(mockHttpClient).get(url"$testUrl/disa-returns-submission/reporting-window/status/$validZReference")
+      verify(mockRequestBuilder).setHeader(AUTHORIZATION -> internalAuthToken)
     }
 
     "return a client error without retrying" in new TestSetup {
@@ -291,7 +287,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(error)))
 
-      connector.getReportingWindowStatus(testCredentialId).value.futureValue shouldBe Left(error)
+      connector.getReportingWindowStatus(validZReference).value.futureValue shouldBe Left(error)
       verify(mockRequestBuilder, times(1)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
@@ -300,7 +296,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(error)))
 
-      connector.getReportingWindowStatus(testCredentialId).value.futureValue shouldBe Left(error)
+      connector.getReportingWindowStatus(validZReference).value.futureValue shouldBe Left(error)
       verify(mockRequestBuilder, times(4)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
@@ -308,7 +304,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(new RuntimeException("Connection timeout")))
 
-      val result = connector.getReportingWindowStatus(testCredentialId).value.futureValue.left.value
+      val result = connector.getReportingWindowStatus(validZReference).value.futureValue.left.value
       result.statusCode shouldBe INTERNAL_SERVER_ERROR
       result.message      should include("Unexpected error: Connection timeout")
     }
