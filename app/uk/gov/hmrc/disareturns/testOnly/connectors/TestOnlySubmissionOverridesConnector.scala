@@ -30,8 +30,8 @@ import scala.util.Try
 
 @Singleton
 class TestOnlySubmissionOverridesConnector @Inject() (
-  httpClient: HttpClientV2,
-  appConfig:  AppConfig
+  httpClient:  HttpClientV2,
+  appConfig:   AppConfig
 )(implicit ec: ExecutionContext) {
 
   import TestOnlySubmissionOverridesConnector.*
@@ -58,8 +58,8 @@ object TestOnlySubmissionOverridesConnector {
   private def temporalReads[A](parse: String => A, error: String): Reads[A] =
     Reads.StringReads.flatMapResult(value => Try(parse(value)).fold(_ => JsError(error), JsSuccess(_)))
 
-  private given Reads[LocalDate] = temporalReads(LocalDate.parse, "error.expected.date.iso")
-  private given Reads[Instant]   = temporalReads(Instant.parse, "error.expected.instant.iso")
+  private given Reads[LocalDate]       = temporalReads(LocalDate.parse, "error.expected.date.iso")
+  private given Reads[Instant]         = temporalReads(Instant.parse, "error.expected.instant.iso")
   given Reads[ClockOverride]           = Json.reads[ClockOverride]
   given Reads[ReportingWindowOverride] = Json.reads[ReportingWindowOverride]
   given Reads[TestOverride]            = Json.reads[TestOverride]

@@ -29,7 +29,7 @@ class TestOnlySubmissionReportingPeriodSource @Inject() (
   connector:              TestOnlySubmissionOverridesConnector,
   reportingPeriodService: ReportingPeriodService,
   clock:                  SystemClock
-)(implicit ec: ExecutionContext)
+)(implicit ec:            ExecutionContext)
     extends ReportingPeriodSource {
 
   override def get(zReference: String)(implicit hc: HeaderCarrier): Future[ReportingPeriod] =
