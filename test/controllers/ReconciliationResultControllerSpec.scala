@@ -41,6 +41,7 @@ class ReconciliationResultControllerSpec extends BaseUnitSpec {
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(report)
+      verify(mockReportingPeriodSource).get(eqTo(validZReference))(any)
       verify(mockNPSService).retrieveReconciliationReportPage(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(0))(any)
     }
 

@@ -79,6 +79,12 @@ Monthly-return API paths are periodless. The current routes are:
 
 Tax year and month are derived by the service rather than supplied as path parameters.
 
+With the production router, the previous monthly reporting period is always derived from this service's system clock.
+When the test-only router is enabled, the service reads the optional clock override from
+`GET /disa-returns-submission/test-only/overrides/:zReference` in `disa-returns-submission`. It uses the override's
+`clock.date` when present and its local system clock when `clock` is absent or null. An unavailable or invalid response
+still fails the request. Reporting-window status continues to use its dedicated endpoint.
+
 ### Before you commit
 
 This service leverages scalaFmt to ensure that the code is formatted correctly.

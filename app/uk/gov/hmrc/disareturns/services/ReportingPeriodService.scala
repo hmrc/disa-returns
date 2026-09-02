@@ -18,14 +18,14 @@ package uk.gov.hmrc.disareturns.services
 
 import uk.gov.hmrc.disareturns.models.common.{Month, ReportingPeriod}
 
-import java.time.{Clock, LocalDate, YearMonth}
+import java.time.{LocalDate, YearMonth}
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class ReportingPeriodService @Inject() (clock: Clock) {
+class ReportingPeriodService @Inject() () {
 
-  def previousMonthPeriod: ReportingPeriod = {
-    val previousYearMonth: YearMonth   = YearMonth.from(LocalDate.now(clock)).minusMonths(1)
+  def previousMonthPeriod(effectiveDate: LocalDate): ReportingPeriod = {
+    val previousYearMonth: YearMonth   = YearMonth.from(effectiveDate).minusMonths(1)
     val month:             Month.Value = Month(previousYearMonth.getMonthValue)
     val isAprilOrLater:    Boolean     = month.id >= Month.APR.id
     val taxYearStart:      Int         = if (isAprilOrLater) previousYearMonth.getYear else previousYearMonth.getYear - 1

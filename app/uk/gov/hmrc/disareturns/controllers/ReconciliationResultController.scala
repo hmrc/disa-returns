@@ -21,8 +21,10 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.AuthAction
 import uk.gov.hmrc.disareturns.models.common.InvalidPageErr
-import uk.gov.hmrc.disareturns.services.{NPSService, ReportingPeriodService}
+import uk.gov.hmrc.disareturns.services.{NPSService, ReportingPeriodSource}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -30,11 +32,11 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class ReconciliationResultController @Inject() (
-  cc:                     ControllerComponents,
-  npsService:             NPSService,
-  reportingPeriodService: ReportingPeriodService,
-  authAction:             AuthAction
-)(implicit ec:            ExecutionContext)
+  cc:                    ControllerComponents,
+  npsService:            NPSService,
+  reportingPeriodSource: ReportingPeriodSource,
+  authAction:            AuthAction
+)(implicit ec:           ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
@@ -44,18 +46,20 @@ class ReconciliationResultController @Inject() (
         Action(_ => BadRequest(Json.toJson(errors)))
       case Right((zReference, Some(page))) =>
         (Action andThen authAction(zReference)).async { implicit request =>
-          val reportingPeriod = reportingPeriodService.previousMonthPeriod
-          npsService.retrieveReconciliationReportPage(zReference, reportingPeriod.taxYear, reportingPeriod.month, page).map {
-            case Left(errorResponse) =>
-              logger.error(
-                s"[ReconciliationResultController][retrieveReconciliationReportPage] Failed to retrieve report page [$page] for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] with error: [$errorResponse]"
-              )
-              HttpHelper.toHttpError(errorResponse)
-            case Right(reportPage) =>
-              logger.info(
-                s"[ReconciliationResultController][retrieveReconciliationReportPage] Retrieval of report page [$page] successful for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}]"
-              )
-              Ok(Json.toJson(reportPage))
+          implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
+          reportingPeriodSource.get(zReference).flatMap { reportingPeriod =>
+            npsService.retrieveReconciliationReportPage(zReference, reportingPeriod.taxYear, reportingPeriod.month, page).map {
+              case Left(errorResponse) =>
+                logger.error(
+                  s"[ReconciliationResultController][retrieveReconciliationReportPage] Failed to retrieve report page [$page] for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] with error: [$errorResponse]"
+                )
+                HttpHelper.toHttpError(errorResponse)
+              case Right(reportPage) =>
+                logger.info(
+                  s"[ReconciliationResultController][retrieveReconciliationReportPage] Retrieval of report page [$page] successful for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}]"
+                )
+                Ok(Json.toJson(reportPage))
+            }
           }
         }
       case Right(_) =>

@@ -21,9 +21,11 @@ import com.typesafe.config.Config
 import org.apache.pekko.actor.ActorSystem
 import play.api.libs.concurrent.Futures
 import uk.gov.hmrc.disareturns.AppInitialiser
+import uk.gov.hmrc.disareturns.services.{ReportingPeriodSource, SystemReportingPeriodSource}
+import uk.gov.hmrc.disareturns.testOnly.services.TestOnlySubmissionReportingPeriodSource
 import uk.gov.hmrc.http.client.HttpClientV2
 
-import javax.inject.Singleton
+import javax.inject.{Provider, Singleton}
 import java.time.Clock
 import scala.concurrent.ExecutionContext
 
@@ -37,6 +39,19 @@ class Module extends AbstractModule {
   @Provides
   @Singleton
   def provideClock(): Clock = Clock.systemUTC()
+
+  @Provides
+  @Singleton
+  def provideReportingPeriodSource(
+    config:                   Config,
+    systemSource:             Provider[SystemReportingPeriodSource],
+    submissionOverrideSource: Provider[TestOnlySubmissionReportingPeriodSource]
+  ): ReportingPeriodSource =
+    if (config.hasPath("application.router") && config.getString("application.router") == "testOnlyDoNotUseInAppConf.Routes") {
+      submissionOverrideSource.get()
+    } else {
+      systemSource.get()
+    }
 
   @Provides
   @Singleton

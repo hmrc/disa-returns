@@ -20,7 +20,7 @@ import uk.gov.hmrc.disareturns.models.common.{Month, ReportingPeriod}
 import uk.gov.hmrc.disareturns.services.ReportingPeriodService
 import utils.BaseUnitSpec
 
-import java.time.{Clock, Instant, ZoneOffset}
+import java.time.LocalDate
 
 class ReportingPeriodServiceSpec extends BaseUnitSpec {
 
@@ -33,8 +33,8 @@ class ReportingPeriodServiceSpec extends BaseUnitSpec {
       ("2026-05-06T00:00:00Z", ReportingPeriod("2026-27", Month.APR), "6 May to April in the new tax year")
     ).foreach { case (instant, expected, description) =>
       s"map $description" in {
-        val service = new ReportingPeriodService(Clock.fixed(Instant.parse(instant), ZoneOffset.UTC))
-        service.previousMonthPeriod shouldBe expected
+        val service = new ReportingPeriodService()
+        service.previousMonthPeriod(LocalDate.parse(instant.take(10))) shouldBe expected
       }
     }
   }
