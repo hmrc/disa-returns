@@ -21,6 +21,7 @@ import com.typesafe.config.Config
 import org.apache.pekko.actor.ActorSystem
 import play.api.libs.concurrent.Futures
 import uk.gov.hmrc.disareturns.AppInitialiser
+import uk.gov.hmrc.disareturns.controllers.actionBuilders.{AuthAction, AuthenticatedAuthAction, EnrolmentVerificationAuthAction}
 import uk.gov.hmrc.disareturns.services.{ReportingPeriodSource, SystemReportingPeriodSource}
 import uk.gov.hmrc.disareturns.testOnly.services.TestOnlySubmissionReportingPeriodSource
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -52,6 +53,16 @@ class Module extends AbstractModule {
     } else {
       systemSource.get()
     }
+
+  @Provides
+  @Singleton
+  def provideAuthAction(
+    config:                          Config,
+    enrolmentVerificationAuthAction: EnrolmentVerificationAuthAction,
+    authenticatedAuthAction:         AuthenticatedAuthAction
+  ): AuthAction =
+    if (config.getBoolean("features.enrolment-verification-enabled")) enrolmentVerificationAuthAction
+    else authenticatedAuthAction
 
   @Provides
   @Singleton

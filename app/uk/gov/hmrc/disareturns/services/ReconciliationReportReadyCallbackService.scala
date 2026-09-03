@@ -29,8 +29,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ReconciliationReportReadyCallbackService @Inject() (
-  repository:  ReconciliationReportReadyRepository,
-  appConfig:   AppConfig
+  repository: ReconciliationReportReadyRepository,
+  appConfig:  AppConfig
 )(implicit ec: ExecutionContext)
     extends Logging {
 

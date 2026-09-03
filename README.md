@@ -36,6 +36,13 @@ sm2 --start DISA_RETURNS_ALL
 curl http://localhost:1200/api/definition
 ```
 
+### Enrolment verification
+
+The `features.enrolment-verification-enabled` flag controls whether authenticated API requests must have an active
+`HMRC-DISA-ORG` enrolment whose `ZREF` identifier matches the Z-reference in the request path. It defaults to `true`.
+When disabled, requests must still be authenticated, but the DISA enrolment and Z-reference match are not checked. The
+deployment configuration disables enrolment verification in External Test.
+
 ### Running the test suite
 
 To run the unit tests:

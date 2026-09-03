@@ -29,14 +29,21 @@ import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit val ec: ExecutionContext) {
+trait AuthAction {
+  def apply(zRef: String): ActionBuilder[Request, AnyContent]
+}
 
-  private val auth = new AuthorisedFunctions {
+abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext) extends AuthAction {
+
+  protected val auth: AuthorisedFunctions = new AuthorisedFunctions {
     override def authConnector: AuthConnector = ac
   }
 
-  def apply(zRef: String): ActionBuilder[Request, AnyContent] =
+  protected def authorise[A](zRef: String, request: Request[A], block: Request[A] => Future[Result])(implicit
+    hc:                            HeaderCarrier
+  ): Future[Result]
+
+  final override def apply(zRef: String): ActionBuilder[Request, AnyContent] =
     new ActionBuilder[Request, AnyContent] with Logging {
 
       override def parser:                     BodyParser[AnyContent] = cc.parsers.defaultBodyParser
@@ -48,14 +55,7 @@ class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implici
       ): Future[Result] = {
         implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
-        auth.authorised(Enrolment(enrolmentKey)).retrieve(authorisedEnrolments) { enrolments =>
-          val zRefMatchesEnrolment = enrolments
-            .getEnrolment(enrolmentKey)
-            .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
-
-          if (zRefMatchesEnrolment) block(request)
-          else throw InternalError("Z-Ref does not match enrolment.")
-        } recover {
+        authorise(zRef, request, block) recover {
           case ex: AuthorisationException =>
             logger.warn(s"[AuthAction][invokeBlock] Authorization failed. Error: ${ex.reason}")
             Unauthorized(Json.toJson(UnauthorisedErr))
@@ -66,7 +66,33 @@ class AuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implici
         }
       }
     }
+}
+
+@Singleton
+class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext)
+    extends BaseAuthAction(ac, cc) {
+
+  override protected def authorise[A](zRef: String, request: Request[A], block: Request[A] => Future[Result])(implicit
+    hc:                                     HeaderCarrier
+  ): Future[Result] =
+    auth.authorised(Enrolment(enrolmentKey)).retrieve(authorisedEnrolments) { enrolments =>
+      val zRefMatchesEnrolment = enrolments
+        .getEnrolment(enrolmentKey)
+        .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
+
+      if (zRefMatchesEnrolment) block(request)
+      else throw InternalError("Z-Ref does not match enrolment.")
+    }
 
   private val enrolmentKey  = "HMRC-DISA-ORG"
   private val identifierKey = "ZREF"
+}
+
+@Singleton
+class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext) extends BaseAuthAction(ac, cc) {
+
+  override protected def authorise[A](zRef: String, request: Request[A], block: Request[A] => Future[Result])(implicit
+    hc:                                     HeaderCarrier
+  ): Future[Result] =
+    auth.authorised()(block(request))
 }

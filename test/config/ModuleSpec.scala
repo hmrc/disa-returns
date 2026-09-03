@@ -20,6 +20,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers.running
+import uk.gov.hmrc.disareturns.controllers.actionBuilders.{AuthAction, AuthenticatedAuthAction, EnrolmentVerificationAuthAction}
 import uk.gov.hmrc.disareturns.services.{ReportingPeriodSource, SystemReportingPeriodSource}
 import uk.gov.hmrc.disareturns.testOnly.services.TestOnlySubmissionReportingPeriodSource
 
@@ -46,6 +47,32 @@ class ModuleSpec extends AnyWordSpec with Matchers {
 
       running(application) {
         application.injector.instanceOf[ReportingPeriodSource] shouldBe a[SystemReportingPeriodSource]
+      }
+    }
+
+    "bind the enrolment verification auth action when enrolment verification is enabled" in {
+      val application = new GuiceApplicationBuilder()
+        .configure(
+          "create-internal-auth-token-on-start"     -> false,
+          "features.enrolment-verification-enabled" -> true
+        )
+        .build()
+
+      running(application) {
+        application.injector.instanceOf[AuthAction] shouldBe a[EnrolmentVerificationAuthAction]
+      }
+    }
+
+    "bind the authenticated auth action when enrolment verification is disabled" in {
+      val application = new GuiceApplicationBuilder()
+        .configure(
+          "create-internal-auth-token-on-start"     -> false,
+          "features.enrolment-verification-enabled" -> false
+        )
+        .build()
+
+      running(application) {
+        application.injector.instanceOf[AuthAction] shouldBe a[AuthenticatedAuthAction]
       }
     }
   }
