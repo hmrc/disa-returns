@@ -19,18 +19,19 @@ package utils
 import org.scalacheck.Gen
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.disareturns.models.common.Month
-import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
+import uk.gov.hmrc.disareturns.models.ppns.ReconciliationReportReadyNotification
 
 trait TestData {
 
   val zReferenceGen: Gen[String] =
     Gen.listOfN(4, Gen.numChar).map(digits => s"Z${digits.mkString}")
 
-  val validZReference:      String               = zReferenceGen.sample.get
-  val validTaxYear:         String               = "2026-27"
-  val validMonth:           Month.Value          = Month.SEP
-  val validMonthStr:        String               = "SEP"
-  val returnSummaryResults: ReturnSummaryResults = ReturnSummaryResults(returnResultsLocation = "some-location", totalRecords = 20, numberOfPages = 2)
+  val validZReference: String      = zReferenceGen.sample.get
+  val validTaxYear:    String      = "2026-27"
+  val validMonth:      Month.Value = Month.SEP
+  val validMonthStr:   String      = "SEP"
+  val reconciliationReportReadyNotification: ReconciliationReportReadyNotification =
+    ReconciliationReportReadyNotification(returnResultsLocation = "some-location", totalRecords = 20, numberOfPages = 2)
 
   val lifetimeIsaSubscriptionJson: JsObject = Json.obj(
     "accountNumber"                       -> "STD000001",

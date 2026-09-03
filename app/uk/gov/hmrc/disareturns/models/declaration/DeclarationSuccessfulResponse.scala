@@ -18,7 +18,7 @@ package uk.gov.hmrc.disareturns.models.declaration
 
 import play.api.libs.json.{Json, OFormat}
 
-case class DeclarationSuccessfulResponse(returnResultsSummaryLocation: String, boxId: Option[String] = None)
+case class DeclarationSuccessfulResponse(boxId: Option[String] = None)
 
 object DeclarationSuccessfulResponse {
   implicit val format: OFormat[DeclarationSuccessfulResponse] = Json.format[DeclarationSuccessfulResponse]

@@ -19,7 +19,7 @@ package uk.gov.hmrc.disareturns.services
 import com.google.inject.Inject
 import play.api.Logging
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
-import uk.gov.hmrc.disareturns.models.summary.repository.NotificationContext
+import uk.gov.hmrc.disareturns.models.ppns.NotificationContext
 import uk.gov.hmrc.disareturns.repositories.NotificationContextRepository
 
 import javax.inject.Singleton

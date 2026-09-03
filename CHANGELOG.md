@@ -2,6 +2,17 @@
 
 All notable changes to this API will be documented in this file. Learn about API features, fixes, deprecations and documentation changes.
 
+## 3 September 2026
+
+### Updates
+
+- Removed the `GET /monthly/{zReference}/results/summary` endpoint.
+- Removed `returnResultsSummaryLocation` from successful declaration responses.
+
+### What impact does this have?
+
+- Consumers may use the Push-Pull Notifications Service to receive notifications when new reconciliation results are available.
+
 ## 14 August 2026
 
 ### Updates

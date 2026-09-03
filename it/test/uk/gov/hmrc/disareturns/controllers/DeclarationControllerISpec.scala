@@ -45,7 +45,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
        |""".stripMargin
 
   "POST /monthly/:zReference/declaration" should {
-    "generate the reporting period internally and return a periodless summary location" in {
+    "generate the reporting period internally" in {
       stubEligible()
       stubSubmissionDeclaration(ok, validZReference, taxYear, month)
       stubPPNSBoxId(boxResponseJson, testClientId)
@@ -53,7 +53,6 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
       val result = declarationRequest()
 
       result.status shouldBe OK
-      (result.json \ "returnResultsSummaryLocation").as[String] should include(s"/monthly/$validZReference/results/summary")
       (result.json \ "boxId").as[String] shouldBe boxId
     }
 

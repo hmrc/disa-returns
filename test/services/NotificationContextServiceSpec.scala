@@ -20,7 +20,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.common.InternalServerErr
-import uk.gov.hmrc.disareturns.models.summary.repository.NotificationContext
+import uk.gov.hmrc.disareturns.models.ppns.NotificationContext
 import uk.gov.hmrc.disareturns.services.NotificationContextService
 import utils.BaseUnitSpec
 

@@ -17,7 +17,7 @@
 package repositories
 import org.mongodb.scala.SingleObservableFuture
 import play.api.test.Helpers.await
-import uk.gov.hmrc.disareturns.models.summary.repository.NotificationContext
+import uk.gov.hmrc.disareturns.models.ppns.NotificationContext
 import uk.gov.hmrc.disareturns.repositories.NotificationContextRepository
 import uk.gov.hmrc.mongo.MongoComponent
 import utils.BaseUnitSpec

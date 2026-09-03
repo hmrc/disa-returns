@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.summary
+package uk.gov.hmrc.disareturns.models.ppns
 
 import play.api.libs.json.{Json, OFormat}
 
-case class ReturnSummaryResults(returnResultsLocation: String, totalRecords: Int, numberOfPages: Int)
+case class NotificationContext(clientId: String, boxId: Option[String], zReference: String)
 
-object ReturnSummaryResults {
-  implicit val format: OFormat[ReturnSummaryResults] = Json.format[ReturnSummaryResults]
+object NotificationContext {
+  implicit val mongoFormat: OFormat[NotificationContext] = Json.format[NotificationContext]
 }

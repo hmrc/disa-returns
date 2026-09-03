@@ -32,7 +32,7 @@ import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.*
-import uk.gov.hmrc.disareturns.repositories.{MonthlyReturnsSummaryRepository, NotificationContextRepository}
+import uk.gov.hmrc.disareturns.repositories.{NotificationContextRepository, ReconciliationReportReadyRepository}
 import uk.gov.hmrc.disareturns.services.*
 import uk.gov.hmrc.disareturns.utils.UuidGenerator
 import uk.gov.hmrc.http.HeaderCarrier
@@ -73,7 +73,7 @@ abstract class BaseUnitSpec
       mockSubmissionService,
       mockUuidGenerator,
       mockNotificationContextService,
-      mockReturnsSummaryService,
+      mockReconciliationReportReadyCallbackService,
       mockReportingWindowService,
       mockReportingPeriodSource
     )
@@ -82,26 +82,26 @@ abstract class BaseUnitSpec
   }
 
   //MOCKS
-  val mockHttpClient:                    HttpClientV2                    = mock[HttpClientV2]
-  val mockAppConfig:                     AppConfig                       = mock[AppConfig]
-  val mockRequestBuilder:                RequestBuilder                  = mock[RequestBuilder]
-  val mockPPNSService:                   PPNSService                     = mock[PPNSService]
-  val mockPPNSConnector:                 PPNSConnector                   = mock[PPNSConnector]
-  val mockETMPConnector:                 ETMPConnector                   = mock[ETMPConnector]
-  val mockETMPService:                   ETMPService                     = mock[ETMPService]
-  val mockBaseConnector:                 BaseConnector                   = mock[BaseConnector]
-  val mockStreamingParserService:        StreamingParserService          = mock[StreamingParserService]
-  val mockReturnsSummaryService:         ReturnsSummaryService           = mock[ReturnsSummaryService]
-  val mockReturnsSummaryRepository:      MonthlyReturnsSummaryRepository = mock[MonthlyReturnsSummaryRepository]
-  val mockNPSConnector:                  NPSConnector                    = mock[NPSConnector]
-  val mockNPSService:                    NPSService                      = mock[NPSService]
-  val mockSubmissionConnector:           SubmissionConnector             = mock[SubmissionConnector]
-  val mockSubmissionService:             SubmissionService               = mock[SubmissionService]
-  val mockUuidGenerator:                 UuidGenerator                   = mock[UuidGenerator]
-  val mockNotificationContextRepository: NotificationContextRepository   = mock[NotificationContextRepository]
-  val mockNotificationContextService:    NotificationContextService      = mock[NotificationContextService]
-  val mockReportingWindowService:        ReportingWindowService          = mock[ReportingWindowService]
-  val mockReportingPeriodSource:         ReportingPeriodSource           = mock[ReportingPeriodSource]
+  val mockHttpClient:                               HttpClientV2                             = mock[HttpClientV2]
+  val mockAppConfig:                                AppConfig                                = mock[AppConfig]
+  val mockRequestBuilder:                           RequestBuilder                           = mock[RequestBuilder]
+  val mockPPNSService:                              PPNSService                              = mock[PPNSService]
+  val mockPPNSConnector:                            PPNSConnector                            = mock[PPNSConnector]
+  val mockETMPConnector:                            ETMPConnector                            = mock[ETMPConnector]
+  val mockETMPService:                              ETMPService                              = mock[ETMPService]
+  val mockBaseConnector:                            BaseConnector                            = mock[BaseConnector]
+  val mockStreamingParserService:                   StreamingParserService                   = mock[StreamingParserService]
+  val mockReconciliationReportReadyCallbackService: ReconciliationReportReadyCallbackService = mock[ReconciliationReportReadyCallbackService]
+  val mockReconciliationReportReadyRepository:      ReconciliationReportReadyRepository      = mock[ReconciliationReportReadyRepository]
+  val mockNPSConnector:                             NPSConnector                             = mock[NPSConnector]
+  val mockNPSService:                               NPSService                               = mock[NPSService]
+  val mockSubmissionConnector:                      SubmissionConnector                      = mock[SubmissionConnector]
+  val mockSubmissionService:                        SubmissionService                        = mock[SubmissionService]
+  val mockUuidGenerator:                            UuidGenerator                            = mock[UuidGenerator]
+  val mockNotificationContextRepository:            NotificationContextRepository            = mock[NotificationContextRepository]
+  val mockNotificationContextService:               NotificationContextService               = mock[NotificationContextService]
+  val mockReportingWindowService:                   ReportingWindowService                   = mock[ReportingWindowService]
+  val mockReportingPeriodSource:                    ReportingPeriodSource                    = mock[ReportingPeriodSource]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .configure(
@@ -114,8 +114,8 @@ abstract class BaseUnitSpec
       bind[PPNSService].toInstance(mockPPNSService),
       bind[StreamingParserService].toInstance(mockStreamingParserService),
       bind[AppConfig].toInstance(mockAppConfig),
-      bind[ReturnsSummaryService].toInstance(mockReturnsSummaryService),
-      bind[MonthlyReturnsSummaryRepository].toInstance(mockReturnsSummaryRepository),
+      bind[ReconciliationReportReadyCallbackService].toInstance(mockReconciliationReportReadyCallbackService),
+      bind[ReconciliationReportReadyRepository].toInstance(mockReconciliationReportReadyRepository),
       bind[NPSService].toInstance(mockNPSService),
       bind[SubmissionService].toInstance(mockSubmissionService),
       bind[NotificationContextService].toInstance(mockNotificationContextService),

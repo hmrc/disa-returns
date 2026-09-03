@@ -14,25 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.summary.repository
+package uk.gov.hmrc.disareturns.models.ppns
 
-import play.api.libs.json._
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import play.api.libs.json.{Json, OFormat}
 
-import java.time.Instant
+case class ReconciliationReportReadyNotification(returnResultsLocation: String, totalRecords: Int, numberOfPages: Int)
 
-case class MonthlyReturnsSummary(
-  zRef:         String,
-  totalRecords: Int,
-  createdAt:    Instant = Instant.now(),
-  updatedAt:    Instant = Instant.now()
-)
-
-object MonthlyReturnsSummary {
-
-  implicit val instantFormat: Format[Instant] =
-    Format(MongoJavatimeFormats.instantReads, MongoJavatimeFormats.instantWrites)
-
-  implicit val mongoFormat: OFormat[MonthlyReturnsSummary] =
-    Json.format[MonthlyReturnsSummary]
+object ReconciliationReportReadyNotification {
+  implicit val format: OFormat[ReconciliationReportReadyNotification] = Json.format[ReconciliationReportReadyNotification]
 }

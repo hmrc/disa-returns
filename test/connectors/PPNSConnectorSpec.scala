@@ -88,12 +88,12 @@ class PPNSConnectorSpec extends BaseUnitSpec {
 
   }
 
-  "PPNSConnector.sendNotification" should {
+  "PPNSConnector.sendReconciliationReportReadyNotification" should {
 
     "successfully send a notification" in new TestSetup {
       val httpResponse: HttpResponse = HttpResponse(201, "")
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())).thenReturn(Future.successful(Right(httpResponse)))
-      connector.sendNotification(testBoxId, returnSummaryResults).futureValue shouldBe ()
+      connector.sendReconciliationReportReadyNotification(testBoxId, reconciliationReportReadyNotification).futureValue shouldBe ()
     }
   }
 }

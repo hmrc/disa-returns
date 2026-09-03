@@ -43,7 +43,6 @@ class DeclarationControllerSpec extends BaseUnitSpec {
   val boxId    = "box-123"
   val obligation:      EtmpObligations       = EtmpObligations(false)
   val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(true)
-  val testUrl           = "http://localhost:9000"
   val invalidZReference = "Z12345454"
 
   val nilReturnBody: JsValue = Json.toJson(ReportingNilReturn(nilReturn = false))
@@ -55,7 +54,6 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
-      when(mockAppConfig.selfHost).thenReturn(testUrl)
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
       when(mockPPNSService.getBoxId(any())(any()))
@@ -69,11 +67,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
       val result = call(controller.declare(validZReference), request)
 
-      val summaryLocation = s"$testUrl/monthly/$validZReference/results/summary"
-
-      status(result)                                                      shouldBe OK
-      (contentAsJson(result) \ "returnResultsSummaryLocation").as[String] shouldBe summaryLocation
-      (contentAsJson(result) \ "boxId").as[String]                        shouldBe boxId
+      status(result)                               shouldBe OK
+      (contentAsJson(result) \ "boxId").as[String] shouldBe boxId
       verify(mockReportingPeriodSource).get(eqTo(validZReference))(any())
       verify(mockETMPService).validateEtmpSubmissionEligibility(eqTo(validZReference))(any(), any())
     }
@@ -83,7 +78,6 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       val httpResponse: HttpResponse = HttpResponse(200, "")
-      when(mockAppConfig.selfHost).thenReturn(testUrl)
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
       when(mockPPNSService.getBoxId(any())(any()))
@@ -97,10 +91,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
       val result = call(controller.declare(validZReference), request)
 
-      val summaryLocation = s"$testUrl/monthly/$validZReference/results/summary"
-
-      status(result)                                                      shouldBe OK
-      (contentAsJson(result) \ "returnResultsSummaryLocation").as[String] shouldBe summaryLocation
+      status(result) shouldBe OK
     }
 
     "return 400 BadRequest when validation fails for zReference" in {

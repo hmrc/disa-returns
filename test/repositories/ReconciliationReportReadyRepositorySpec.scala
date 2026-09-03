@@ -20,30 +20,30 @@ import org.mongodb.scala.ObservableFuture
 import org.scalatest.matchers.must.Matchers.*
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
-import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
+import uk.gov.hmrc.disareturns.models.callback.ReconciliationReportReady
+import uk.gov.hmrc.disareturns.repositories.ReconciliationReportReadyRepository
 import uk.gov.hmrc.mongo.MongoComponent
 import utils.BaseUnitSpec
 
-class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
-  protected val databaseName:     String         = "disa-returns-summary-test"
+class ReconciliationReportReadyRepositorySpec extends BaseUnitSpec {
+  protected val databaseName:     String         = "disa-returns-reconciliation-report-ready-test"
   protected val mongoUri:         String         = s"mongodb://127.0.0.1:27017/$databaseName"
   lazy val mongoComponentForTest: MongoComponent = MongoComponent(mongoUri)
   private val appConfig = app.injector.instanceOf[AppConfig]
 
-  protected val repository: MonthlyReturnsSummaryRepository =
-    new MonthlyReturnsSummaryRepository(mongoComponentForTest, appConfig)
+  protected val repository: ReconciliationReportReadyRepository =
+    new ReconciliationReportReadyRepository(mongoComponentForTest, appConfig)
 
   override def beforeEach(): Unit = await(repository.collection.drop().toFuture())
 
-  "retrieveReturnSummary" should {
+  "findByZReference" should {
 
-    "find a summary with matching details" in {
-      val doc = MonthlyReturnsSummary(zRef = validZReference, totalRecords = 3)
+    "find callback data with matching details" in {
+      val doc = ReconciliationReportReady(zRef = validZReference, totalRecords = 3)
 
       await(repository.collection.insertOne(doc).toFuture())
 
-      val result = await(repository.retrieveReturnSummary(validZReference))
+      val result = await(repository.findByZReference(validZReference))
 
       result.head.zRef mustBe validZReference
       result.head.totalRecords mustBe 3
@@ -52,8 +52,8 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
 
   "upsert" should {
 
-    "insert a new MonthlyReturnsSummary document when it does not exist" in {
-      val doc = MonthlyReturnsSummary(zRef = validZReference, totalRecords = 3)
+    "insert a new ReconciliationReportReady document when it does not exist" in {
+      val doc = ReconciliationReportReady(zRef = validZReference, totalRecords = 3)
 
       await(repository.upsert(doc))
 
@@ -64,7 +64,7 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
     }
 
     "replace the existing document and update fields" in {
-      val original = MonthlyReturnsSummary(zRef = validZReference, totalRecords = 2)
+      val original = ReconciliationReportReady(zRef = validZReference, totalRecords = 2)
 
       val updated = original.copy(totalRecords = 9)
 
@@ -82,14 +82,14 @@ class MonthlyReturnsSummaryRepositorySpec extends BaseUnitSpec {
   }
 
   "deleteByZReferences" should {
-    "delete only summaries for the supplied Z-references" in {
-      await(repository.upsert(MonthlyReturnsSummary(zRef = validZReference, totalRecords = 3)))
-      await(repository.upsert(MonthlyReturnsSummary(zRef = "Z5678", totalRecords = 4)))
+    "delete only callback data for the supplied Z-references" in {
+      await(repository.upsert(ReconciliationReportReady(zRef = validZReference, totalRecords = 3)))
+      await(repository.upsert(ReconciliationReportReady(zRef = "Z5678", totalRecords = 4)))
 
       await(repository.deleteByZReferences(Seq(validZReference)))
 
-      await(repository.retrieveReturnSummary(validZReference)) mustBe None
-      await(repository.retrieveReturnSummary("Z5678")) must not be empty
+      await(repository.findByZReference(validZReference)) mustBe None
+      await(repository.findByZReference("Z5678")) must not be empty
     }
   }
 }

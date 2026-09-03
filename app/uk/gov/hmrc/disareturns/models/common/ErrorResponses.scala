@@ -38,10 +38,6 @@ case class InternalServerErr(
   val code = "INTERNAL_SERVER_ERROR"
 }
 
-case class ReturnNotFoundErr(message: String) extends ErrorResponse {
-  val code = "RETURN_NOT_FOUND"
-}
-
 case object ReportNotFoundErr extends ErrorResponse {
   val code    = "REPORT_NOT_FOUND"
   val message = "Report not found"
@@ -111,7 +107,6 @@ case object MonthlyReturnNotSubmitted extends ErrorResponse {
 
 object ErrorResponse {
 
-  implicit val returnNotFoundErrReads:       Reads[ReturnNotFoundErr]       = Json.reads[ReturnNotFoundErr]
   implicit val reportPageNotFoundErrReads:   Reads[ReportPageNotFoundErr]   = Json.reads[ReportPageNotFoundErr]
   implicit val malformedJsonFailureErrReads: Reads[MalformedJsonFailureErr] = Json.reads[MalformedJsonFailureErr]
   implicit val badRequestErrReads:           Reads[BadRequestErr]           = Json.reads[BadRequestErr]
@@ -150,7 +145,6 @@ object ErrorResponse {
             case None    => Json.fromJson[BadRequestErr](json)
           }
         case "INTERNAL_SERVER_ERROR"           => internalServerErrReads.reads(json)
-        case "RETURN_NOT_FOUND"                => returnNotFoundErrReads.reads(json)
         case "PAGE_NOT_FOUND"                  => reportPageNotFoundErrReads.reads(json)
         case "MALFORMED_JSON"                  => malformedJsonFailureErrReads.reads(json)
         case code if singletons.contains(code) => JsSuccess(singletons(code))
