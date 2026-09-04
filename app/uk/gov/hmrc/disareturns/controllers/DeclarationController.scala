@@ -28,8 +28,10 @@ import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.controllers.parsers.StrictJsonBodyParser
 import uk.gov.hmrc.disareturns.models.common.{DeclarationRequest, MalformedJsonFailureErr}
 import uk.gov.hmrc.disareturns.models.declaration.{DeclarationSuccessfulResponse, ReportingNilReturn}
-import uk.gov.hmrc.disareturns.services.{ETMPService, NotificationContextService, PPNSService, ReportingPeriodService, SubmissionService}
+import uk.gov.hmrc.disareturns.services.{ETMPService, NotificationContextService, PPNSService, ReportingPeriodSource, SubmissionService}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,7 +42,7 @@ class DeclarationController @Inject() (
   etmpService:                ETMPService,
   ppnsService:                PPNSService,
   submissionService:          SubmissionService,
-  reportingPeriodService:     ReportingPeriodService,
+  reportingPeriodSource:      ReportingPeriodSource,
   notificationContextService: NotificationContextService,
   authAction:                 AuthAction,
   clientIdAction:             ClientIdAction,
@@ -62,43 +64,45 @@ class DeclarationController @Inject() (
             andThen authAction(zReference)
             andThen clientIdAction
         ).async { implicit request: DeclarationRequest[JsValue] =>
-          val reportingPeriod = reportingPeriodService.previousMonthPeriod
+          implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
           request.body.validate[ReportingNilReturn] match {
             case JsError(_) =>
               Future.successful(BadRequest(Json.toJson(MalformedJsonFailureErr(message = "Request body contains malformed JSON"))))
             case _ =>
               val nilReturnReported = request.body.as[ReportingNilReturn].nilReturn
-              val result = for {
-                _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(zReference))
-                _             <- submissionService.declare(zReference, reportingPeriod.taxYear, reportingPeriod.month, nilReturnReported)
-                boxIdResponse <- EitherT(ppnsService.getBoxId(request.clientId))
-              } yield boxIdResponse
+              reportingPeriodSource.get(zReference).flatMap { reportingPeriod =>
+                val result = for {
+                  _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(zReference))
+                  _             <- submissionService.declare(zReference, reportingPeriod.taxYear, reportingPeriod.month, nilReturnReported)
+                  boxIdResponse <- EitherT(ppnsService.getBoxId(request.clientId))
+                } yield boxIdResponse
 
-              result.value.flatMap {
-                case Left(error) =>
-                  logger.error(
-                    s"[DeclarationController][declare] Failed to declare return for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] with error: [$error]"
-                  )
-                  Future.successful(HttpHelper.toHttpError(error))
-                case Right(optBoxId) =>
-                  notificationContextService.saveContext(request.clientId, optBoxId, zReference).map {
-                    case Left(error) =>
-                      logger.error(
-                        s"[DeclarationController][declare] Failed to save notification context for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}], error: [$error]"
-                      )
-                      HttpHelper.toHttpError(error)
-                    case Right(_) =>
-                      logger
-                        .info(
-                          s"[DeclarationController][declare] Declaration of return successful for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}]"
+                result.value.flatMap {
+                  case Left(error) =>
+                    logger.error(
+                      s"[DeclarationController][declare] Failed to declare return for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}] with error: [$error]"
+                    )
+                    Future.successful(HttpHelper.toHttpError(error))
+                  case Right(optBoxId) =>
+                    notificationContextService.saveContext(request.clientId, optBoxId, zReference).map {
+                      case Left(error) =>
+                        logger.error(
+                          s"[DeclarationController][declare] Failed to save notification context for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}], error: [$error]"
                         )
-                      val returnResultsSummaryLocation =
-                        config.selfHost +
-                          routes.ReturnsSummaryController
-                            .retrieveReturnSummary(zReference)
-                            .url
-                      Ok(Json.toJson(DeclarationSuccessfulResponse(returnResultsSummaryLocation, optBoxId)))
-                  }
+                        HttpHelper.toHttpError(error)
+                      case Right(_) =>
+                        logger
+                          .info(
+                            s"[DeclarationController][declare] Declaration of return successful for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}]"
+                          )
+                        val returnResultsSummaryLocation =
+                          config.selfHost +
+                            routes.ReturnsSummaryController
+                              .retrieveReturnSummary(zReference)
+                              .url
+                        Ok(Json.toJson(DeclarationSuccessfulResponse(returnResultsSummaryLocation, optBoxId)))
+                    }
+                }
               }
           }
         }

@@ -74,6 +74,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       status(result)                                                      shouldBe OK
       (contentAsJson(result) \ "returnResultsSummaryLocation").as[String] shouldBe summaryLocation
       (contentAsJson(result) \ "boxId").as[String]                        shouldBe boxId
+      verify(mockReportingPeriodSource).get(eqTo(validZReference))(any())
       verify(mockETMPService).validateEtmpSubmissionEligibility(eqTo(validZReference))(any(), any())
     }
 

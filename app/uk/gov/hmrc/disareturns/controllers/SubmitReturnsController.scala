@@ -27,8 +27,10 @@ import play.api.libs.streams.Accumulator
 import play.api.mvc.{Action, BodyParser, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.services.{ETMPService, ReportingPeriodService, StreamingParserService, SubmissionService}
+import uk.gov.hmrc.disareturns.services.{ETMPService, ReportingPeriodSource, StreamingParserService, SubmissionService}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import play.api.libs.Files.TemporaryFile
@@ -39,7 +41,7 @@ class SubmitReturnsController @Inject() (
   cc:                       ControllerComponents,
   streamingParserService:   StreamingParserService,
   submissionService:        SubmissionService,
-  reportingPeriodService:   ReportingPeriodService,
+  reportingPeriodSource:    ReportingPeriodSource,
   authAction:               AuthAction,
   implicit val etmpService: ETMPService
 )(implicit ec:              ExecutionContext, val mat: Materializer)
@@ -57,10 +59,9 @@ class SubmitReturnsController @Inject() (
       case Left(errors) => Action.async(ignoreBodyParser)(_ => Future.successful(BadRequest(Json.toJson(errors))))
       case Right((zRef, _)) =>
         (Action andThen authAction(zRef)).async(streamingParser) { implicit request =>
-          val reportingPeriod = reportingPeriodService.previousMonthPeriod
-          etmpService
-            .validateEtmpSubmissionEligibility(zRef)
-            .flatMap {
+          implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
+          reportingPeriodSource.get(zRef).flatMap { reportingPeriod =>
+            etmpService.validateEtmpSubmissionEligibility(zRef).flatMap {
               case Right(_) =>
                 streamingParserService.processToTempFile(request.body).flatMap {
                   case Left(error: ValidationError) =>
@@ -113,6 +114,7 @@ class SubmitReturnsController @Inject() (
 
                 Future.successful(HttpHelper.toHttpError(error))
             }
+          }
         }: Action[Source[ByteString, _]]
     }
 }

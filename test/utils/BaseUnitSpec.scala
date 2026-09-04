@@ -16,7 +16,7 @@
 
 package utils
 
-import org.mockito.Mockito.reset
+import org.mockito.Mockito.{reset, when}
 import org.apache.pekko.actor.ActorSystem
 import org.scalatest.*
 import org.scalatest.concurrent.ScalaFutures
@@ -74,8 +74,11 @@ abstract class BaseUnitSpec
       mockUuidGenerator,
       mockNotificationContextService,
       mockReturnsSummaryService,
-      mockReportingWindowService
+      mockReportingWindowService,
+      mockReportingPeriodSource
     )
+    when(mockReportingPeriodSource.get(org.mockito.ArgumentMatchers.any())(org.mockito.ArgumentMatchers.any()))
+      .thenReturn(scala.concurrent.Future.successful(uk.gov.hmrc.disareturns.models.common.ReportingPeriod(validTaxYear, validMonth)))
   }
 
   //MOCKS
@@ -98,6 +101,7 @@ abstract class BaseUnitSpec
   val mockNotificationContextRepository: NotificationContextRepository   = mock[NotificationContextRepository]
   val mockNotificationContextService:    NotificationContextService      = mock[NotificationContextService]
   val mockReportingWindowService:        ReportingWindowService          = mock[ReportingWindowService]
+  val mockReportingPeriodSource:         ReportingPeriodSource           = mock[ReportingPeriodSource]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .configure(
@@ -115,6 +119,7 @@ abstract class BaseUnitSpec
       bind[NPSService].toInstance(mockNPSService),
       bind[SubmissionService].toInstance(mockSubmissionService),
       bind[NotificationContextService].toInstance(mockNotificationContextService),
+      bind[ReportingPeriodSource].toInstance(mockReportingPeriodSource),
       bind[Clock].toInstance(testReportingPeriodClock)
     )
     .build()

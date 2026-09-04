@@ -64,6 +64,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       val result = controller.submit(validZReference)(fakeRequestWithStream())
 
       status(result) shouldBe NO_CONTENT
+      verify(mockReportingPeriodSource).get(eqTo(validZReference))(any())
       verify(mockETMPService).validateEtmpSubmissionEligibility(eqTo(validZReference))(any(), any())
     }
 
