@@ -23,7 +23,6 @@ import jakarta.inject.Singleton
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Request}
-import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.controllers.parsers.StrictJsonBodyParser
 import uk.gov.hmrc.disareturns.models.common.{DeclarationRequest, MalformedJsonFailureErr}
@@ -46,7 +45,6 @@ class DeclarationController @Inject() (
   notificationContextService: NotificationContextService,
   authAction:                 AuthAction,
   clientIdAction:             ClientIdAction,
-  config:                     AppConfig,
   strictJsonBodyParser:       StrictJsonBodyParser
 )(implicit ec:                ExecutionContext)
     extends BackendController(cc)
@@ -95,12 +93,7 @@ class DeclarationController @Inject() (
                           .info(
                             s"[DeclarationController][declare] Declaration of return successful for IM ref: [$zReference] for [${reportingPeriod.month}][${reportingPeriod.taxYear}]"
                           )
-                        val returnResultsSummaryLocation =
-                          config.selfHost +
-                            routes.ReturnsSummaryController
-                              .retrieveReturnSummary(zReference)
-                              .url
-                        Ok(Json.toJson(DeclarationSuccessfulResponse(returnResultsSummaryLocation, optBoxId)))
+                        Ok(Json.toJson(DeclarationSuccessfulResponse(optBoxId)))
                     }
                 }
               }

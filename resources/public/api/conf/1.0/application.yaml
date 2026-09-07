@@ -188,7 +188,6 @@ paths:
         
         If the submission completes successfully, the response includes:
         - a confirmation that the report is complete
-        - a URL to retrieve the results summary after the reporting window closes
         - a box ID for the Push-Pull Notifications Service (PPNS)
       operationId: declareMonthlyReportComplete
       tags:
@@ -232,11 +231,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  reportResultsSummaryLocation:
-                    type: string
-                    format: uri
-                    description: Use this URL to retrieve the report results summary once the reporting window closes.
-                    example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/monthly/Z1234/results/summary'
                   boxId:
                     type: string
                     format: guid
@@ -306,123 +300,11 @@ paths:
                   message:
                     type: string
                     example: "Unexpected Error"
-  /monthly/{zReference}/results/summary:
-    get:
-      summary: Get report summary
-      description: |
-        After you submit a monthly report, HMRC processes the data and generates a results summary, 
-        which provides high-level information about the submission. 
-        You can access a results summary only after the reporting window closes. 
-        Use this endpoint to find out whether the results summary is available for a submitted report.
-        
-        If the request is successful, the response includes:
-        - a URL to retrieve the results summary
-        - pagination details, including total records and total pages
-        
-        If the results summary is not yet available or the report is not found, the API returns a `404 Not Found` response.
-      operationId: getReportSummaryStatus
-      tags:
-        - Check report results
-      security:
-        - userRestricted:
-            - read:isa-returns
-      parameters:
-        - name: zReference
-          in: path
-          description: |
-            A unique identifier assigned by HMRC to each approved ISA manager. Format: 'Zxxxx'.
-          required: true
-          style: simple
-          explode: false
-          schema:
-            pattern: ^[z|Z][0-9]{4}$
-            type: string
-            example: Z1234
-        - $ref: '#/components/parameters/acceptHeader'
-        - $ref: '#/components/parameters/authorizationHeader'
-      responses:
-        200:
-          description: Results are now available for the specified monthly report.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  returnResultsLocation:
-                    type: string
-                    format: uri
-                    description: Use this URL to retrieve the results of the specified report.
-                    example: 'https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return/monthly/Z1234/results?page=1'
-                  totalRecords:
-                    type: integer
-                    description: Total number of records in the report results.
-                    example: 10000
-                  numberOfPages:
-                    type: integer
-                    description: Total number of pages in the result set.
-                    example: 2
-        400:
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - $ref: '#/components/schemas/badRequestParameters'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Type
-                    type: string
-                    description: Error Code
-                    enum:
-                      - UNAUTHORIZED
-                  message:
-                    type: string
-                    example: Unauthorized
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Types
-                    type: string
-                    description: Types of errors encountered.
-                    enum:
-                      - RETURN_NOT_FOUND
-                  message:
-                    type: string
-                    enum:
-                      - Return not found
-        500:
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  code:
-                    title: Error Code Type
-                    type: string
-                    description: Error Code
-                    enum:
-                      - INTERNAL_SERVER_ERROR
-                  message:
-                    type: string
-                    example: "Unexpected Error"
-
   /monthly/{zReference}/results:
     get:
       summary: Get report reconciliation results
       description: |
-        After the results summary is available, use this endpoint to retrieve the reconciliation results for the monthly report. 
+        After processing is complete, use this endpoint to retrieve the reconciliation results for the monthly report.
         The API returns reconciliation results in paginated batches. 
         These show which records were accepted and which were rejected, including error messages where applicable.
         

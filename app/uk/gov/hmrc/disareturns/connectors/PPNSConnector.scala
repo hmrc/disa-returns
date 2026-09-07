@@ -20,7 +20,7 @@ import com.typesafe.config.Config
 import org.apache.pekko.actor.ActorSystem
 import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.config.{AppConfig, Constants}
-import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
+import uk.gov.hmrc.disareturns.models.ppns.ReconciliationReportReadyNotification
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, UpstreamErrorResponse}
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -68,21 +68,26 @@ class PPNSConnector @Inject() (
       }
   }
 
-  def sendNotification(
+  def sendReconciliationReportReadyNotification(
     boxId:       String,
-    payload:     ReturnSummaryResults
+    payload:     ReconciliationReportReadyNotification
   )(implicit hc: HeaderCarrier): Future[Unit] =
     httpClient
       .post(url"${appConfig.ppnsBaseUrl}/box/$boxId/notifications")
       .withBody(Json.toJson(payload))
       .executeOrFail
       .map { response =>
-        if (response.status == 201) logger.info(s"[PPNSConnector][sendNotification] Sent notification to boxId=$boxId")
-        else logger.error(s"[PPNSConnector][sendNotification] Unexpected status=${response.status}, body=${response.body}, boxId=$boxId")
+        if (response.status == 201) logger.info(s"[PPNSConnector][sendReconciliationReportReadyNotification] Sent notification to boxId=$boxId")
+        else
+          logger.error(
+            s"[PPNSConnector][sendReconciliationReportReadyNotification] Unexpected status=${response.status}, body=${response.body}, boxId=$boxId"
+          )
         ()
       }
       .recover { case upstream: UpstreamErrorResponse =>
-        logger.error(s"[PPNSConnector][sendNotification] Unexpected status=${upstream.statusCode}, body=${upstream.message}, boxId=$boxId")
+        logger.error(
+          s"[PPNSConnector][sendReconciliationReportReadyNotification] Unexpected status=${upstream.statusCode}, body=${upstream.message}, boxId=$boxId"
+        )
         ()
       }
 

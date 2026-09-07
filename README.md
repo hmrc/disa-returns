@@ -50,7 +50,7 @@ To run the integration tests:
 sbt it/test
 ```
 
-#### Delete Monthly Return Summaries
+#### Delete Reconciliation Report Ready Callback Data
 
 ```text
 POST /test-only/monthly
@@ -63,9 +63,9 @@ Content-Type: application/json
 }
 ```
 
-The endpoint deletes monthly-return summaries only for the supplied normalized Z-references. It returns `204 No
-Content` on success and `400 Bad Request` for an empty or invalid body. It must not run during active traffic for those
-Z-references.
+The endpoint deletes reconciliation-report-ready callback data only for the supplied normalized Z-references. It returns
+`204 No Content` on success and `400 Bad Request` for an empty or invalid body. It must not run during active traffic for
+those Z-references.
 
 ### API Paths
 
@@ -73,9 +73,8 @@ Monthly-return API paths are periodless. The current routes are:
 
 - `POST /monthly/:zReference`
 - `POST /monthly/:zReference/declaration`
-- `GET /monthly/:zReference/results/summary`
 - `GET /monthly/:zReference/results?page=:page`
-- `POST /callback/monthly/:zReference`
+- `POST /callback/monthly/:zReference` (reconciliation report ready callback)
 
 Tax year and month are derived by the service rather than supplied as path parameters.
 

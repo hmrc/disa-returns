@@ -4,9 +4,7 @@ POST /monthly/:zReference                                  uk.gov.hmrc.disaretur
 
 POST /monthly/:zReference/declaration                      uk.gov.hmrc.disareturns.controllers.DeclarationController.declare(zReference:String)
 
-GET /monthly/:zReference/results/summary                   uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.retrieveReturnSummary(zReference:String)
-
 GET /monthly/:zReference/results                           uk.gov.hmrc.disareturns.controllers.ReconciliationResultController.retrieveReconciliationReportPage(zReference:String, page: String ?= "0")
 
-##NPS Returns Summary Callback
-POST /callback/monthly/:zReference                         uk.gov.hmrc.disareturns.controllers.ReturnsSummaryController.returnsSummaryCallback(zReference: String)
+## Reconciliation Report Ready Callback
+POST /callback/monthly/:zReference                         uk.gov.hmrc.disareturns.controllers.ReconciliationReportReadyCallbackController.callback(zReference: String)

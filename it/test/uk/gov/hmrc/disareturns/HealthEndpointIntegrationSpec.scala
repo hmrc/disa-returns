@@ -32,10 +32,7 @@ class HealthEndpointIntegrationSpec extends AnyWordSpec with Matchers with Scala
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .configure(
-        Map(
-          "urls.returnResultsSummaryLocation"   -> "/monthly/{zReference}/results/summary",
-          "create-internal-auth-token-on-start" -> false
-        )
+        Map("create-internal-auth-token-on-start" -> false)
       )
       .build()
 

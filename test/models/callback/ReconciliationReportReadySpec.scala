@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 
-package models.summary
+package models.callback
 
 import play.api.libs.json.Json
-import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
+import uk.gov.hmrc.disareturns.models.callback.ReconciliationReportReady
 import utils.BaseUnitSpec
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class MonthlyReturnsSummarySpec extends BaseUnitSpec {
+class ReconciliationReportReadySpec extends BaseUnitSpec {
 
-  "MonthlyReturnsSummary.mongoFormat" should {
-    "round-trip a periodless summary and its timestamps" in {
+  "ReconciliationReportReady.mongoFormat" should {
+    "round-trip callback data and its timestamps" in {
       val now   = Instant.now().truncatedTo(ChronoUnit.MILLIS)
-      val model = MonthlyReturnsSummary(validZReference, 42, now, now)
+      val model = ReconciliationReportReady(validZReference, 42, now, now)
 
-      Json.toJson(model).as[MonthlyReturnsSummary] shouldBe model
+      Json.toJson(model).as[ReconciliationReportReady] shouldBe model
     }
   }
 }

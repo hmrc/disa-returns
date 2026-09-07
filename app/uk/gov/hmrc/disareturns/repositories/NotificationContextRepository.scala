@@ -18,7 +18,7 @@ package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model._
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.summary.repository.NotificationContext
+import uk.gov.hmrc.disareturns.models.ppns.NotificationContext
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 

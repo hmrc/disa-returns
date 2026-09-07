@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.summary.request
+package uk.gov.hmrc.disareturns.models.callback
 
 import play.api.libs.json.{Json, Reads, Writes, __}
 
-case class MonthlyReturnsSummaryReq(totalRecords: Int)
+case class ReconciliationReportReadyCallbackRequest(totalRecords: Int)
 
-object MonthlyReturnsSummaryReq {
-  implicit val reads: Reads[MonthlyReturnsSummaryReq] =
-    (__ \ "totalRecords").read[Int](Reads.min(0)).map(MonthlyReturnsSummaryReq(_))
+object ReconciliationReportReadyCallbackRequest {
+  implicit val reads: Reads[ReconciliationReportReadyCallbackRequest] =
+    (__ \ "totalRecords").read[Int](Reads.min(0)).map(ReconciliationReportReadyCallbackRequest(_))
 
-  implicit val writes: Writes[MonthlyReturnsSummaryReq] = Json.writes[MonthlyReturnsSummaryReq]
+  implicit val writes: Writes[ReconciliationReportReadyCallbackRequest] = Json.writes[ReconciliationReportReadyCallbackRequest]
 }

@@ -14,12 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.disareturns.models.summary.repository
+package uk.gov.hmrc.disareturns.models.callback
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json._
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
-case class NotificationContext(clientId: String, boxId: Option[String], zReference: String)
+import java.time.Instant
 
-object NotificationContext {
-  implicit val mongoFormat: OFormat[NotificationContext] = Json.format[NotificationContext]
+case class ReconciliationReportReady(
+  zRef:         String,
+  totalRecords: Int,
+  createdAt:    Instant = Instant.now(),
+  updatedAt:    Instant = Instant.now()
+)
+
+object ReconciliationReportReady {
+
+  implicit val instantFormat: Format[Instant] =
+    Format(MongoJavatimeFormats.instantReads, MongoJavatimeFormats.instantWrites)
+
+  implicit val mongoFormat: OFormat[ReconciliationReportReady] =
+    Json.format[ReconciliationReportReady]
 }

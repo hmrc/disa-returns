@@ -21,16 +21,13 @@ import play.api.libs.json.*
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.*
-import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
-import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
+import uk.gov.hmrc.disareturns.repositories.ReconciliationReportReadyRepository
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
-class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
-  private lazy val repo      = app.injector.instanceOf[MonthlyReturnsSummaryRepository]
-  private lazy val appConfig = app.injector.instanceOf[AppConfig]
-  private val totalRecords   = 3
-  private val invalidZRef    = "Z1111000000000"
+class ReconciliationReportReadyCallbackControllerISpec extends BaseIntegrationSpec {
+  private lazy val repo    = app.injector.instanceOf[ReconciliationReportReadyRepository]
+  private val totalRecords = 3
+  private val invalidZRef  = "Z1111000000000"
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -38,7 +35,7 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
   }
 
   "POST /callback/monthly/:zReference" should {
-    "persist the current summary by Z-reference" in {
+    "persist report readiness by Z-reference" in {
       val result = callback(validZReference, Json.obj("totalRecords" -> totalRecords))
       result.status shouldBe NO_CONTENT
 
@@ -48,7 +45,7 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
       stored.head.totalRecords shouldBe totalRecords
     }
 
-    "replace the current summary while preserving its creation timestamp" in {
+    "replace report readiness while preserving its creation timestamp" in {
       callback(validZReference, Json.obj("totalRecords" -> 1)).status shouldBe NO_CONTENT
       val first = await(repo.collection.find().head())
       callback(validZReference, Json.obj("totalRecords" -> 4)).status shouldBe NO_CONTENT
@@ -64,29 +61,6 @@ class ReturnsSummaryControllerISpec extends BaseIntegrationSpec {
       callback(validZReference, Json.obj()).status shouldBe BAD_REQUEST
     }
   }
-
-  "GET /monthly/:zReference/results/summary" should {
-    "return the current summary with a periodless results location" in {
-      await(repo.collection.insertOne(MonthlyReturnsSummary(validZReference, totalRecords)).toFuture())
-      stubAuth()
-      val result = getSummary(validZReference)
-
-      result.status shouldBe OK
-      (result.json \ "returnResultsLocation").as[String] shouldBe s"${appConfig.selfHost}/monthly/$validZReference/results?page=0"
-      (result.json \ "totalRecords").as[Int] shouldBe totalRecords
-    }
-
-    "return not found or reject an invalid Z-reference" in {
-      stubAuth()
-      val notFound = getSummary(validZReference)
-      notFound.status shouldBe NOT_FOUND
-      (notFound.json \ "message").as[String] shouldBe s"No return found for $validZReference"
-      getSummary(invalidZRef).status shouldBe BAD_REQUEST
-    }
-  }
-
-  private def getSummary(zReference: String): WSResponse =
-    await(ws.url(s"http://localhost:$port/monthly/$zReference/results/summary").withHttpHeaders(testHeaders: _*).get())
 
   private def callback(zReference: String, body: JsObject): WSResponse =
     await(ws.url(s"http://localhost:$port/callback/monthly/$zReference").post(body))

@@ -54,14 +54,6 @@ class HttpHelperSpec extends AnyWordSpec with Matchers {
       (json \ "message").as[String] shouldBe "Obligation closed"
     }
 
-    "return NotFound (404) for ReturnNotFoundErr" in {
-      val err    = ReturnNotFoundErr("")
-      val result = HttpHelper.toHttpError(err)
-
-      result.header.status                     shouldBe NOT_FOUND
-      contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
-    }
-
     "return NotFound (404) for ReportNotFoundErr" in {
       val err    = ReportNotFoundErr
       val result = HttpHelper.toHttpError(err)

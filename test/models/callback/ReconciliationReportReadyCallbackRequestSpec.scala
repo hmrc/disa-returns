@@ -14,27 +14,27 @@
  * limitations under the License.
  */
 
-package models.summary
+package models.callback
 
 import org.scalatest.matchers.must.Matchers.mustBe
 import play.api.libs.json.Json
-import uk.gov.hmrc.disareturns.models.summary.request.MonthlyReturnsSummaryReq
+import uk.gov.hmrc.disareturns.models.callback.ReconciliationReportReadyCallbackRequest
 import utils.BaseUnitSpec
 
-class MonthlyReturnsSummaryReqSpec extends BaseUnitSpec {
+class ReconciliationReportReadyCallbackRequestSpec extends BaseUnitSpec {
 
-  "MonthlyReturnsSummaryReq JSON" should {
+  "ReconciliationReportReadyCallbackRequest JSON" should {
 
     "read minimal body with totalRecords only" in {
-      val m  = MonthlyReturnsSummaryReq(totalRecords = 3)
+      val m  = ReconciliationReportReadyCallbackRequest(totalRecords = 3)
       val js = Json.toJson(m)
-      js.as[MonthlyReturnsSummaryReq] mustBe m
+      js.as[ReconciliationReportReadyCallbackRequest] mustBe m
     }
 
     "fail if total record is less than 0" in {
-      val m      = MonthlyReturnsSummaryReq(totalRecords = -1)
+      val m      = ReconciliationReportReadyCallbackRequest(totalRecords = -1)
       val js     = Json.toJson(m)
-      val result = js.validate[MonthlyReturnsSummaryReq]
+      val result = js.validate[ReconciliationReportReadyCallbackRequest]
 
       val errors = result.asEither.swap.getOrElse(fail("Expected a Left"))
       errors.head._2.head.message.toLowerCase mustBe "error.min"

@@ -18,7 +18,7 @@ package uk.gov.hmrc.disareturns.testOnly.controllers
 
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.disareturns.repositories.MonthlyReturnsSummaryRepository
+import uk.gov.hmrc.disareturns.repositories.ReconciliationReportReadyRepository
 import uk.gov.hmrc.disareturns.utils.ZReferenceValidator
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -27,9 +27,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class TestOnlyMonthlyReturnController @Inject() (
-  cc:                              ControllerComponents,
-  monthlyReturnsSummaryRepository: MonthlyReturnsSummaryRepository
-)(implicit ec:                     ExecutionContext)
+  cc:                                  ControllerComponents,
+  reconciliationReportReadyRepository: ReconciliationReportReadyRepository
+)(implicit ec:                         ExecutionContext)
     extends BackendController(cc) {
 
   def delete(): Action[JsValue] = Action.async(parse.json) { request =>
@@ -38,7 +38,7 @@ class TestOnlyMonthlyReturnController @Inject() (
         val normalized = zReferences.filter(ZReferenceValidator.isValid).map(_.toUpperCase).distinct
 
         if (normalized.size != zReferences.distinct.size) Future.successful(BadRequest)
-        else monthlyReturnsSummaryRepository.deleteByZReferences(normalized).map(_ => NoContent)
+        else reconciliationReportReadyRepository.deleteByZReferences(normalized).map(_ => NoContent)
       case _ => Future.successful(BadRequest)
     }
   }

@@ -19,7 +19,7 @@ package uk.gov.hmrc.disareturns.services
 import play.api.Logging
 import uk.gov.hmrc.disareturns.connectors.PPNSConnector
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
-import uk.gov.hmrc.disareturns.models.summary.ReturnSummaryResults
+import uk.gov.hmrc.disareturns.models.ppns.ReconciliationReportReadyNotification
 import uk.gov.hmrc.http.HeaderCarrier
 
 import javax.inject.{Inject, Singleton}
@@ -37,14 +37,14 @@ class PPNSService @Inject() (ppnsConnector: PPNSConnector, notificationContextSe
     }
   }
 
-  def sendNotification(
-    zReference:           String,
-    returnSummaryResults: ReturnSummaryResults
-  )(implicit hc:          HeaderCarrier): Future[Unit] =
+  def sendReconciliationReportReadyNotification(
+    zReference:   String,
+    notification: ReconciliationReportReadyNotification
+  )(implicit hc:  HeaderCarrier): Future[Unit] =
     retrieveBoxId(zReference).flatMap {
-      case Some(boxId) => ppnsConnector.sendNotification(boxId, returnSummaryResults)
+      case Some(boxId) => ppnsConnector.sendReconciliationReportReadyNotification(boxId, notification)
       case None =>
-        logger.warn(s"[PPNSService][sendNotification] Unable to send notification: no boxId found for $zReference")
+        logger.warn(s"[PPNSService][sendReconciliationReportReadyNotification] Unable to send notification: no boxId found for $zReference")
         Future.successful(())
     }
 

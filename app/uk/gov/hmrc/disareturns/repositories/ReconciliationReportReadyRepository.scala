@@ -18,7 +18,7 @@ package uk.gov.hmrc.disareturns.repositories
 
 import org.mongodb.scala.model._
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.models.summary.repository.MonthlyReturnsSummary
+import uk.gov.hmrc.disareturns.models.callback.ReconciliationReportReady
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
@@ -28,11 +28,11 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: AppConfig)(implicit ec: ExecutionContext)
-    extends PlayMongoRepository[MonthlyReturnsSummary](
+class ReconciliationReportReadyRepository @Inject() (mc: MongoComponent, appConfig: AppConfig)(implicit ec: ExecutionContext)
+    extends PlayMongoRepository[ReconciliationReportReady](
       mongoComponent = mc,
       collectionName = "monthlyReturnsSummaries",
-      domainFormat = MonthlyReturnsSummary.mongoFormat,
+      domainFormat = ReconciliationReportReady.mongoFormat,
       indexes = Seq(
         IndexModel(
           keys = Indexes.ascending("zRef"),
@@ -47,20 +47,20 @@ class MonthlyReturnsSummaryRepository @Inject() (mc: MongoComponent, appConfig: 
       )
     ) {
 
-  def retrieveReturnSummary(zReference: String): Future[Option[MonthlyReturnsSummary]] =
+  def findByZReference(zReference: String): Future[Option[ReconciliationReportReady]] =
     collection.find(Filters.eq("zRef", zReference)).headOption()
 
-  def upsert(summary: MonthlyReturnsSummary): Future[Unit] = {
+  def upsert(reportReady: ReconciliationReportReady): Future[Unit] = {
     val now    = Instant.now()
-    val filter = Filters.eq("zRef", summary.zRef)
+    val filter = Filters.eq("zRef", reportReady.zRef)
 
     val setOnInsert = Updates.combine(
-      Updates.setOnInsert("zRef", summary.zRef),
+      Updates.setOnInsert("zRef", reportReady.zRef),
       Updates.setOnInsert("createdAt", now)
     )
 
     val setters = Updates.combine(
-      Updates.set("totalRecords", summary.totalRecords),
+      Updates.set("totalRecords", reportReady.totalRecords),
       Updates.set("updatedAt", now)
     )
 

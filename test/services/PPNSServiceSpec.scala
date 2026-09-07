@@ -18,7 +18,7 @@ package services
 
 import org.mockito.Mockito._
 import uk.gov.hmrc.disareturns.models.common.InternalServerErr
-import uk.gov.hmrc.disareturns.models.summary.repository.NotificationContext
+import uk.gov.hmrc.disareturns.models.ppns.NotificationContext
 import uk.gov.hmrc.disareturns.services.PPNSService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import utils.BaseUnitSpec
@@ -66,14 +66,14 @@ class PPNSServiceSpec extends BaseUnitSpec {
     }
   }
 
-  "PPNService.sendNotification" should {
+  "PPNService.sendReconciliationReportReadyNotification" should {
 
     "successfully send a notification" in {
       when(mockNotificationContextService.retrieveContext(validZReference))
         .thenReturn(Future.successful(Some(notificationContext)))
-      when(mockPPNSConnector.sendNotification(testBoxId, returnSummaryResults))
+      when(mockPPNSConnector.sendReconciliationReportReadyNotification(testBoxId, reconciliationReportReadyNotification))
         .thenReturn(Future.successful(()))
-      service.sendNotification(validZReference, returnSummaryResults).futureValue shouldBe ()
+      service.sendReconciliationReportReadyNotification(validZReference, reconciliationReportReadyNotification).futureValue shouldBe ()
 
     }
 
@@ -82,16 +82,16 @@ class PPNSServiceSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Some(notificationContext.copy(boxId = None))))
       when(mockPPNSConnector.getBox(notificationContext.clientId))
         .thenReturn(Future.successful(Right(Some(testBoxId))))
-      when(mockPPNSConnector.sendNotification(testBoxId, returnSummaryResults))
+      when(mockPPNSConnector.sendReconciliationReportReadyNotification(testBoxId, reconciliationReportReadyNotification))
         .thenReturn(Future.successful(()))
-      service.sendNotification(validZReference, returnSummaryResults).futureValue shouldBe ()
+      service.sendReconciliationReportReadyNotification(validZReference, reconciliationReportReadyNotification).futureValue shouldBe ()
 
     }
 
     "not send a notification when no notification context exists" in {
       when(mockNotificationContextService.retrieveContext(validZReference))
         .thenReturn(Future.successful(None))
-      service.sendNotification(validZReference, returnSummaryResults).futureValue shouldBe ()
+      service.sendReconciliationReportReadyNotification(validZReference, reconciliationReportReadyNotification).futureValue shouldBe ()
     }
 
     "not send a notification after failing to retrieving a boxId is from ppns" in {
@@ -99,7 +99,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Some(notificationContext)))
       when(mockPPNSConnector.getBox(notificationContext.clientId))
         .thenReturn(Future.successful(Right(None)))
-      service.sendNotification(validZReference, returnSummaryResults).futureValue shouldBe ()
+      service.sendReconciliationReportReadyNotification(validZReference, reconciliationReportReadyNotification).futureValue shouldBe ()
 
     }
 
@@ -108,7 +108,7 @@ class PPNSServiceSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Some(notificationContext)))
       when(mockPPNSConnector.getBox(notificationContext.clientId))
         .thenReturn(Future.successful(Left(UpstreamErrorResponse("Internal Server Error", 500))))
-      service.sendNotification(validZReference, returnSummaryResults).futureValue shouldBe ()
+      service.sendReconciliationReportReadyNotification(validZReference, reconciliationReportReadyNotification).futureValue shouldBe ()
 
     }
   }
