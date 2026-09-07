@@ -22,10 +22,9 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import java.time.Instant
 
 case class ReconciliationReportReady(
-  zRef:         String,
-  totalRecords: Int,
-  createdAt:    Instant = Instant.now(),
-  updatedAt:    Instant = Instant.now()
+  zRef:      String,
+  createdAt: Instant = Instant.now(),
+  updatedAt: Instant = Instant.now()
 )
 
 object ReconciliationReportReady {

@@ -53,15 +53,14 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
     }
   }
 
-  "NPSConnector.retrieveReconciliationReportPage" should {
+  "NPSConnector.retrieveReconciliationReport" should {
 
-    val pageIndex          = 0
-    val pageSize           = 2
-    val reportRetrievalUrl = s"/monthly/$validZReference/$taxYear/${month.toString}/results?pageIndex=$pageIndex&pageSize=$pageSize"
+    val rawCursor          = "raw-cursor"
+    val limit              = 200
+    val reportRetrievalUrl = s"/monthly/$validZReference/$taxYear/${month.toString}/results?limit=$limit&cursor=$rawCursor"
     val reconciliationReport =
       """
             |{
-            | "totalRecords": 12,
             | "returnResults": {
             |   "accountNumber": 123,
             |   "nino": ABC123,
@@ -77,7 +76,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
       stubGet(reportRetrievalUrl, OK, reconciliationReport)
 
       val response =
-        await(connector.retrieveReconciliationReportPage(validZReference, taxYear, month, pageIndex, pageSize).value).value
+        await(connector.retrieveReconciliationReport(validZReference, taxYear, month, Some(rawCursor), limit).value).value
 
       response.status shouldBe OK
       response.body   shouldBe reconciliationReport
@@ -87,7 +86,7 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
       stubGet(reportRetrievalUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
 
       val err =
-        await(connector.retrieveReconciliationReportPage(validZReference, taxYear, month, pageIndex, pageSize).value).left.value
+        await(connector.retrieveReconciliationReport(validZReference, taxYear, month, Some(rawCursor), limit).value).left.value
 
       err.statusCode shouldBe UNAUTHORIZED
       err.message      should include("Not authorised")
@@ -97,14 +96,14 @@ class NPSConnectorISpec extends BaseIntegrationSpec {
     "retry persistent server errors four times" in {
       stubGet(reportRetrievalUrl, INTERNAL_SERVER_ERROR, "failed")
       await(
-        connector.retrieveReconciliationReportPage(validZReference, taxYear, month, pageIndex, pageSize).value
+        connector.retrieveReconciliationReport(validZReference, taxYear, month, Some(rawCursor), limit).value
       ).left.value.statusCode shouldBe INTERNAL_SERVER_ERROR
       verifyGet(reportRetrievalUrl, count = 4)
     }
 
     "return Left(UpstreamErrorResponse) when the call fails with an unexpected exception" in {
       val err =
-        await(connector.retrieveReconciliationReportPage("non-existent", "nope", month, pageIndex, pageSize).value).left.value
+        await(connector.retrieveReconciliationReport("non-existent", "nope", month, Some(rawCursor), limit).value).left.value
 
       err.statusCode shouldBe NOT_FOUND
       err.message      should include("No response could be served as there are no stub mappings in this WireMock instance.")

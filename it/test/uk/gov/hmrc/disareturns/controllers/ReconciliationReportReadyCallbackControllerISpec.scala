@@ -17,17 +17,15 @@
 package uk.gov.hmrc.disareturns.controllers
 
 import org.mongodb.scala.ObservableFuture
-import play.api.libs.json.*
-import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+import play.api.libs.ws.WSBodyWritables.writeableOf_String
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.*
 import uk.gov.hmrc.disareturns.repositories.ReconciliationReportReadyRepository
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 class ReconciliationReportReadyCallbackControllerISpec extends BaseIntegrationSpec {
-  private lazy val repo    = app.injector.instanceOf[ReconciliationReportReadyRepository]
-  private val totalRecords = 3
-  private val invalidZRef  = "Z1111000000000"
+  private lazy val repo   = app.injector.instanceOf[ReconciliationReportReadyRepository]
+  private val invalidZRef = "Z1111000000000"
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -36,32 +34,31 @@ class ReconciliationReportReadyCallbackControllerISpec extends BaseIntegrationSp
 
   "POST /callback/monthly/:zReference" should {
     "persist report readiness by Z-reference" in {
-      val result = callback(validZReference, Json.obj("totalRecords" -> totalRecords))
+      val result = callback(validZReference)
       result.status shouldBe NO_CONTENT
 
       val stored = await(repo.collection.find().toFuture())
-      stored should have size 1
-      stored.head.zRef shouldBe validZReference
-      stored.head.totalRecords shouldBe totalRecords
+      stored                should have size 1
+      stored.head.zRef    shouldBe validZReference
+      stored.head.createdAt should be <= stored.head.updatedAt
     }
 
     "replace report readiness while preserving its creation timestamp" in {
-      callback(validZReference, Json.obj("totalRecords" -> 1)).status shouldBe NO_CONTENT
+      callback(validZReference).status shouldBe NO_CONTENT
       val first = await(repo.collection.find().head())
-      callback(validZReference, Json.obj("totalRecords" -> 4)).status shouldBe NO_CONTENT
+      callback(validZReference).status shouldBe NO_CONTENT
       val second = await(repo.collection.find().head())
 
-      second.totalRecords shouldBe 4
+      second.zRef      shouldBe validZReference
       second.createdAt shouldBe first.createdAt
-      second.updatedAt should be >= first.updatedAt
+      second.updatedAt   should be >= first.updatedAt
     }
 
-    "retain Z-reference and body validation" in {
-      callback(invalidZRef, Json.obj("totalRecords" -> 1)).status shouldBe BAD_REQUEST
-      callback(validZReference, Json.obj()).status shouldBe BAD_REQUEST
+    "retain Z-reference validation" in {
+      callback(invalidZRef).status shouldBe BAD_REQUEST
     }
   }
 
-  private def callback(zReference: String, body: JsObject): WSResponse =
-    await(ws.url(s"http://localhost:$port/callback/monthly/$zReference").post(body))
+  private def callback(zReference: String): WSResponse =
+    await(ws.url(s"http://localhost:$port/callback/monthly/$zReference").post(""))
 }

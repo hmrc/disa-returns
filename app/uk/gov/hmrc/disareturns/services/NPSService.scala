@@ -19,19 +19,18 @@ package uk.gov.hmrc.disareturns.services
 import cats.data.EitherT
 import play.api.Logging
 import play.api.http.Status.OK
-import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper.mapToErrorResponse
-import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, ReportNotFoundErr, ReportPageNotFoundErr}
-import uk.gov.hmrc.disareturns.models.returnResults.{ReconciliationReportPage, ReconciliationReportResponse}
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, InvalidCursorErr, ReportNotFoundErr}
+import uk.gov.hmrc.disareturns.models.returnResults.{ReconciliationReport, ReconciliationReportResponse}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit ec: ExecutionContext) extends Logging {
+class NPSService @Inject() (connector: NPSConnector, cursorCrypto: CursorCrypto)(implicit ec: ExecutionContext) extends Logging {
 
   def notification(zReference: String, nilReturnReported: Boolean)(implicit
     hc:                        HeaderCarrier
@@ -40,59 +39,54 @@ class NPSService @Inject() (connector: NPSConnector, config: AppConfig)(implicit
     connector.sendNotification(zReference, nilReturnReported).leftMap(mapToErrorResponse)
   }
 
-  def retrieveReconciliationReportPage(zReference: String, taxYear: String, month: Month, pageIndex: Int)(implicit
-    hc:                                            HeaderCarrier
-  ): Future[Either[ErrorResponse, ReconciliationReportPage]] = {
-
-    def convertResponseToPage(response: ReconciliationReportResponse): Either[ErrorResponse, ReconciliationReportPage] = {
-      val totalRecords      = response.totalRecords
-      val totalNoOfPages    = config.getNoOfPagesForReturnResults(totalRecords)
-      val recordsInThisPage = response.returnResults.size
-
-      if (response.returnResults.isEmpty) Left(ReportPageNotFoundErr(pageIndex))
-      else
-        totalNoOfPages.fold[Either[ErrorResponse, ReconciliationReportPage]] {
-          logger.error(
-            s"[NPSService][convertResponseToPage] Invalid number of total records: [$totalRecords] received from upstream for IM Ref: [$zReference] for [$taxYear] [$month]"
-          )
-          Left(InternalServerErr())
-        } { noOfPages =>
-          Right(ReconciliationReportPage(pageIndex, recordsInThisPage, totalRecords, noOfPages, response.returnResults))
-        }
-    }
-
+  def retrieveReconciliationReport(zReference: String, taxYear: String, month: Month, cursor: Option[String], limit: Int)(implicit
+    hc:                                        HeaderCarrier
+  ): Future[Either[ErrorResponse, ReconciliationReport]] = {
     logger.info(
-      s"[NPSService][retrieveReconciliationReportPage] Retrieving reconciliation report page: [$pageIndex] from NPS for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
+      s"[NPSService][retrieveReconciliationReport] Retrieving reconciliation report from NPS for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
     )
 
-    val pageSize = config.returnResultsRecordsPerPage
+    val decryptedCursor = cursor.fold[Either[ErrorResponse, Option[String]]](Right(None))(
+      cursorCrypto.decrypt(_, zReference, taxYear, month.toString, limit).map(Some(_))
+    )
 
-    connector.retrieveReconciliationReportPage(zReference, taxYear, month, pageIndex, pageSize).value.map {
-      case Left(upstreamError) =>
-        Left(
-          upstreamError.message match {
-            case message if message.contains("REPORT_NOT_FOUND") => ReportNotFoundErr
-            case message if message.contains("PAGE_NOT_FOUND")   => ReportPageNotFoundErr(pageIndex)
-            case _                                               => mapToErrorResponse(upstreamError)
-          }
-        )
-      case Right(response) =>
-        response.status match {
-          case OK =>
-            try convertResponseToPage(response.json.as[ReconciliationReportResponse])
-            catch {
-              case e: Throwable =>
+    decryptedCursor.fold(
+      error => Future.successful(Left(error)),
+      npsCursor =>
+        connector.retrieveReconciliationReport(zReference, taxYear, month, npsCursor, limit).value.map {
+          case Left(upstreamError) =>
+            Left(
+              upstreamError.message match {
+                case message if message.contains("REPORT_NOT_FOUND") => ReportNotFoundErr
+                case message if message.contains("INVALID_CURSOR")   => InvalidCursorErr
+                case _                                               => mapToErrorResponse(upstreamError)
+              }
+            )
+          case Right(response) =>
+            response.status match {
+              case OK =>
+                try {
+                  val report = response.json.as[ReconciliationReportResponse]
+                  Right(
+                    ReconciliationReport(
+                      report.returnResults,
+                      report.nextCursor.map(cursorCrypto.encrypt(_, zReference, taxYear, month.toString, limit))
+                    )
+                  )
+                } catch {
+                  case e: Throwable =>
+                    logger.error(
+                      s"[NPSService][retrieveReconciliationReport] Caught exception with message: [${e.getMessage}] when parsing response from NPS for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
+                    )
+                    Left(InternalServerErr())
+                }
+              case otherStatus =>
                 logger.error(
-                  s"[NPSService][retrieveReconciliationReportPage] Caught exception with message: [${e.getMessage}] when parsing response from NPS for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
+                  s"[NPSService][retrieveReconciliationReport] Unexpected status: [$otherStatus] was received from NPS report retrieval for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
                 )
                 Left(InternalServerErr())
             }
-          case otherStatus =>
-            logger.error(
-              s"[NPSService][retrieveReconciliationReportPage] Unexpected status: [$otherStatus] was received from NPS report retrieval for IM ref: [$zReference] with month/taxYear: [$month] [$taxYear]"
-            )
-            Left(InternalServerErr())
         }
-    }
+    )
   }
 }

@@ -52,15 +52,20 @@ class NPSConnector @Inject() (
     )
   }
 
-  def retrieveReconciliationReportPage(zReference: String, taxYear: String, month: Month, pageIndex: Int, pageSize: Int)(implicit
-    hc:                                            HeaderCarrier
+  def retrieveReconciliationReport(zReference: String, taxYear: String, month: Month, cursor: Option[String], limit: Int)(implicit
+    hc:                                        HeaderCarrier
   ): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.npsBaseUrl}/monthly/$zReference/$taxYear/${month.toString}/results?pageIndex=$pageIndex&pageSize=$pageSize"
+    val url         = s"${appConfig.npsBaseUrl}/monthly/$zReference/$taxYear/${month.toString}/results"
+    val queryParams = Seq("limit" -> limit.toString) ++ cursor.map("cursor" -> _)
     read(
-      retryFor("retrieve NPS reconciliation report page")(retryCondition) {
-        httpClient.get(url"$url").executeOrFail.map(Right(_))
+      retryFor("retrieve NPS reconciliation report")(retryCondition) {
+        httpClient
+          .get(url"$url")
+          .transform(_.withQueryStringParameters(queryParams: _*))
+          .executeOrFail
+          .map(Right(_))
       },
-      context = "[NPSConnector][retrieveReconciliationReportPage]"
+      context = "[NPSConnector][retrieveReconciliationReport]"
     )
   }
 }

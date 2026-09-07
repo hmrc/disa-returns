@@ -12,7 +12,7 @@ info:
     # Supported use cases
     - Submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals.
     - Check the status of submitted reports to confirm they have been processed.
-    - Retrieve reconciliation results using batch pagination.
+    - Retrieve reconciliation results using cursor pagination.
 
     # Integration requirements
     - REST API using JSON over HTTPS.
@@ -305,17 +305,18 @@ paths:
       summary: Get report reconciliation results
       description: |
         After processing is complete, use this endpoint to retrieve the reconciliation results for the monthly report.
-        The API returns reconciliation results in paginated batches. 
+        The API returns reconciliation results using cursor pagination.
         These show which records were accepted and which were rejected, including error messages where applicable.
-        
-        Optionally, include a page query parameter to request a specific page of results.
-        
+
+        The cursor and limit query parameters are optional. The limit defaults to 200.
+        To retrieve the next batch, pass the nextCursor value from the previous response as the cursor parameter.
+        If you specified a limit on the first request, use the same limit on each subsequent request.
+
         If the request is successful, the response includes:
-        - pagination information, including page number, total pages, and total records
-        - the reconciliation results for the current page, including record-level identifiers and any reconciliation errors
-        
-        If the reconciliation results are not yet available, or if the specified page or report is not found, 
-        the API returns a `404 Not Found` response.
+        - the reconciliation results for the current batch, including record-level identifiers and any reconciliation errors
+        - an encrypted, URL-safe nextCursor when more results are available; it is omitted for the final batch
+
+        If the reconciliation results are not yet available or the report is not found, the API returns a `404 Not Found` response.
       operationId: getReportReconciliationResults
       tags:
         - Check report results
@@ -334,52 +335,50 @@ paths:
             pattern: ^[z|Z][0-9]{4}$
             type: string
             example: Z1234
-        - name: page
+        - name: cursor
           in: query
           description: |
-            Page of records in the report to return. Defaults to 0.
+            Cursor returned as nextCursor in the previous response. Omit for the first request.
           schema:
-            type: number
-            example: 3
+            type: string
+            example: AbCdEf0123_-xyz
+        - name: limit
+          in: query
+          description: Maximum number of results to return. Defaults to 200.
+          schema:
+            type: integer
+            minimum: 1
+            default: 200
+            example: 200
         - $ref: '#/components/parameters/acceptHeader'
         - $ref: '#/components/parameters/authorizationHeader'
       responses:
         200:
-          description: Reconciliation results for the specified page of the monthly report.
+          description: A batch of reconciliation results from the monthly report.
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - returnResults
                 properties:
-                  currentPage:
-                    type: integer
-                    description: The page number of the results.
-                    example: 1
-                  recordsInPage:
-                    type: integer
-                    description: The number of records in the current page.
-                    example: 8000
-                  totalRecords:
-                    type: integer
-                    description: Total number of records in the report results.
-                    example: 10000
-                  totalNumberOfPages:
-                    type: integer
-                    description: Total number of pages to return all results.
-                    example: 2
                   returnResults:
                     type: array
                     items:
                       $ref: '#/components/schemas/returnResult'
-                    description: The report results for the specified page.
+                    description: Reconciliation results in the current batch.
+                  nextCursor:
+                    type: string
+                    description: Encrypted URL-safe cursor for the next batch. Omitted when this is the final batch.
+                    example: AbCdEf0123_-xyz
         400:
           description: Bad Request
           content:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/badRequestParameters'
-                  - $ref: '#/components/schemas/badRequestParametersMultipleErrors'
+                  - $ref: '#/components/schemas/badRequestPaginationParameters'
+                  - $ref: '#/components/schemas/badRequestPaginationParametersMultipleErrors'
         401:
           description: Unauthorized
           content:
@@ -409,12 +408,9 @@ paths:
                     description: Types of errors encountered.
                     enum:
                       - REPORT_NOT_FOUND
-                      - PAGE_NOT_FOUND
                   message:
                     type: string
-                    enum:
-                      - Report not found
-                      - No page {pageNumber} found
+                    example: Report not found
         500:
           description: Internal Server Error
           content:
@@ -733,7 +729,6 @@ components:
           enum:
             - MISSING_NINO_OR_ACC_NUM
             - INVALID_NINO_OR_ACC_NUM
-            - INVALID_PAGE
             - INVALID_Z_REFERENCE
             - MALFORMED_JSON
             - EMPTY_PAYLOAD
@@ -814,12 +809,28 @@ components:
           description: Code indicating the type of error.
           enum:
             - INVALID_Z_REFERENCE
-            - INVALID_PAGE
         message:
           title: Parameter Failure Message
           type: string
           description: Message describing the error in more detail.
-          example: Invalid page index parameter provided
+          example: Z reference is not formatted correctly
+    badRequestPaginationParameters:
+      title: Bad Request (Pagination Parameters)
+      type: object
+      properties:
+        code:
+          title: Parameter Failure Code
+          type: string
+          description: Code indicating the type of error.
+          enum:
+            - INVALID_Z_REFERENCE
+            - INVALID_LIMIT
+            - INVALID_CURSOR
+        message:
+          title: Parameter Failure Message
+          type: string
+          description: Message describing the error in more detail.
+          example: Invalid limit parameter provided
     forbiddenSingleError:
       title: Forbidden (Single Error)
       type: object
@@ -891,7 +902,7 @@ components:
           type: string
           description: Human-readable message outlining the error.
           example: "Reporting window has been closed"
-    badRequestParametersMultipleErrors:
+    badRequestPaginationParametersMultipleErrors:
       title: Bad Request Parameters (Multiple Errors)
       type: object
       properties:
@@ -911,12 +922,12 @@ components:
           type: array
           description: Array of errors outlining issues found regarding your submission.
           items:
-            $ref: '#/components/schemas/badRequestParameters'
+            $ref: '#/components/schemas/badRequestPaginationParameters'
           example:
             - code: INVALID_Z_REFERENCE
               message: Z reference is not formatted correctly
-            - code: INVALID_PAGE
-              message: Invalid page index parameter provided
+            - code: INVALID_LIMIT
+              message: Invalid limit parameter provided
   examples:
     lifetimeIsaSubscription:
       summary: Lifetime ISA Subscription

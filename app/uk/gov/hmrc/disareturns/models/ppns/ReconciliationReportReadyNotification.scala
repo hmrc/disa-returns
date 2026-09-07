@@ -18,7 +18,7 @@ package uk.gov.hmrc.disareturns.models.ppns
 
 import play.api.libs.json.{Json, OFormat}
 
-case class ReconciliationReportReadyNotification(returnResultsLocation: String, totalRecords: Int, numberOfPages: Int)
+case class ReconciliationReportReadyNotification(returnResultsLocation: String)
 
 object ReconciliationReportReadyNotification {
   implicit val format: OFormat[ReconciliationReportReadyNotification] = Json.format[ReconciliationReportReadyNotification]

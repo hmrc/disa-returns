@@ -4,7 +4,7 @@ You can use the API to:
 
 - submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals
 - check the status of submitted reports to confirm they have been processed
-- retrieve reconciliation results using batch pagination
+- retrieve reconciliation results using cursor pagination
 
 Each report must cover ISA subscription activity from the 6th of one month to the 5th of the next. You must submit your report between the 6th and 23:59 on the 19th.
 

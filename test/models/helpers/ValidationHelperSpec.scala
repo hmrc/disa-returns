@@ -27,21 +27,29 @@ class ValidationHelperSpec extends BaseUnitSpec {
       ValidationHelper.validateParams(validZReference.toLowerCase) shouldBe Right((validZReference, None))
     }
 
-    "parse a valid page" in {
-      ValidationHelper.validateParams(validZReference, Some("1")) shouldBe Right((validZReference, Some(1)))
-    }
-
     "reject an invalid Z-reference" in {
       ValidationHelper.validateParams("Invalid") shouldBe Left(InvalidZReference)
     }
+  }
 
-    "reject an invalid page" in {
-      ValidationHelper.validateParams(validZReference, Some("-1")) shouldBe Left(InvalidPageErr)
+  "ValidationHelper.validatePaginationParams" should {
+    "use the default limit when one is not supplied" in {
+      ValidationHelper.validatePaginationParams(validZReference, None, 200, 1000) shouldBe Right((validZReference, 200))
     }
 
-    "aggregate invalid Z-reference and page errors" in {
-      ValidationHelper.validateParams("1234", Some("-1")) shouldBe
-        Left(MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidPageErr)))
+    "accept a positive limit up to the maximum" in {
+      ValidationHelper.validatePaginationParams(validZReference, Some("1000"), 200, 1000) shouldBe Right((validZReference, 1000))
+    }
+
+    "reject non-numeric, zero, negative, and over-maximum limits" in {
+      Seq("nope", "0", "-1", "1001").foreach { limit =>
+        ValidationHelper.validatePaginationParams(validZReference, Some(limit), 200, 1000) shouldBe Left(InvalidLimitErr)
+      }
+    }
+
+    "aggregate invalid Z-reference and limit errors" in {
+      ValidationHelper.validatePaginationParams("1234", Some("-1"), 200, 1000) shouldBe
+        Left(MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidLimitErr)))
     }
   }
 }

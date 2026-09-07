@@ -28,7 +28,7 @@ class ReconciliationReportReadySpec extends BaseUnitSpec {
   "ReconciliationReportReady.mongoFormat" should {
     "round-trip callback data and its timestamps" in {
       val now   = Instant.now().truncatedTo(ChronoUnit.MILLIS)
-      val model = ReconciliationReportReady(validZReference, 42, now, now)
+      val model = ReconciliationReportReady(validZReference, now, now)
 
       Json.toJson(model).as[ReconciliationReportReady] shouldBe model
     }

@@ -19,154 +19,114 @@ package uk.gov.hmrc.disareturns.controllers
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, stubFor, urlEqualTo}
 import org.scalatest.matchers.must.Matchers.mustBe
 import play.api.http.HeaderNames.AUTHORIZATION
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.models.common.Month
-import uk.gov.hmrc.disareturns.models.returnResults.{IssueOverSubscribed, IssueWithMessage, ReconciliationReportPage, ReturnResults}
+import uk.gov.hmrc.disareturns.models.returnResults.{IssueOverSubscribed, IssueWithMessage, ReconciliationReport, ReturnResults}
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 class ReconciliationResultControllerISpec extends BaseIntegrationSpec {
 
   private val taxYear    = "2026-27"
-  private val monthEnum  = Month.SEP
-  private val monthToken = monthEnum.toString
-  private val page       = 0
+  private val monthToken = Month.SEP.toString
+  private val results = Seq(
+    ReturnResults("123", "ABC123", IssueOverSubscribed("OVER_SUBSCRIBED", 1823.76)),
+    ReturnResults("123", "ABC123", IssueWithMessage("FAILED_ELIGIBILITY", "Failed Eligibility"))
+  )
 
   "GET /monthly/:zReference/results" should {
-
-    "return 200 and the first page of the reconciliation report" in {
-      val npsReportJson = """
-                                      |{
-                                      | "totalRecords": 3,
-                                      | "returnResults": [
-                                      |   {
-                                      |     "accountNumber": "123",
-                                      |     "nino": "ABC123",
-                                      |     "issueIdentified": {
-                                      |       "code": "OVER_SUBSCRIBED",
-                                      |       "overSubscribedAmount": 1823.76
-                                      |     }
-                                      |   },
-                                      |   {
-                                      |     "accountNumber": "123",
-                                      |     "nino": "ABC123",
-                                      |     "issueIdentified": {
-                                      |       "code": "FAILED_ELIGIBILITY",
-                                      |       "message": "Failed Eligibility"
-                                      |     }
-                                      |   }
-                                      | ]
-                                      |}
-        """.stripMargin
-
+    "return results and an opaque URL-safe cursor, then send its raw value downstream" in {
+      val firstNpsResponse = Json.obj("returnResults" -> results, "nextCursor" -> "raw-nps-cursor").toString
+      val finalNpsResponse = Json.obj("returnResults" -> Json.arr()).toString
       stubAuth()
-      stubNPSReportRetrieval(200, npsReportJson, 0, 2)
+      stubNPSReportRetrieval(OK, firstNpsResponse, None, 2)
 
-      val res: WSResponse = retrieveReconciliationReportPageRequest(validZReference, page)
+      val first = retrieveReconciliationReportRequest(validZReference, None, Some(2))
 
-      res.status mustBe OK
-      res.json.as[ReconciliationReportPage] mustBe ReconciliationReportPage(
-        page,
-        2,
-        3,
-        2,
-        Seq(
-          ReturnResults(
-            "123",
-            "ABC123",
-            IssueOverSubscribed(
-              "OVER_SUBSCRIBED",
-              1823.76
-            )
-          ),
-          ReturnResults(
-            "123",
-            "ABC123",
-            IssueWithMessage(
-              "FAILED_ELIGIBILITY",
-              "Failed Eligibility"
-            )
-          )
-        )
-      )
+      first.status mustBe OK
+      val publicCursor = (first.json \ "nextCursor").as[String]
+      publicCursor.matches("[A-Za-z0-9_-]+") mustBe true
+      (publicCursor == "raw-nps-cursor") mustBe false
+      first.json.as[ReconciliationReport] mustBe ReconciliationReport(results, Some(publicCursor))
+
+      stubNPSReportRetrieval(OK, finalNpsResponse, Some("raw-nps-cursor"), 2)
+      val finalResponse = retrieveReconciliationReportRequest(validZReference, Some(publicCursor), Some(2))
+
+      finalResponse.status mustBe OK
+      finalResponse.json mustBe Json.obj("returnResults" -> Json.arr())
     }
 
-    "return 400 and an error message when parameter validation fails" in {
+    "use the default limit when limit is omitted" in {
       stubAuth()
+      stubNPSReportRetrieval(OK, Json.obj("returnResults" -> Json.arr()).toString, None, 200)
 
-      val res: WSResponse = retrieveReconciliationReportPageRequest(validZReference, -1)
-
-      res.status mustBe BAD_REQUEST
-      (res.json \ "message").as[String] mustBe "Invalid page index parameter provided"
+      retrieveReconciliationReportRequest(validZReference).status mustBe OK
     }
 
-    "return 401 and an error message when authorization fails" in {
+    "return 400 when limit is zero or above the maximum" in {
+      stubAuth()
+      Seq(0, 1001).foreach { limit =>
+        val response = retrieveReconciliationReportRequest(validZReference, limit = Some(limit))
+        response.status mustBe BAD_REQUEST
+        (response.json \ "message").as[String] mustBe "Invalid limit parameter provided"
+      }
+    }
+
+    "return 400 for a tampered public cursor" in {
+      stubAuth()
+      val response = retrieveReconciliationReportRequest(validZReference, cursor = Some("not-a-valid-cursor"))
+
+      response.status mustBe BAD_REQUEST
+      (response.json \ "message").as[String] mustBe "Invalid cursor parameter provided"
+    }
+
+    "return 401 when authorization fails" in {
       stubAuthFail()
-
-      val res: WSResponse = retrieveReconciliationReportPageRequest(validZReference, page)
-
-      res.status mustBe UNAUTHORIZED
-      (res.json \ "message").as[String] mustBe "Unauthorised"
+      retrieveReconciliationReportRequest(validZReference).status mustBe UNAUTHORIZED
     }
 
-    "return 404 when a page is not found" in {
+    "return 404 when the report is not found" in {
       stubAuth()
-      stubNPSReportRetrieval(404, Json.obj("code" -> "PAGE_NOT_FOUND", "message" -> "PAGE_NOT_FOUND").toString, 0, 2)
+      stubNPSReportRetrieval(NOT_FOUND, """{"message":"REPORT_NOT_FOUND", "responseCode":404}""", None, 200)
 
-      val res: WSResponse = retrieveReconciliationReportPageRequest(validZReference, page)
-
-      res.status mustBe NOT_FOUND
-      (res.json \ "message").as[String] mustBe s"No page $page found"
+      val response = retrieveReconciliationReportRequest(validZReference)
+      response.status mustBe NOT_FOUND
+      (response.json \ "message").as[String] mustBe "Report not found"
     }
 
-    "return 404 when a report is not found" in {
+    "return 500 when NPS sends invalid JSON or an unexpected status" in {
       stubAuth()
-      stubNPSReportRetrieval(404, """{"message":"REPORT_NOT_FOUND", "responseCode":404}""", 0, 2)
+      stubNPSReportRetrieval(OK, "not good json", None, 200)
+      retrieveReconciliationReportRequest(validZReference).status mustBe INTERNAL_SERVER_ERROR
 
-      val res: WSResponse = retrieveReconciliationReportPageRequest(validZReference, page)
-
-      res.status mustBe NOT_FOUND
-      (res.json \ "message").as[String] mustBe s"Report not found"
-    }
-
-    "return 500 when NPS sends invalid JSON" in {
-      stubAuth()
-      stubNPSReportRetrieval(200, "not good json", 0, 2)
-
-      val res: WSResponse = retrieveReconciliationReportPageRequest(validZReference, page)
-
-      res.status mustBe INTERNAL_SERVER_ERROR
-      (res.json \ "message").as[String] mustBe "There has been an issue processing your request"
-    }
-
-    "return 500 when NPS sends an unexpected status" in {
-      stubAuth()
-      stubNPSReportRetrieval(204, "", 0, 2)
-
-      val res: WSResponse = retrieveReconciliationReportPageRequest(validZReference, page)
-
-      res.status mustBe INTERNAL_SERVER_ERROR
-      (res.json \ "message").as[String] mustBe "There has been an issue processing your request"
+      stubNPSReportRetrieval(NO_CONTENT, "", None, 10)
+      retrieveReconciliationReportRequest(validZReference, limit = Some(10)).status mustBe INTERNAL_SERVER_ERROR
     }
   }
 
-  def retrieveReconciliationReportPageRequest(
+  private def retrieveReconciliationReportRequest(
     zReference: String,
-    pageIndex:  Int,
+    cursor:     Option[String] = None,
+    limit:      Option[Int] = None,
     headers:    Seq[(String, String)] = Seq(AUTHORIZATION -> "mock-bearer-token")
-  ): WSResponse =
+  ): WSResponse = {
+    val query = Seq(cursor.map("cursor" -> _), limit.map(value => "limit" -> value.toString)).flatten
     await(
-      ws.url(s"http://localhost:$port/monthly/$zReference/results?page=$pageIndex")
+      ws.url(s"http://localhost:$port/monthly/$zReference/results")
+        .addQueryStringParameters(query*)
         .withFollowRedirects(follow = false)
-        .withHttpHeaders(headers: _*)
+        .withHttpHeaders(headers*)
         .get()
     )
+  }
 
-  def stubNPSReportRetrieval(status: Int, body: String, pageIndex: Int, pageSize: Int): Unit =
+  private def stubNPSReportRetrieval(status: Int, body: String, cursor: Option[String], limit: Int): Unit = {
+    val query = s"limit=$limit" + cursor.fold("")(value => s"&cursor=$value")
     stubFor(
-      get(urlEqualTo(s"/monthly/$validZReference/$taxYear/$monthToken/results?pageIndex=$pageIndex&pageSize=$pageSize"))
+      get(urlEqualTo(s"/monthly/$validZReference/$taxYear/$monthToken/results?$query"))
         .willReturn(aResponse().withStatus(status).withBody(body))
     )
+  }
 }

@@ -80,10 +80,16 @@ Monthly-return API paths are periodless. The current routes are:
 
 - `POST /monthly/:zReference`
 - `POST /monthly/:zReference/declaration`
-- `GET /monthly/:zReference/results?page=:page`
+- `GET /monthly/:zReference/results?cursor=:cursor&limit=:limit`
 - `POST /callback/monthly/:zReference` (reconciliation report ready callback)
 
 Tax year and month are derived by the service rather than supplied as path parameters.
+The reconciliation report ready callback does not accept a request body.
+
+The reconciliation results endpoint uses cursor pagination. Both query parameters are optional: `limit` defaults to 200,
+while `cursor` is the opaque `nextCursor` value from the previous response. Responses
+contain `returnResults` and include an encrypted, URL-safe `nextCursor` only when more results are available.
+If a custom limit is used, the same limit must be supplied with each subsequent cursor request.
 
 With the production router, the previous monthly reporting period is always derived from this service's system clock.
 When the test-only router is enabled, the service reads the optional clock override from

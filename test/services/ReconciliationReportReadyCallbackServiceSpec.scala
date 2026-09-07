@@ -28,20 +28,18 @@ import utils.BaseUnitSpec
 import scala.concurrent.Future
 
 class ReconciliationReportReadyCallbackServiceSpec extends BaseUnitSpec {
-  private val service      = new ReconciliationReportReadyCallbackService(mockReconciliationReportReadyRepository, mockAppConfig)
-  private val totalRecords = 3
+  private val service = new ReconciliationReportReadyCallbackService(mockReconciliationReportReadyRepository, mockAppConfig)
 
   override def beforeEach(): Unit = reset(mockReconciliationReportReadyRepository)
 
   "buildNotification" should {
     "return a notification with a periodless results location" in {
       when(mockReconciliationReportReadyRepository.findByZReference(any))
-        .thenReturn(Future.successful(Some(ReconciliationReportReady(validZReference, 1))))
-      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(Some(1))
+        .thenReturn(Future.successful(Some(ReconciliationReportReady(validZReference))))
       when(mockAppConfig.selfHost).thenReturn("localhost")
 
       await(service.buildNotification(validZReference)) shouldBe
-        Right(ReconciliationReportReadyNotification(s"localhost/monthly/$validZReference/results?page=0", 1, 1))
+        Right(ReconciliationReportReadyNotification(s"localhost/monthly/$validZReference/results"))
     }
 
     "return an internal error when callback data is missing" in {
@@ -49,29 +47,24 @@ class ReconciliationReportReadyCallbackServiceSpec extends BaseUnitSpec {
       await(service.buildNotification(validZReference)) shouldBe Left(InternalServerErr())
     }
 
-    "handle invalid record counts and repository failures" in {
-      when(mockReconciliationReportReadyRepository.findByZReference(any))
-        .thenReturn(Future.successful(Some(ReconciliationReportReady(validZReference, -1))))
-      when(mockAppConfig.getNoOfPagesForReturnResults(any)).thenReturn(None)
-      await(service.buildNotification(validZReference)) shouldBe Left(InternalServerErr())
-
+    "handle repository failures" in {
       when(mockReconciliationReportReadyRepository.findByZReference(any)).thenReturn(Future.failed(new Exception("fubar")))
       await(service.buildNotification(validZReference)) shouldBe Left(InternalServerErr())
     }
   }
 
   "save" should {
-    "upsert a Z-reference and total record count" in {
+    "upsert a readiness marker" in {
       when(mockReconciliationReportReadyRepository.upsert(any[ReconciliationReportReady])).thenReturn(Future.successful(()))
-      await(service.save(ReconciliationReportReady(validZReference, totalRecords))) shouldBe Right(())
+      await(service.save(ReconciliationReportReady(validZReference))) shouldBe Right(())
       verify(mockReconciliationReportReadyRepository).upsert(
-        argThat[ReconciliationReportReady](reportReady => reportReady.zRef == validZReference && reportReady.totalRecords == totalRecords)
+        argThat[ReconciliationReportReady](_.zRef == validZReference)
       )
     }
 
     "map repository failures" in {
       when(mockReconciliationReportReadyRepository.upsert(any[ReconciliationReportReady])).thenReturn(Future.failed(new Exception("fail")))
-      await(service.save(ReconciliationReportReady(validZReference, totalRecords))) shouldBe Left(InternalServerErr())
+      await(service.save(ReconciliationReportReady(validZReference))) shouldBe Left(InternalServerErr())
     }
   }
 }

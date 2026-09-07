@@ -59,10 +59,7 @@ class ReconciliationReportReadyRepository @Inject() (mc: MongoComponent, appConf
       Updates.setOnInsert("createdAt", now)
     )
 
-    val setters = Updates.combine(
-      Updates.set("totalRecords", reportReady.totalRecords),
-      Updates.set("updatedAt", now)
-    )
+    val setters = Updates.set("updatedAt", now)
 
     collection
       .updateOne(filter, Updates.combine(setOnInsert, setters), UpdateOptions().upsert(true))

@@ -16,6 +16,7 @@
 
 package utils
 
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
 import org.apache.pekko.actor.ActorSystem
 import org.scalatest.*
@@ -32,13 +33,16 @@ import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.*
+import uk.gov.hmrc.disareturns.models.common.ReportingPeriod
 import uk.gov.hmrc.disareturns.repositories.{NotificationContextRepository, ReconciliationReportReadyRepository}
 import uk.gov.hmrc.disareturns.services.*
 import uk.gov.hmrc.disareturns.utils.UuidGenerator
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import java.time.{Clock, Instant, ZoneOffset}
 
 abstract class BaseUnitSpec
@@ -55,7 +59,7 @@ abstract class BaseUnitSpec
     with MockAuthConnector
     with utils.TestData {
 
-  implicit val ec:              ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val ec:              ExecutionContext = global
   implicit val hc:              HeaderCarrier    = HeaderCarrier()
   lazy val retryConfig:         Config           = app.configuration.underlying
   lazy val actorSystem:         ActorSystem      = app.actorSystem
@@ -77,8 +81,8 @@ abstract class BaseUnitSpec
       mockReportingWindowService,
       mockReportingPeriodSource
     )
-    when(mockReportingPeriodSource.get(org.mockito.ArgumentMatchers.any())(org.mockito.ArgumentMatchers.any()))
-      .thenReturn(scala.concurrent.Future.successful(uk.gov.hmrc.disareturns.models.common.ReportingPeriod(validTaxYear, validMonth)))
+    when(mockReportingPeriodSource.get(any())(any()))
+      .thenReturn(Future.successful(ReportingPeriod(validTaxYear, validMonth)))
   }
 
   //MOCKS
@@ -106,7 +110,8 @@ abstract class BaseUnitSpec
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .configure(
       "create-internal-auth-token-on-start" -> false,
-      "http-verbs.retries.intervals"        -> List("1ms", "1ms", "1ms")
+      "http-verbs.retries.intervals"        -> List("1ms", "1ms", "1ms"),
+      "cursor.encryption.key"               -> "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
     )
     .overrides(
       bind[AuthConnector].toInstance(mockAuthConnector),

@@ -35,9 +35,6 @@ class AppConfig @Inject() (configuration: Configuration, config: ServicesConfig)
 
   lazy val timeToLive: Int = config.getInt("mongodb.timeToLive")
 
-  lazy val returnResultsRecordsPerPage: Int = config.getInt("returnResultsRecordsPerPage")
-
-  def getNoOfPagesForReturnResults(noOfRecords: Int): Option[Int] =
-    if (noOfRecords >= 0) Some(math.ceil(noOfRecords.toDouble / returnResultsRecordsPerPage).toInt)
-    else None
+  lazy val returnResultsDefaultLimit: Int = config.getInt("returnResults.defaultLimit")
+  lazy val returnResultsMaxLimit:     Int = config.getInt("returnResults.maxLimit")
 }
