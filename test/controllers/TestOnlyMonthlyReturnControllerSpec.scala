@@ -35,8 +35,8 @@ class TestOnlyMonthlyReturnControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(()))
 
       val body: JsValue = Json.obj("zReferences" -> Json.arr("z1234", "Z5678"))
-      val request       = FakeRequest(POST, "/test-only/monthly").withBody(body)
-      val result = controller.delete()(request)
+      val request = FakeRequest(POST, "/test-only/monthly").withBody(body)
+      val result  = controller.delete()(request)
 
       status(result) shouldBe NO_CONTENT
       verify(mockReconciliationReportReadyRepository).deleteByZReferences(Seq("Z1234", "Z5678"))
@@ -45,7 +45,7 @@ class TestOnlyMonthlyReturnControllerSpec extends BaseUnitSpec {
     "reject invalid and null Z-references" in {
       Seq(Json.arr("|1234"), Json.arr(JsNull)).foreach { zReferences =>
         val body: JsValue = Json.obj("zReferences" -> zReferences)
-        val request       = FakeRequest(POST, "/test-only/monthly").withBody(body)
+        val request = FakeRequest(POST, "/test-only/monthly").withBody(body)
 
         status(controller.delete()(request)) shouldBe BAD_REQUEST
       }
