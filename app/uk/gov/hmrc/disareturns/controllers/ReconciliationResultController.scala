@@ -36,13 +36,14 @@ class ReconciliationResultController @Inject() (
   npsService:            NPSService,
   reportingPeriodSource: ReportingPeriodSource,
   authAction:            AuthAction,
-  appConfig:             AppConfig
+  appConfig:             AppConfig,
+  validationHelper:      ValidationHelper
 )(implicit ec:           ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
   def retrieveReconciliationReport(zReference: String, cursor: Option[String], limit: Option[String]): Action[AnyContent] =
-    ValidationHelper.validatePaginationParams(zReference, limit, appConfig.returnResultsDefaultLimit, appConfig.returnResultsMaxLimit) match {
+    validationHelper.validatePaginationParams(zReference, limit, appConfig.returnResultsDefaultLimit, appConfig.returnResultsMaxLimit) match {
       case Left(errors) =>
         Action(_ => BadRequest(Json.toJson(errors)))
       case Right((zReference, validatedLimit)) =>

@@ -45,13 +45,14 @@ class DeclarationController @Inject() (
   notificationContextService: NotificationContextService,
   authAction:                 AuthAction,
   clientIdAction:             ClientIdAction,
-  strictJsonBodyParser:       StrictJsonBodyParser
+  strictJsonBodyParser:       StrictJsonBodyParser,
+  validationHelper:           ValidationHelper
 )(implicit ec:                ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
   def declare(zReference: String): Action[JsValue] =
-    ValidationHelper.validateParams(zReference) match {
+    validationHelper.validateParams(zReference) match {
       case Left(errors) =>
         Action(strictJsonBodyParser) { (_: Request[JsValue]) =>
           BadRequest(Json.toJson(errors))

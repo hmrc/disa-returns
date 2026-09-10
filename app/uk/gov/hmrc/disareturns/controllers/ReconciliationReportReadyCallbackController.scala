@@ -33,14 +33,15 @@ import scala.concurrent.{ExecutionContext, Future}
 class ReconciliationReportReadyCallbackController @Inject() (
   cc:                                       ControllerComponents,
   reconciliationReportReadyCallbackService: ReconciliationReportReadyCallbackService,
-  ppnsService:                              PPNSService
+  ppnsService:                              PPNSService,
+  validationHelper:                         ValidationHelper
 )(implicit ec:                              ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
   def callback(zReference: String): Action[AnyContent] =
     Action.async { implicit request =>
-      ValidationHelper.validateParams(zReference) match {
+      validationHelper.validateParams(zReference) match {
         case Left(errors) => Future.successful(BadRequest(Json.toJson(errors)))
         case Right((zReference, _)) =>
           reconciliationReportReadyCallbackService.save(ReconciliationReportReady(zReference)).flatMap {

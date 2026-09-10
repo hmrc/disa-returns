@@ -20,9 +20,13 @@ import cats.data.ValidatedNel
 import cats.syntax.all.*
 import play.api.Logging
 import uk.gov.hmrc.disareturns.models.common.*
+
+import java.util.Locale
+import javax.inject.{Inject, Singleton}
 import scala.util.Try
 
-object ValidationHelper extends Logging {
+@Singleton
+class ValidationHelper @Inject() (zReferenceValidator: ZReferenceValidator) extends Logging {
 
   def validateParams(zReference: String): Either[ErrorResponse, (String, Option[Int])] =
     validateZReference(zReference).map(_ -> None)
@@ -56,6 +60,6 @@ object ValidationHelper extends Logging {
   }
 
   private def validateZReference(zReference: String): Either[ErrorResponse, String] =
-    if (ZReferenceValidator.isValid(zReference)) Right(zReference.toUpperCase)
+    if (zReferenceValidator.isValid(zReference)) Right(zReference.toUpperCase(Locale.ROOT))
     else Left(InvalidZReference)
 }

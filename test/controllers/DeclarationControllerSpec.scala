@@ -28,7 +28,6 @@ import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
 import uk.gov.hmrc.disareturns.models.etmp.EtmpObligations
 import uk.gov.hmrc.disareturns.models.submission.ReportingWindowStatus
-import uk.gov.hmrc.disareturns.utils.ValidationHelper
 import uk.gov.hmrc.http.HttpResponse
 import utils.BaseUnitSpec
 
@@ -100,10 +99,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
         .withHeaders("X-Client-ID" -> clientId)
         .withJsonBody(nilReturnBody)
       val result = call(controller.declare(invalidZReference), request)
-      status(result) shouldBe BAD_REQUEST
-      contentAsJson(result) shouldBe Json.toJson(
-        ValidationHelper.validateParams(invalidZReference).left.toOption.get
-      )
+      status(result)        shouldBe BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(InvalidZReference)
 
     }
 

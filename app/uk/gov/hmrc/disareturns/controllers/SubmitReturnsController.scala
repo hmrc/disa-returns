@@ -43,6 +43,7 @@ class SubmitReturnsController @Inject() (
   submissionService:        SubmissionService,
   reportingPeriodSource:    ReportingPeriodSource,
   authAction:               AuthAction,
+  validationHelper:         ValidationHelper,
   implicit val etmpService: ETMPService
 )(implicit ec:              ExecutionContext, val mat: Materializer)
     extends BackendController(cc)
@@ -55,7 +56,7 @@ class SubmitReturnsController @Inject() (
   private def ignoreBodyParser: BodyParser[Source[ByteString, _]] = BodyParser(_ => Accumulator.done(Right(Source.empty[ByteString])))
 
   def submit(zReference: String): Action[Source[ByteString, _]] =
-    ValidationHelper.validateParams(zReference) match {
+    validationHelper.validateParams(zReference) match {
       case Left(errors) => Action.async(ignoreBodyParser)(_ => Future.successful(BadRequest(Json.toJson(errors))))
       case Right((zRef, _)) =>
         (Action andThen authAction(zRef)).async(streamingParser) { implicit request =>
