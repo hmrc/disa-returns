@@ -25,6 +25,9 @@ import uk.gov.hmrc.disareturns.repositories.ReconciliationReportReadyRepository
 import uk.gov.hmrc.mongo.MongoComponent
 import utils.BaseUnitSpec
 
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+
 class ReconciliationReportReadyRepositorySpec extends BaseUnitSpec {
   protected val databaseName:     String         = "disa-returns-reconciliation-report-ready-test"
   protected val mongoUri:         String         = s"mongodb://127.0.0.1:27017/$databaseName"
@@ -39,43 +42,43 @@ class ReconciliationReportReadyRepositorySpec extends BaseUnitSpec {
   "findByZReference" should {
 
     "find callback data with matching details" in {
-      val doc = ReconciliationReportReady(zRef = validZReference, totalRecords = 3)
+      val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+      val doc = ReconciliationReportReady(zRef = validZReference, createdAt = now, updatedAt = now)
 
       await(repository.collection.insertOne(doc).toFuture())
 
       val result = await(repository.findByZReference(validZReference))
 
       result.head.zRef mustBe validZReference
-      result.head.totalRecords mustBe 3
+      result.head.createdAt mustBe doc.createdAt
+      result.head.updatedAt mustBe doc.updatedAt
     }
   }
 
   "upsert" should {
 
     "insert a new ReconciliationReportReady document when it does not exist" in {
-      val doc = ReconciliationReportReady(zRef = validZReference, totalRecords = 3)
+      val doc = ReconciliationReportReady(zRef = validZReference)
 
       await(repository.upsert(doc))
 
       val stored = await(repository.collection.find().toFuture())
       stored must have size 1
       stored.head.zRef mustBe validZReference
-      stored.head.totalRecords mustBe 3
+      stored.head.createdAt mustBe stored.head.updatedAt
     }
 
-    "replace the existing document and update fields" in {
-      val original = ReconciliationReportReady(zRef = validZReference, totalRecords = 2)
-
-      val updated = original.copy(totalRecords = 9)
+    "update the existing marker while preserving its creation timestamp" in {
+      val original = ReconciliationReportReady(zRef = validZReference)
 
       await(repository.upsert(original))
       val originallyStored = await(repository.collection.find().head())
-      await(repository.upsert(updated))
+      await(repository.upsert(ReconciliationReportReady(zRef = validZReference)))
 
       val stored = await(repository.collection.find().toFuture())
 
       stored must have size 1
-      stored.head.totalRecords mustBe 9
+      stored.head.zRef mustBe validZReference
       stored.head.createdAt mustBe originallyStored.createdAt
       stored.head.updatedAt must be >= originallyStored.updatedAt
     }
@@ -83,8 +86,8 @@ class ReconciliationReportReadyRepositorySpec extends BaseUnitSpec {
 
   "deleteByZReferences" should {
     "delete only callback data for the supplied Z-references" in {
-      await(repository.upsert(ReconciliationReportReady(zRef = validZReference, totalRecords = 3)))
-      await(repository.upsert(ReconciliationReportReady(zRef = "Z5678", totalRecords = 4)))
+      await(repository.upsert(ReconciliationReportReady(zRef = validZReference)))
+      await(repository.upsert(ReconciliationReportReady(zRef = "Z5678")))
 
       await(repository.deleteByZReferences(Seq(validZReference)))
 

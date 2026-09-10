@@ -19,10 +19,10 @@ package uk.gov.hmrc.disareturns.controllers
 import com.google.inject.Inject
 import jakarta.inject.Singleton
 import play.api.Logging
-import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.libs.json.Json
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.callback.{ReconciliationReportReady, ReconciliationReportReadyCallbackRequest}
+import uk.gov.hmrc.disareturns.models.callback.ReconciliationReportReady
 import uk.gov.hmrc.disareturns.services.{PPNSService, ReconciliationReportReadyCallbackService}
 import uk.gov.hmrc.disareturns.utils.ValidationHelper
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -36,38 +36,34 @@ class ReconciliationReportReadyCallbackController @Inject() (
   ppnsService:                              PPNSService
 )(implicit ec:                              ExecutionContext)
     extends BackendController(cc)
-    with Logging
-    with WithJsonBodyWithBadRequest {
+    with Logging {
 
-  def callback(zReference: String): Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
-      withJsonBody[ReconciliationReportReadyCallbackRequest] { body =>
-        ValidationHelper.validateParams(zReference) match {
-          case Left(errors) => Future.successful(BadRequest(Json.toJson(errors)))
-          case Right((zReference, _)) =>
-            val reportReady = ReconciliationReportReady(zReference, body.totalRecords)
-            reconciliationReportReadyCallbackService.save(reportReady).flatMap {
-              case Left(err: InternalServerErr) =>
-                Future.successful(InternalServerError(Json.toJson(err)))
-              case Left(err) =>
-                logger.warn(
-                  s"[ReconciliationReportReadyCallbackController][callback] Unexpected error [$err] saving callback for IM ref: [$zReference]"
-                )
-                Future.successful(InternalServerError(Json.toJson(err)))
-              case Right(_) =>
-                reconciliationReportReadyCallbackService.buildNotification(zReference).flatMap {
-                  case Left(_) =>
-                    Future.successful(NoContent)
-                  case Right(notification) =>
-                    ppnsService.sendReconciliationReportReadyNotification(zReference, notification).map { _ =>
-                      logger.info(
-                        s"[ReconciliationReportReadyCallbackController][callback] Reconciliation report ready callback successful for IM ref: [$zReference]"
-                      )
-                      NoContent
-                    }
-                }
-            }
-        }
+  def callback(zReference: String): Action[AnyContent] =
+    Action.async { implicit request =>
+      ValidationHelper.validateParams(zReference) match {
+        case Left(errors) => Future.successful(BadRequest(Json.toJson(errors)))
+        case Right((zReference, _)) =>
+          reconciliationReportReadyCallbackService.save(ReconciliationReportReady(zReference)).flatMap {
+            case Left(err: InternalServerErr) =>
+              Future.successful(InternalServerError(Json.toJson(err)))
+            case Left(err) =>
+              logger.warn(
+                s"[ReconciliationReportReadyCallbackController][callback] Unexpected error [$err] saving callback for IM ref: [$zReference]"
+              )
+              Future.successful(InternalServerError(Json.toJson(err)))
+            case Right(_) =>
+              reconciliationReportReadyCallbackService.buildNotification(zReference).flatMap {
+                case Left(_) =>
+                  Future.successful(NoContent)
+                case Right(notification) =>
+                  ppnsService.sendReconciliationReportReadyNotification(zReference, notification).map { _ =>
+                    logger.info(
+                      s"[ReconciliationReportReadyCallbackController][callback] Reconciliation report ready callback successful for IM ref: [$zReference]"
+                    )
+                    NoContent
+                  }
+              }
+          }
       }
     }
 }

@@ -4,7 +4,7 @@ POST /monthly/:zReference                                  uk.gov.hmrc.disaretur
 
 POST /monthly/:zReference/declaration                      uk.gov.hmrc.disareturns.controllers.DeclarationController.declare(zReference:String)
 
-GET /monthly/:zReference/results                           uk.gov.hmrc.disareturns.controllers.ReconciliationResultController.retrieveReconciliationReportPage(zReference:String, page: String ?= "0")
+GET /monthly/:zReference/results                           uk.gov.hmrc.disareturns.controllers.ReconciliationResultController.retrieveReconciliationReport(zReference:String, cursor: Option[String] ?= None, limit: Option[String] ?= None)
 
 ## Reconciliation Report Ready Callback
 POST /callback/monthly/:zReference                         uk.gov.hmrc.disareturns.controllers.ReconciliationReportReadyCallbackController.callback(zReference: String)

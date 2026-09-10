@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.disareturns.models.returnResults
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, OFormat, OWrites}
 
-case class ReconciliationReportPage(
-  currentPage:        Int,
-  recordsInPage:      Int,
-  totalRecords:       Int,
-  totalNumberOfPages: Int,
-  returnResults:      Seq[ReturnResults]
-)
+case class ReconciliationReport(returnResults: Seq[ReturnResults], nextCursor: Option[String])
 
-object ReconciliationReportPage {
-  implicit val format: OFormat[ReconciliationReportPage] = Json.format[ReconciliationReportPage]
+object ReconciliationReport {
+  private val reads = Json.reads[ReconciliationReport]
+  private val writes: OWrites[ReconciliationReport] = OWrites { report =>
+    Json.obj("returnResults" -> report.returnResults) ++
+      report.nextCursor.fold(Json.obj())(cursor => Json.obj("nextCursor" -> cursor))
+  }
+
+  implicit val format: OFormat[ReconciliationReport] = OFormat(reads, writes)
 }

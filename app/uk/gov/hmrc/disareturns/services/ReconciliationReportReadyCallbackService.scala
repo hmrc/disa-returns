@@ -52,26 +52,13 @@ class ReconciliationReportReadyCallbackService @Inject() (
     logger.info(s"[ReconciliationReportReadyCallbackService][buildNotification] Building notification for IM ref: [$zReference]")
 
     lazy val returnResultsLocation =
-      s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReportPage(zReference).url}?page=0"
-
-    def toNotification(totalRecords: Int): Either[ErrorResponse, ReconciliationReportReadyNotification] = {
-      val numberOfPages = appConfig.getNoOfPagesForReturnResults(totalRecords)
-
-      numberOfPages.fold[Either[ErrorResponse, ReconciliationReportReadyNotification]] {
-        logger.error(
-          s"[ReconciliationReportReadyCallbackService][buildNotification] Invalid number of total records [$totalRecords] received from upstream for IM Ref: [$zReference]"
-        )
-        Left(InternalServerErr())
-      } { numberOfPages =>
-        Right(ReconciliationReportReadyNotification(returnResultsLocation, totalRecords, numberOfPages))
-      }
-    }
+      s"${appConfig.selfHost}${routes.ReconciliationResultController.retrieveReconciliationReport(zReference).url}"
 
     repository
       .findByZReference(zReference)
       .map {
-        case Some(reportReady) => toNotification(reportReady.totalRecords)
-        case _                 => Left(InternalServerErr())
+        case Some(_) => Right(ReconciliationReportReadyNotification(returnResultsLocation))
+        case _       => Left(InternalServerErr())
       }
       .recover { case e =>
         logger.error(

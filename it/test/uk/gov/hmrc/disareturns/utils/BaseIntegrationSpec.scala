@@ -60,9 +60,9 @@ trait BaseIntegrationSpec
     with CommonStubs
     with TestData {
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
-  val testReportingPeriod: Instant   = Instant.parse("2026-10-15T12:00:00Z")
-  val testReportingPeriodClock: Clock = Clock.fixed(testReportingPeriod, ZoneOffset.UTC)
+  implicit val hc:              HeaderCarrier = HeaderCarrier()
+  val testReportingPeriod:      Instant       = Instant.parse("2026-10-15T12:00:00Z")
+  val testReportingPeriodClock: Clock         = Clock.fixed(testReportingPeriod, ZoneOffset.UTC)
 
   override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(config)
@@ -86,10 +86,12 @@ trait BaseIntegrationSpec
       "microservice.services.disa-returns-submission.port" -> wiremockPort.toString,
       "microservice.services.self.host"                    -> wiremockHost,
       "microservice.services.self.port"                    -> wiremockPort.toString,
-      "returnResultsRecordsPerPage"                        -> "2",
+      "returnResults.defaultLimit"                         -> "200",
+      "returnResults.maxLimit"                             -> "1000",
       "internal-auth.token"                                -> "valid-internal-auth-token-disa-returns",
       "create-internal-auth-token-on-start"                -> "false",
-      "http-verbs.retries.intervals"                       -> List("1ms", "1ms", "1ms")
+      "http-verbs.retries.intervals"                       -> List("1ms", "1ms", "1ms"),
+      "cursor.encryption.key"                              -> "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
     )
 
   override def beforeAll(): Unit = {

@@ -24,23 +24,28 @@ import scala.util.Try
 
 object ValidationHelper extends Logging {
 
-  def validateParams(zReference: String, pageIndex: Option[String] = None): Either[ErrorResponse, (String, Option[Int])] = {
+  def validateParams(zReference: String): Either[ErrorResponse, (String, Option[Int])] =
+    validateZReference(zReference).map(_ -> None)
 
-    val zRefValidated: ValidatedNel[ErrorResponse, String] =
-      if (ZReferenceValidator.isValid(zReference)) zReference.toUpperCase.validNel
-      else InvalidZReference.invalidNel
+  def validatePaginationParams(
+    zReference:   String,
+    limit:        Option[String],
+    defaultLimit: Int,
+    maxLimit:     Int
+  ): Either[ErrorResponse, (String, Int)] = {
 
-    val pageValidated: ValidatedNel[ErrorResponse, Option[Int]] =
-      pageIndex match {
-        case None => None.validNel
+    val zRefValidated = validateZReference(zReference).toValidatedNel
+
+    val limitValidated: ValidatedNel[ErrorResponse, Int] =
+      limit match {
+        case None => defaultLimit.validNel
         case Some(value) =>
           Try(value.toInt).toOption
-            .filter(_ >= 0)
-            .map(Some.apply)
-            .toValidNel(InvalidPageErr)
+            .filter(value => value > 0 && value <= maxLimit)
+            .toValidNel(InvalidLimitErr)
       }
 
-    val combined = (zRefValidated, pageValidated).mapN((zRef, page) => (zRef, page))
+    val combined = (zRefValidated, limitValidated).mapN((zRef, validatedLimit) => (zRef, validatedLimit))
 
     combined.toEither.leftMap { nonEmptyList =>
       val errs = nonEmptyList.toList
@@ -49,4 +54,8 @@ object ValidationHelper extends Logging {
       else MultipleErrorResponse(code = "BAD_REQUEST", errors = errs)
     }
   }
+
+  private def validateZReference(zReference: String): Either[ErrorResponse, String] =
+    if (ZReferenceValidator.isValid(zReference)) Right(zReference.toUpperCase)
+    else Left(InvalidZReference)
 }

@@ -25,13 +25,15 @@ import uk.gov.hmrc.disareturns.services.{ReportingPeriodSource, SystemReportingP
 import uk.gov.hmrc.disareturns.testOnly.services.TestOnlySubmissionReportingPeriodSource
 
 class ModuleSpec extends AnyWordSpec with Matchers {
+  private val cursorEncryptionKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 
   "Module" should {
     "bind the submission reporting-period source only for the test-only router" in {
       val application = new GuiceApplicationBuilder()
         .configure(
           "application.router"                  -> "testOnlyDoNotUseInAppConf.Routes",
-          "create-internal-auth-token-on-start" -> false
+          "create-internal-auth-token-on-start" -> false,
+          "cursor.encryption.key"               -> cursorEncryptionKey
         )
         .build()
 
@@ -42,7 +44,10 @@ class ModuleSpec extends AnyWordSpec with Matchers {
 
     "bind the local system reporting-period source for the production router" in {
       val application = new GuiceApplicationBuilder()
-        .configure("create-internal-auth-token-on-start" -> false)
+        .configure(
+          "create-internal-auth-token-on-start" -> false,
+          "cursor.encryption.key"               -> cursorEncryptionKey
+        )
         .build()
 
       running(application) {
@@ -54,7 +59,8 @@ class ModuleSpec extends AnyWordSpec with Matchers {
       val application = new GuiceApplicationBuilder()
         .configure(
           "create-internal-auth-token-on-start"     -> false,
-          "features.enrolment-verification-enabled" -> true
+          "features.enrolment-verification-enabled" -> true,
+          "cursor.encryption.key"                   -> cursorEncryptionKey
         )
         .build()
 
@@ -67,7 +73,8 @@ class ModuleSpec extends AnyWordSpec with Matchers {
       val application = new GuiceApplicationBuilder()
         .configure(
           "create-internal-auth-token-on-start"     -> false,
-          "features.enrolment-verification-enabled" -> false
+          "features.enrolment-verification-enabled" -> false,
+          "cursor.encryption.key"                   -> cursorEncryptionKey
         )
         .build()
 

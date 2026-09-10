@@ -18,12 +18,11 @@ package controllers
 
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito.{verify, when}
-import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.disareturns.controllers.ReconciliationReportReadyCallbackController
 import uk.gov.hmrc.disareturns.models.common.InternalServerErr
-import uk.gov.hmrc.disareturns.models.callback.{ReconciliationReportReady, ReconciliationReportReadyCallbackRequest}
+import uk.gov.hmrc.disareturns.models.callback.ReconciliationReportReady
 import uk.gov.hmrc.disareturns.models.ppns.ReconciliationReportReadyNotification
 import utils.BaseUnitSpec
 
@@ -31,9 +30,7 @@ import scala.concurrent.Future
 
 class ReconciliationReportReadyCallbackControllerSpec extends BaseUnitSpec {
   private val controller   = app.injector.instanceOf[ReconciliationReportReadyCallbackController]
-  private val totalRecords = 3
-  private val notification = ReconciliationReportReadyNotification("url", totalRecords, 1)
-  private val callbackBody = Json.toJson(ReconciliationReportReadyCallbackRequest(totalRecords))
+  private val notification = ReconciliationReportReadyNotification("url")
 
   "callback" should {
     "store the callback and send a notification" in {
@@ -41,29 +38,26 @@ class ReconciliationReportReadyCallbackControllerSpec extends BaseUnitSpec {
       when(mockReconciliationReportReadyCallbackService.buildNotification(any)).thenReturn(Future.successful(Right(notification)))
       when(mockPPNSService.sendReconciliationReportReadyNotification(any, any)(any)).thenReturn(Future.successful(()))
 
-      val result = controller.callback(validZReference)(
-        FakeRequest(POST, s"/callback/monthly/$validZReference").withBody(callbackBody)
-      )
+      val result = controller.callback(validZReference)(FakeRequest(POST, s"/callback/monthly/$validZReference"))
 
       status(result) shouldBe NO_CONTENT
       verify(mockReconciliationReportReadyCallbackService).save(
-        argThat[ReconciliationReportReady](reportReady => reportReady.zRef == validZReference && reportReady.totalRecords == totalRecords)
+        argThat[ReconciliationReportReady](_.zRef == validZReference)
       )
     }
 
     "return no content when notification data cannot be retrieved" in {
       when(mockReconciliationReportReadyCallbackService.save(any)).thenReturn(Future.successful(Right(())))
       when(mockReconciliationReportReadyCallbackService.buildNotification(any)).thenReturn(Future.successful(Left(InternalServerErr())))
-      val result = controller.callback(validZReference)(FakeRequest(POST, "/").withBody(callbackBody))
+      val result = controller.callback(validZReference)(FakeRequest(POST, "/"))
       status(result) shouldBe NO_CONTENT
     }
 
     "map save errors and reject invalid input" in {
       when(mockReconciliationReportReadyCallbackService.save(any)).thenReturn(Future.successful(Left(InternalServerErr())))
-      status(controller.callback(validZReference)(FakeRequest(POST, "/").withBody(callbackBody))) shouldBe INTERNAL_SERVER_ERROR
+      status(controller.callback(validZReference)(FakeRequest(POST, "/"))) shouldBe INTERNAL_SERVER_ERROR
 
-      status(controller.callback("invalid")(FakeRequest(POST, "/").withBody(callbackBody)))                 shouldBe BAD_REQUEST
-      status(controller.callback(validZReference)(FakeRequest(POST, "/").withBody(Json.obj("wrong" -> 1)))) shouldBe BAD_REQUEST
+      status(controller.callback("invalid")(FakeRequest(POST, "/"))) shouldBe BAD_REQUEST
     }
   }
 }

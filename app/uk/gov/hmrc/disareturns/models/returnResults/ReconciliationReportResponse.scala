@@ -19,8 +19,8 @@ package uk.gov.hmrc.disareturns.models.returnResults
 import play.api.libs.json.{Json, OFormat}
 
 case class ReconciliationReportResponse(
-  totalRecords:  Int,
-  returnResults: Seq[ReturnResults]
+  returnResults: Seq[ReturnResults],
+  nextCursor:    Option[String]
 )
 
 object ReconciliationReportResponse {

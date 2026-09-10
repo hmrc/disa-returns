@@ -62,20 +62,12 @@ class HttpHelperSpec extends AnyWordSpec with Matchers {
       contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
     }
 
-    "return NotFound (404) for ReportPageNotFoundErr" in {
-      val err    = ReportPageNotFoundErr(1)
-      val result = HttpHelper.toHttpError(err)
-
-      result.header.status                     shouldBe NOT_FOUND
-      contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
-    }
-
-    "return BadRequest (400) for InvalidPageErr" in {
-      val err    = InvalidPageErr
-      val result = HttpHelper.toHttpError(err)
-
-      result.header.status                     shouldBe BAD_REQUEST
-      contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
+    "return BadRequest (400) for invalid pagination parameters" in {
+      Seq(InvalidLimitErr, InvalidCursorErr).foreach { err =>
+        val result = HttpHelper.toHttpError(err)
+        result.header.status                     shouldBe BAD_REQUEST
+        contentAsJson(Future.successful(result)) shouldBe Json.toJson(err)
+      }
     }
 
     "return Forbidden (403) for ObligationClosed" in {

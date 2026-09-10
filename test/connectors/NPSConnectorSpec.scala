@@ -39,8 +39,8 @@ class NPSConnectorSpec extends BaseUnitSpec {
 
     when(mockAppConfig.npsBaseUrl).thenReturn(testUrl)
     when(mockHttpClient.post(url"$testUrl/nps/declaration/$validZReference")).thenReturn(mockRequestBuilder)
-    when(mockHttpClient.get(url"$testUrl/monthly/$validZReference/$validTaxYear/$validMonthStr/results?pageIndex=0&pageSize=2"))
-      .thenReturn(mockRequestBuilder)
+    when(mockHttpClient.get(url"$testUrl/monthly/$validZReference/$validTaxYear/$validMonthStr/results")).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
   }
 
@@ -85,17 +85,20 @@ class NPSConnectorSpec extends BaseUnitSpec {
     }
   }
 
-  "NPSConnector.retrieveReconciliationReportPage" should {
+  "NPSConnector.retrieveReconciliationReport" should {
 
     "return Right(HttpResponse) when the GET is successful" in new TestSetup {
       val httpResponse: HttpResponse =
-        HttpResponse(200, Json.toJson(ReconciliationReportResponse(1, Seq(ReturnResults("2", "A", IssueWithMessage("code", "message"))))).toString)
+        HttpResponse(
+          200,
+          Json.toJson(ReconciliationReportResponse(Seq(ReturnResults("2", "A", IssueWithMessage("code", "message"))), None)).toString
+        )
 
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(httpResponse)))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, 0, 2).value.futureValue
+        connector.retrieveReconciliationReport(validZReference, validTaxYear, validMonth, Some("raw-cursor"), 200).value.futureValue
 
       result shouldBe Right(httpResponse)
     }
@@ -112,7 +115,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Left(upstreamError)))
 
       val result: Either[UpstreamErrorResponse, HttpResponse] =
-        connector.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, 0, 2).value.futureValue
+        connector.retrieveReconciliationReport(validZReference, validTaxYear, validMonth, None, 200).value.futureValue
 
       result shouldBe Left(upstreamError)
     }
@@ -124,7 +127,7 @@ class NPSConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.failed(runtimeException))
 
       val result =
-        connector.retrieveReconciliationReportPage(validZReference, validTaxYear, validMonth, 0, 2).value.futureValue.left.value
+        connector.retrieveReconciliationReport(validZReference, validTaxYear, validMonth, None, 200).value.futureValue.left.value
 
       result.statusCode shouldBe 500
       result.message      should include("Unexpected error: Connection timeout")

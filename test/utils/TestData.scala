@@ -31,7 +31,7 @@ trait TestData {
   val validMonth:      Month.Value = Month.SEP
   val validMonthStr:   String      = "SEP"
   val reconciliationReportReadyNotification: ReconciliationReportReadyNotification =
-    ReconciliationReportReadyNotification(returnResultsLocation = "some-location", totalRecords = 20, numberOfPages = 2)
+    ReconciliationReportReadyNotification(returnResultsLocation = "some-location")
 
   val lifetimeIsaSubscriptionJson: JsObject = Json.obj(
     "accountNumber"                       -> "STD000001",

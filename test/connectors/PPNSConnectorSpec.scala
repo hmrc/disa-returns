@@ -94,6 +94,9 @@ class PPNSConnectorSpec extends BaseUnitSpec {
       val httpResponse: HttpResponse = HttpResponse(201, "")
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())).thenReturn(Future.successful(Right(httpResponse)))
       connector.sendReconciliationReportReadyNotification(testBoxId, reconciliationReportReadyNotification).futureValue shouldBe ()
+      Json.toJson(reconciliationReportReadyNotification) shouldBe Json.obj(
+        "returnResultsLocation" -> "some-location"
+      )
     }
   }
 }

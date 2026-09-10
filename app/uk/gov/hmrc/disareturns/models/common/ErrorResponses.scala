@@ -43,14 +43,6 @@ case object ReportNotFoundErr extends ErrorResponse {
   val message = "Report not found"
 }
 
-case class ReportPageNotFoundErr private (message: String) extends ErrorResponse {
-  val code = "PAGE_NOT_FOUND"
-}
-
-object ReportPageNotFoundErr {
-  def apply(pageIndex: Int): ReportPageNotFoundErr = ReportPageNotFoundErr(s"No page $pageIndex found")
-}
-
 case object ObligationClosed extends ErrorResponse {
   val code    = "OBLIGATION_CLOSED"
   val message = "Obligation closed"
@@ -85,9 +77,14 @@ case object EmptyPayload extends ErrorResponse {
   val message = "NDJSON payload is empty. Please ensure the request body contains a valid NDJSON payload before resubmitting."
 }
 
-case object InvalidPageErr extends ErrorResponse {
-  val code    = "INVALID_PAGE"
-  val message = "Invalid page index parameter provided"
+case object InvalidLimitErr extends ErrorResponse {
+  val code    = "INVALID_LIMIT"
+  val message = "Invalid limit parameter provided"
+}
+
+case object InvalidCursorErr extends ErrorResponse {
+  val code    = "INVALID_CURSOR"
+  val message = "Invalid cursor parameter provided"
 }
 
 case object DuplicateNilReturnField extends ErrorResponse {
@@ -107,7 +104,6 @@ case object MonthlyReturnNotSubmitted extends ErrorResponse {
 
 object ErrorResponse {
 
-  implicit val reportPageNotFoundErrReads:   Reads[ReportPageNotFoundErr]   = Json.reads[ReportPageNotFoundErr]
   implicit val malformedJsonFailureErrReads: Reads[MalformedJsonFailureErr] = Json.reads[MalformedJsonFailureErr]
   implicit val badRequestErrReads:           Reads[BadRequestErr]           = Json.reads[BadRequestErr]
 
@@ -125,7 +121,8 @@ object ErrorResponse {
     NinoOrAccountNumMissingErr.code -> NinoOrAccountNumMissingErr,
     NinoOrAccountNumInvalidErr.code -> NinoOrAccountNumInvalidErr,
     InvalidZReference.code          -> InvalidZReference,
-    InvalidPageErr.code             -> InvalidPageErr,
+    InvalidLimitErr.code            -> InvalidLimitErr,
+    InvalidCursorErr.code           -> InvalidCursorErr,
     EmptyPayload.code               -> EmptyPayload,
     DuplicateNilReturnField.code    -> DuplicateNilReturnField,
     MissingNilReturn.code           -> MissingNilReturn,
@@ -145,7 +142,6 @@ object ErrorResponse {
             case None    => Json.fromJson[BadRequestErr](json)
           }
         case "INTERNAL_SERVER_ERROR"           => internalServerErrReads.reads(json)
-        case "PAGE_NOT_FOUND"                  => reportPageNotFoundErrReads.reads(json)
         case "MALFORMED_JSON"                  => malformedJsonFailureErrReads.reads(json)
         case code if singletons.contains(code) => JsSuccess(singletons(code))
         case other                             => JsError(s"Unknown error code: $other")
@@ -156,7 +152,6 @@ object ErrorResponse {
         Json.toJson(m)(MultipleErrorResponse.format)
       case v: FieldValidationError =>
         Json.obj("code" -> v.code, "message" -> v.message, "path" -> v.path)
-      case r:     ReportPageNotFoundErr => Json.obj("code" -> r.code, "message" -> r.message)
       case error: ErrorResponse =>
         Json.obj("code" -> error.code, "message" -> error.message)
     }

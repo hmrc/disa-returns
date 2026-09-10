@@ -32,7 +32,8 @@ class AppConfigSpec extends BaseUnitSpec {
     "internal-auth.token"                      -> "valid-internal-auth-token-disa-returns",
     "urls.returnResultsLocation"               -> "/monthly/{zReference}/results",
     "mongodb.timeToLive"                       -> 30,
-    "returnResultsRecordsPerPage"              -> 10
+    "returnResults.defaultLimit"               -> 200,
+    "returnResults.maxLimit"                   -> 1000
   )
 
   private val configuration  = Configuration.from(configMap)
@@ -54,25 +55,9 @@ class AppConfigSpec extends BaseUnitSpec {
       appConfig.internalAuthToken mustBe "valid-internal-auth-token-disa-returns"
     }
 
-    "read the returnResultsRecordsPerPage correctly" in {
-      appConfig.returnResultsRecordsPerPage mustBe 10
-    }
-
-    "calculate the number of pages for return results correctly" in {
-      val pages1 = appConfig.getNoOfPagesForReturnResults(25)
-      pages1 mustBe Some(3)
-
-      val pages2 = appConfig.getNoOfPagesForReturnResults(0)
-      pages2 mustBe Some(0)
-
-      val pages3 = appConfig.getNoOfPagesForReturnResults(10)
-      pages3 mustBe Some(1)
-
-      val pages4 = appConfig.getNoOfPagesForReturnResults(1)
-      pages4 mustBe Some(1)
-
-      val pages5 = appConfig.getNoOfPagesForReturnResults(-10)
-      pages5 mustBe None
+    "read the return results limits correctly" in {
+      appConfig.returnResultsDefaultLimit mustBe 200
+      appConfig.returnResultsMaxLimit mustBe 1000
     }
   }
 }
