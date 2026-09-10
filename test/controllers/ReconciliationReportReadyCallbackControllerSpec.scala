@@ -53,11 +53,12 @@ class ReconciliationReportReadyCallbackControllerSpec extends BaseUnitSpec {
       status(result) shouldBe NO_CONTENT
     }
 
-    "map save errors and reject invalid input" in {
+    "map save errors and reject invalid input, including a pipe prefix" in {
       when(mockReconciliationReportReadyCallbackService.save(any)).thenReturn(Future.successful(Left(InternalServerErr())))
       status(controller.callback(validZReference)(FakeRequest(POST, "/"))) shouldBe INTERNAL_SERVER_ERROR
 
       status(controller.callback("invalid")(FakeRequest(POST, "/"))) shouldBe BAD_REQUEST
+      status(controller.callback("|1234")(FakeRequest(POST, "/")))   shouldBe BAD_REQUEST
     }
   }
 }

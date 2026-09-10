@@ -36,12 +36,26 @@ sm2 --start DISA_RETURNS_ALL
 curl http://localhost:1200/api/definition
 ```
 
+### Performance tests
+
+Run with test-only routes, extended Z-references, and enrolment matching disabled:
+
+```bash
+sbt -Dplay.http.router=testOnlyDoNotUseInAppConf.Routes -Dapplication.router=testOnlyDoNotUseInAppConf.Routes -Dfeatures.enrolment-verification-enabled=false -Dfeatures.strict-z-reference-validation-enabled=false run
+```
+
 ### Enrolment verification
 
 The `features.enrolment-verification-enabled` flag controls whether authenticated API requests must have an active
 `HMRC-DISA-ORG` enrolment whose `ZREF` identifier matches the Z-reference in the request path. It defaults to `true`.
 When disabled, requests must still be authenticated, but the DISA enrolment and Z-reference match are not checked. The
 deployment configuration disables enrolment verification in External Test.
+
+### Z-reference validation
+
+The `features.strict-z-reference-validation-enabled` flag controls the accepted Z-reference length. It defaults to
+`true`, which accepts `Z` followed by exactly four digits. When disabled, loose validation accepts references containing
+between four and eight digits. Validation is case-insensitive and valid references are normalized to uppercase.
 
 ### Running the test suite
 

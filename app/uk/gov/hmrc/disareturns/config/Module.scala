@@ -24,6 +24,7 @@ import uk.gov.hmrc.disareturns.AppInitialiser
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.{AuthAction, AuthenticatedAuthAction, EnrolmentVerificationAuthAction}
 import uk.gov.hmrc.disareturns.services.{ReportingPeriodSource, SystemReportingPeriodSource}
 import uk.gov.hmrc.disareturns.testOnly.services.TestOnlySubmissionReportingPeriodSource
+import uk.gov.hmrc.disareturns.utils.{LooseZReferenceValidator, StrictZReferenceValidator, ZReferenceValidator}
 import uk.gov.hmrc.http.client.HttpClientV2
 
 import javax.inject.{Provider, Singleton}
@@ -63,6 +64,16 @@ class Module extends AbstractModule {
   ): AuthAction =
     if (config.getBoolean("features.enrolment-verification-enabled")) enrolmentVerificationAuthAction
     else authenticatedAuthAction
+
+  @Provides
+  @Singleton
+  def provideZReferenceValidator(
+    config:          Config,
+    strictValidator: Provider[StrictZReferenceValidator],
+    looseValidator:  Provider[LooseZReferenceValidator]
+  ): ZReferenceValidator =
+    if (config.getBoolean("features.strict-z-reference-validation-enabled")) strictValidator.get()
+    else looseValidator.get()
 
   @Provides
   @Singleton

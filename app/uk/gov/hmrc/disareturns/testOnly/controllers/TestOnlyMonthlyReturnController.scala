@@ -23,19 +23,21 @@ import uk.gov.hmrc.disareturns.utils.ZReferenceValidator
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
+import java.util.Locale
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class TestOnlyMonthlyReturnController @Inject() (
   cc:                                  ControllerComponents,
-  reconciliationReportReadyRepository: ReconciliationReportReadyRepository
+  reconciliationReportReadyRepository: ReconciliationReportReadyRepository,
+  zReferenceValidator:                 ZReferenceValidator
 )(implicit ec:                         ExecutionContext)
     extends BackendController(cc) {
 
   def delete(): Action[JsValue] = Action.async(parse.json) { request =>
     (request.body \ "zReferences").validate[Seq[String]].asOpt match {
       case Some(zReferences) if zReferences.nonEmpty =>
-        val normalized = zReferences.filter(ZReferenceValidator.isValid).map(_.toUpperCase).distinct
+        val normalized = zReferences.filter(zReferenceValidator.isValid).map(_.toUpperCase(Locale.ROOT)).distinct
 
         if (normalized.size != zReferences.distinct.size) Future.successful(BadRequest)
         else reconciliationReportReadyRepository.deleteByZReferences(normalized).map(_ => NoContent)

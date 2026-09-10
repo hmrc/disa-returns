@@ -17,38 +17,58 @@
 package models.helpers
 
 import uk.gov.hmrc.disareturns.models.common.*
-import uk.gov.hmrc.disareturns.utils.ValidationHelper
+import uk.gov.hmrc.disareturns.utils.{LooseZReferenceValidator, StrictZReferenceValidator, ValidationHelper}
 import utils.BaseUnitSpec
 
 class ValidationHelperSpec extends BaseUnitSpec {
+  private val strictValidationHelper = new ValidationHelper(new StrictZReferenceValidator)
+  private val looseValidationHelper  = new ValidationHelper(new LooseZReferenceValidator)
 
   "ValidationHelper.validateParams" should {
     "normalise a valid lowercase Z-reference" in {
-      ValidationHelper.validateParams(validZReference.toLowerCase) shouldBe Right((validZReference, None))
+      strictValidationHelper.validateParams(validZReference.toLowerCase) shouldBe Right((validZReference, None))
     }
 
-    "reject an invalid Z-reference" in {
-      ValidationHelper.validateParams("Invalid") shouldBe Left(InvalidZReference)
+    "reject invalid and null Z-references" in {
+      Seq("Invalid", "|1234", null).foreach { zReference =>
+        strictValidationHelper.validateParams(zReference) shouldBe Left(InvalidZReference)
+      }
+    }
+
+    "accept exactly four digits with strict validation" in {
+      strictValidationHelper.validateParams("Z1234") shouldBe Right(("Z1234", None))
+      Seq("Z123", "Z12345").foreach { zReference =>
+        strictValidationHelper.validateParams(zReference) shouldBe Left(InvalidZReference)
+      }
+    }
+
+    "accept between four and eight digits with loose validation" in {
+      Seq("Z1234", "Z12345", "Z12345678").foreach { zReference =>
+        looseValidationHelper.validateParams(zReference) shouldBe Right((zReference, None))
+      }
+      Seq("Z123", "Z123456789").foreach { zReference =>
+        looseValidationHelper.validateParams(zReference) shouldBe Left(InvalidZReference)
+      }
     }
   }
 
   "ValidationHelper.validatePaginationParams" should {
     "use the default limit when one is not supplied" in {
-      ValidationHelper.validatePaginationParams(validZReference, None, 200, 1000) shouldBe Right((validZReference, 200))
+      strictValidationHelper.validatePaginationParams(validZReference, None, 200, 1000) shouldBe Right((validZReference, 200))
     }
 
     "accept a positive limit up to the maximum" in {
-      ValidationHelper.validatePaginationParams(validZReference, Some("1000"), 200, 1000) shouldBe Right((validZReference, 1000))
+      strictValidationHelper.validatePaginationParams(validZReference, Some("1000"), 200, 1000) shouldBe Right((validZReference, 1000))
     }
 
     "reject non-numeric, zero, negative, and over-maximum limits" in {
       Seq("nope", "0", "-1", "1001").foreach { limit =>
-        ValidationHelper.validatePaginationParams(validZReference, Some(limit), 200, 1000) shouldBe Left(InvalidLimitErr)
+        strictValidationHelper.validatePaginationParams(validZReference, Some(limit), 200, 1000) shouldBe Left(InvalidLimitErr)
       }
     }
 
     "aggregate invalid Z-reference and limit errors" in {
-      ValidationHelper.validatePaginationParams("1234", Some("-1"), 200, 1000) shouldBe
+      strictValidationHelper.validatePaginationParams("1234", Some("-1"), 200, 1000) shouldBe
         Left(MultipleErrorResponse(code = "BAD_REQUEST", errors = Seq(InvalidZReference, InvalidLimitErr)))
     }
   }

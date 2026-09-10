@@ -23,6 +23,7 @@ import play.api.test.Helpers.running
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.{AuthAction, AuthenticatedAuthAction, EnrolmentVerificationAuthAction}
 import uk.gov.hmrc.disareturns.services.{ReportingPeriodSource, SystemReportingPeriodSource}
 import uk.gov.hmrc.disareturns.testOnly.services.TestOnlySubmissionReportingPeriodSource
+import uk.gov.hmrc.disareturns.utils.{LooseZReferenceValidator, StrictZReferenceValidator, ZReferenceValidator}
 
 class ModuleSpec extends AnyWordSpec with Matchers {
   private val cursorEncryptionKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
@@ -80,6 +81,33 @@ class ModuleSpec extends AnyWordSpec with Matchers {
 
       running(application) {
         application.injector.instanceOf[AuthAction] shouldBe a[AuthenticatedAuthAction]
+      }
+    }
+
+    "bind strict Z-reference validation by default" in {
+      val application = new GuiceApplicationBuilder()
+        .configure(
+          "create-internal-auth-token-on-start" -> false,
+          "cursor.encryption.key"               -> cursorEncryptionKey
+        )
+        .build()
+
+      running(application) {
+        application.injector.instanceOf[ZReferenceValidator] shouldBe a[StrictZReferenceValidator]
+      }
+    }
+
+    "bind loose Z-reference validation when strict validation is disabled" in {
+      val application = new GuiceApplicationBuilder()
+        .configure(
+          "create-internal-auth-token-on-start"            -> false,
+          "features.strict-z-reference-validation-enabled" -> false,
+          "cursor.encryption.key"                          -> cursorEncryptionKey
+        )
+        .build()
+
+      running(application) {
+        application.injector.instanceOf[ZReferenceValidator] shouldBe a[LooseZReferenceValidator]
       }
     }
   }
