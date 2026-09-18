@@ -86,17 +86,6 @@ trait CommonStubs { self: TestData =>
         .willReturn(status)
     )
 
-  def stubNPSNotification(
-    status:     ResponseDefinitionBuilder,
-    zReference: String,
-    nilReturn:  Boolean = false
-  ): Unit =
-    stubFor(
-      post(urlEqualTo(s"/nps/declaration/$zReference"))
-        .withRequestBody(equalToJson(Json.toJson(ReportingNilReturn(nilReturn)).toString()))
-        .willReturn(status)
-    )
-
   def stubSubmissionDeclaration(
     status:     ResponseDefinitionBuilder,
     zReference: String,

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import cats.data.EitherT
 import play.api.Logging
 import play.api.http.Status.OK
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
@@ -24,20 +23,13 @@ import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr, InvalidCursorErr, ReportNotFoundErr}
 import uk.gov.hmrc.disareturns.models.returnResults.{ReconciliationReport, ReconciliationReportResponse}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class NPSService @Inject() (connector: NPSConnector, cursorCrypto: CursorCrypto)(implicit ec: ExecutionContext) extends Logging {
-
-  def notification(zReference: String, nilReturnReported: Boolean)(implicit
-    hc:                        HeaderCarrier
-  ): EitherT[Future, ErrorResponse, HttpResponse] = {
-    logger.info(s"[NPSService][notification] Sending notification to NPS for IM ref: [$zReference]")
-    connector.sendNotification(zReference, nilReturnReported).leftMap(mapToErrorResponse)
-  }
 
   def retrieveReconciliationReport(zReference: String, taxYear: String, month: Month, cursor: Option[String], limit: Int)(implicit
     hc:                                        HeaderCarrier
