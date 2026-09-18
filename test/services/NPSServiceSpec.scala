@@ -31,29 +31,10 @@ import scala.concurrent.Future
 
 class NPSServiceSpec extends BaseUnitSpec {
 
-  private val cursorCrypto       = mock[CursorCrypto]
-  private val service            = new NPSService(mockNPSConnector, cursorCrypto)
-  private val reportingNilReturn = false
-  private val limit              = 200
-  private val resultRecord       = ReturnResults("1", "a", IssueWithMessage("code", "message"))
-
-  "NPSService.notification" should {
-    "return the connector response" in {
-      val httpResponse = HttpResponse(204, "")
-      when(mockNPSConnector.sendNotification(validZReference, reportingNilReturn))
-        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
-
-      service.notification(validZReference, reportingNilReturn).value.futureValue shouldBe Right(httpResponse)
-    }
-
-    "map connector errors" in {
-      val error = UpstreamErrorResponse("Not authorised to access this service", 401, 401, Map.empty)
-      when(mockNPSConnector.sendNotification(validZReference, reportingNilReturn))
-        .thenReturn(EitherT.leftT[Future, HttpResponse](error))
-
-      service.notification(validZReference, reportingNilReturn).value.futureValue shouldBe Left(UnauthorisedErr)
-    }
-  }
+  private val cursorCrypto = mock[CursorCrypto]
+  private val service      = new NPSService(mockNPSConnector, cursorCrypto)
+  private val limit        = 200
+  private val resultRecord = ReturnResults("1", "a", IssueWithMessage("code", "message"))
 
   "NPSService.retrieveReconciliationReport" should {
     "decrypt the public cursor and encrypt the downstream next cursor" in {

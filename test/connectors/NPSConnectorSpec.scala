@@ -31,58 +31,14 @@ class NPSConnectorSpec extends BaseUnitSpec {
 
   trait TestSetup {
 
-    val connector          = new NPSConnector(mockHttpClient, mockAppConfig, retryConfig, actorSystem)
-    val nilReturnSubmitted = false
-    val testUrl            = "http://localhost:1204"
+    val connector = new NPSConnector(mockHttpClient, mockAppConfig, retryConfig, actorSystem)
+    val testUrl   = "http://localhost:1204"
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     when(mockAppConfig.npsBaseUrl).thenReturn(testUrl)
-    when(mockHttpClient.post(url"$testUrl/nps/declaration/$validZReference")).thenReturn(mockRequestBuilder)
     when(mockHttpClient.get(url"$testUrl/monthly/$validZReference/$validTaxYear/$validMonthStr/results")).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
-    when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
-  }
-
-  "NPSConnector.notify" should {
-
-    "return Right(HttpResponse) when the POST is successful" in new TestSetup {
-      val httpResponse: HttpResponse = HttpResponse(204, "")
-
-      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
-        .thenReturn(Future.successful(Right(httpResponse)))
-
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(validZReference, nilReturnSubmitted).value.futureValue
-
-      result shouldBe Right(httpResponse)
-    }
-
-    "return Left(UpstreamErrorResponse) when the POST fails" in new TestSetup {
-      val error: UpstreamErrorResponse = UpstreamErrorResponse("Forbidden", 403)
-
-      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
-        .thenReturn(Future.successful(Left(error)))
-
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(validZReference, nilReturnSubmitted).value.futureValue
-
-      result shouldBe Left(error)
-    }
-
-    "return Left(UpstreamErrorResponse) when an unexpected exception occurs" in new TestSetup {
-      val exception = new RuntimeException("Connection timeout")
-
-      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
-        .thenReturn(Future.failed(exception))
-
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.sendNotification(validZReference, nilReturnSubmitted).value.futureValue
-
-      result match {
-        case Left(err) =>
-          err.statusCode shouldBe INTERNAL_SERVER_ERROR
-          err.message      should include("Unexpected error: Connection timeout")
-        case _ => fail("Expected Left(UpstreamErrorResponse)")
-      }
-    }
   }
 
   "NPSConnector.retrieveReconciliationReport" should {
