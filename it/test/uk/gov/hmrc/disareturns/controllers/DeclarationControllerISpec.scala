@@ -71,7 +71,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     }
 
     "map eligibility and submission failures" in {
-      stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> false))
+      stubReportingWindow(status = OK, open = false)
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       declarationRequest().status shouldBe FORBIDDEN
 
@@ -96,7 +96,7 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
   }
 
   private def stubEligible(): Unit = {
-    stubReportingWindow(status = OK, body = Json.obj("reportingWindowOpen" -> true))
+    stubReportingWindow(status = OK, open = true)
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
   }
 
