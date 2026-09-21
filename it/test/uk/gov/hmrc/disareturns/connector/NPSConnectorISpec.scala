@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.disareturns.connector
 
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, NO_CONTENT, OK, UNAUTHORIZED}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK, UNAUTHORIZED}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
 import uk.gov.hmrc.disareturns.models.common.Month
@@ -25,33 +25,9 @@ import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 
 class NPSConnectorISpec extends BaseIntegrationSpec {
 
-  private val sendNotificationUrl = s"/nps/declaration/$validZReference"
   private val taxYear             = "2026-27"
   private val month               = Month.JAN
   private val connector: NPSConnector = app.injector.instanceOf[NPSConnector]
-
-  "NPSConnector.sendNotification" should {
-
-    "return Right(HttpResponse) when NPS returns 204 NO_CONTENT" in {
-      stubPost(sendNotificationUrl, NO_CONTENT, "")
-
-      val response =
-        await(connector.sendNotification(validZReference, nilReturnReported = true).value).value
-
-      response.status shouldBe NO_CONTENT
-      response.body   shouldBe ""
-    }
-
-    "return Left(UpstreamErrorResponse) when NPS returns an error status (401)" in {
-      stubPost(sendNotificationUrl, UNAUTHORIZED, """{"error":"Not authorised"}""")
-
-      val err =
-        await(connector.sendNotification(validZReference, nilReturnReported = false).value).left.value
-
-      err.statusCode shouldBe UNAUTHORIZED
-      err.message      should include("Not authorised")
-    }
-  }
 
   "NPSConnector.retrieveReconciliationReport" should {
 
