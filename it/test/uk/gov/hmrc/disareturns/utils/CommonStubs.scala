@@ -55,12 +55,25 @@ trait CommonStubs { self: TestData =>
             .withBody("{}")
         }
     }
-
-  def stubReportingWindow(status: Int, body: JsObject, zReference: String = validZReference): Unit =
+  
+  def stubReportingWindow(status: Int, open: Boolean, zReference: String = validZReference): Unit =
     stubFor(
       get(urlEqualTo(s"/disa-returns-submission/reporting-window/status/$zReference"))
         .withHeader(AUTHORIZATION, matching(".+"))
-        .willReturn(aResponse().withStatus(status).withBody(body.toString))
+        .willReturn(
+          aResponse()
+            .withStatus(status)
+            .withBody(
+              Json
+                .obj(
+                  "reportingWindowOpen"  -> open,
+                  "reportingWindowStart" -> "2026-06-06T00:00:00Z",
+                  "reportingWindowEnd"   -> "2026-06-19T23:59:59Z",
+                  "resolvedAt"           -> "2026-06-12T00:00:00Z"
+                )
+                .toString
+            )
+        )
     )
 
   def stubEtmpObligation(status: Int, body: JsObject, zReference: String): Unit =
