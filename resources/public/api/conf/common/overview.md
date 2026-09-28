@@ -17,9 +17,6 @@ reporting period ends.
 This API does not currently support annual ISA end-of-year returns and does not replace the Lifetime ISA API, which 
 remains active.
 
-This API does not currently support annual ISA end-of-year returns and does not replace the Lifetime ISA API, which 
-remains active.
-
 ### Alpha and Beta access
 
 The API is being released in phases.
