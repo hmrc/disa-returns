@@ -80,8 +80,8 @@ For more information, see [Testing in the sandbox](https://developer.service.hmr
 
 ### Request access to API
 
-The ISA Returns API is a restricted-access API. Its endpoints are visible only to authorised and subscribed applications. 
-Because it is a restricted-access API, you must request access before you can subscribe your application.
+The ISA Returns API is a controlled access API. Its endpoints are visible only to authorised and subscribed applications. 
+Because it is a controlled access API, you must request access before you can subscribe your application.
 
 To request access, you must have a Developer Hub account with a registered software application and satisfy either of 
 the following:
