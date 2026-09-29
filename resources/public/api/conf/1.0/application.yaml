@@ -5,25 +5,42 @@ info:
   title: ISA Returns API
   description: |
     # Overview
-    Use this API to submit monthly reports of current-year ISA subscription data. 
-    During the Alpha phase, your organisation must be approved by HMRC as an ISA manager to access the API. 
+    Use this API to submit monthly reports of cumulative current tax year ISA subscription data.
+    Your organisation must be approved by HMRC as an ISA manager to access the API.
     From the Beta phase onwards, your organisation must also be enrolled for digital ISA reporting.
-
+    
     # Supported use cases
-    - Submit monthly reports with a cumulative total made up of current-year subscription data, including transfers and withdrawals.
-    - Check the status of submitted reports to confirm they have been processed.
-    - Retrieve reconciliation results using cursor pagination.
+
+    You can use this API to:
+
+    - submit monthly reports containing cumulative current tax year subscription data, including transfers and withdrawals
+    - submit a declaration confirming that the data for the current reporting window has been submitted
+    - retrieve reconciliation results using cursor pagination
 
     # Integration requirements
-    - REST API using JSON over HTTPS.
-    - Each report must cover activity from the 6th of one month to the 5th of the next.
-    - You must submit your monthly report between the 6th and 23:59 on the 19th.
-    - Authentication uses the OAuth 2.0 client credentials grant.
-    - All API calls require a unique identifier (Z-Reference) assigned by HMRC to each approved ISA manager.
+    
+    The integration requirements are as follows:
+
+    - REST API using JSON and [Newline Delimited JSON (NDJSON)](https://github.com/ndjson/ndjson-spec) over HTTPS
+    - each monthly report must be generated to cover all ISA subscription activity from the 6th of one month through 
+    the 5th of the following month
+    - you must submit the monthly report between the 6th and the 19th (by 23:59) of the specific month in which the 
+    reporting period ends
+    - authentication uses the OAuth 2.0 authorization code grant
+    - all API calls require an HMRC-assigned unique identifier (Z-Reference) for each approved ISA manager
 
     # Support
-    If you need help, complete the [support form](https://developer.service.hmrc.gov.uk/developer/support). 
-    HMRC's Software Developers Support Team will reply within two working days.
+
+    Before contacting us, find out if there is planned API downtime or a technical issue by checking 
+    [HMRC API Platform Status](https://api-platform-status.production.tax.service.gov.uk/).
+    
+    For support with onboarding, the API access, or the 
+    [HMRC Developer sandbox](https://developer.service.hmrc.gov.uk/api-documentation/docs/testing) 
+    queries, submit your request using the 
+    [online support form](https://developer.service.hmrc.gov.uk/devhub-support/start) 
+    or email your queries to [SDSTeam@hmrc.gov.uk](mailto:SDSTeam@hmrc.gov.uk).
+    
+    When submitting a request, users should provide details of any available error information to help with the troubleshooting and resolution of the issue.
 
 servers:
   - url: https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return
@@ -34,52 +51,61 @@ servers:
 tags:
   - name: Submit monthly report
     description: |
-      To submit a monthly report, you must follow a two-step process:
-      1. Submit one or more batches of account records.
-      2. Mark the report as complete after all account records have been submitted.
+      To submit a monthly report with data records, you must follow a two-step process:
       
-      Both steps must be completed in order. 
-      A report is considered submitted only after it has been marked as complete, and it cannot be amended after submission.
+      1. Submit one or more batches of account records.
+      2. Declare the monthly report as complete after all account records have been submitted.
+      
+      You must complete these steps in order. A report is only considered submitted once you have declared it complete. 
+      You cannot amend the monthly report once the declaration has been submitted.
+
+      **Note:**
+      When there is no data to submit for a specific period, you may submit a nil report. It acts as a declaration 
+      alongside the general declaration and will override any previous submission for the same period.
+
 
   - name: Check report results
     description: |
-      After a monthly report is marked complete and the reporting window closes, 
-      HMRC will begin a process that reconciles your submission against other ISA managers' submissions. 
-      This will involve validation against business rules and checks on each investor's eligibility 
-      and their annual ISA subscription limits.
-
-      You can check the status of a submitted report and retrieve the reconciliation results when available. 
-      Reconciliation results include accepted records and details of any reconciliation issues. 
-      Results are paginated to support large datasets.
+      After a monthly report is marked complete and the reporting window closes, HMRC will begin a process that 
+      reconciles your submission against other ISA managers' submissions. This will involve validation against business 
+      rules and checks on each investor's eligibility and their annual ISA subscription limits.
+      
+      You can use the ‘Get report reconciliation results’ endpoint to retrieve the reconciliation results when the 
+      report is available. This report is a compilation of the rejected records with details of any reconciliation 
+      issues. Results are cursor paginated to support large datasets.
 
 paths:
   /monthly/{zReference}:
     post:
       summary: Submit monthly report data
       description: |
-        Use this endpoint to upload a batch of account records. 
-        A batch is a single payload containing multiple records for the specified monthly report. 
-        The payload size of each request must not exceed 10 MB. 
+        Use the ‘Submit monthly report data‘ endpoint to upload a batch of account records. A batch is a single payload 
+        containing multiple records for the specified monthly report. The payload size of each request must not exceed 
+        10 MB.
+      
+        The API checks whether:
         
-        The API checks whether the reporting window is open and whether a report has already 
-        been submitted for the current reporting period. 
-        If either condition is not met, the API returns a `403 Forbidden` response.
-
-        If the request is permitted:
-        - the payload is validated against the expected structure to prevent invalid or incomplete data from being submitted
+        - the reporting window is closed
+        - a declaration has already been submitted for the current reporting period
+        
+        If either of the above conditions are satisfied, then the API returns a `403 Forbidden` response.
+        
+        If the request to submit the monthly report is permitted, then:
+        
+        - the payload is validated against the expected structure to prevent invalid or incomplete data from being 
+        submitted
         - business validation rules are not applied at this stage
-
-        If structural validation fails, the API returns a `400 Bad Request` response. 
-        For example, a missing National Insurance number or account number will cause the request to fail. 
-        Valid records will be processed only after the report is marked as complete.
-        
-        A successful submission returns a `204 No Content` response. 
-        
+          
+        If structural validation fails, the API returns a `400 Bad Request` response. For example, a missing National 
+        Insurance number or account number will cause the request to fail. Valid records will be processed only after 
+        the report is marked as complete.
+          
+        A successful submission returns a `204 No Content` response.
+          
         Submit all data batches before completing the monthly report.
-
-        **Note:** The examples shown here are limited by the OpenAPI Specification. 
-        Actual payloads must be sent as newline-delimited JSON (NDJSON), with one object per line. 
-        A trailing newline is optional. See https://github.com/ndjson/ndjson-spec for full format guidance.
+        
+        Note: The examples shown here are limited by the OpenAPI Specification. Actual payloads must be sent as 
+        [NDJSON](https://github.com/ndjson/ndjson-spec), with one object per line. A trailing newline is optional.
 
       operationId: submitMonthlyReport
       tags:
@@ -174,21 +200,23 @@ paths:
     post:
       summary: Declare monthly report as complete
       description: |
-        Use this endpoint to confirm that all data has been submitted. 
+        Use the ‘Declare monthly report as complete’ endpoint to confirm that all data has been submitted.
         
-        Declaring a report as complete is a legal confirmation that your 
-        monthly reporting obligations are met. It confirms that all 
-        required data has been filed by the deadline, but it is not an 
-        attestation that the submitted data is correct. 
-        After this step, no further data can be added for that month. 
+        Declaring a report as complete is a legal confirmation that you have met your monthly reporting obligation by 
+        submitting all available data within the deadline. However, it does not confirm that the submitted data is 
+        correct. Once the monthly declaration is submitted, no further data can be submitted for that specific month.
         
-        The API checks whether the reporting window is open and whether a report has 
-        already been submitted for the current reporting period. 
-        If either condition is not met, the API returns a `403 Forbidden` response.
+        The API checks whether:
         
-        If the submission completes successfully, the response includes:
-        - a confirmation that the report is complete
-        - a box ID for the Push-Pull Notifications Service (PPNS)
+        - the reporting window is closed
+        - a declaration has already been submitted for the current reporting period
+
+        If either of the above conditions are satisfied, then the API returns a `403 Forbidden` response.
+        
+        If the submission completes successfully, the response includes a box ID for the 
+        [Push-Pull Notifications Service (PPNS)](https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/push-pull-notifications-api/1.0). 
+        The box ID can be used to query the PPNS API directly to retrieve the reconciliation results.
+
       operationId: declareMonthlyReportComplete
       tags:
         - Submit monthly report
@@ -304,19 +332,22 @@ paths:
     get:
       summary: Get report reconciliation results
       description: |
-        After processing is complete, use this endpoint to retrieve the reconciliation results for the monthly report.
-        The API returns reconciliation results using cursor pagination.
-        These show which records were accepted and which were rejected, including error messages where applicable.
-
-        The cursor and limit query parameters are optional. The limit defaults to 200.
-        To retrieve the next batch, pass the nextCursor value from the previous response as the cursor parameter.
-        If you specified a limit on the first request, use the same limit on each subsequent request.
-
+        After processing is complete, use the ‘Get report reconciliation results’ endpoint to retrieve the reconciliation 
+        results for the monthly report. The API returns reconciliation results using cursor pagination. These 
+        reconciliation results show the records that were rejected, including error messages where applicable.
+        
+        The cursor and limit query parameters are optional. The limit defaults to 200 records per page. To retrieve the 
+        next batch, pass the nextCursor value from the previous response as the cursor parameter.
+        
         If the request is successful, the response includes:
-        - the reconciliation results for the current batch, including record-level identifiers and any reconciliation errors
-        - an encrypted, URL-safe nextCursor when more results are available; it is omitted for the final batch
+        
+        - the reconciliation results for the current batch, including record-level identifiers and any reconciliation 
+        errors
+        - the nextCursor value when more results are available; it is omitted for the final batch
+        
+        If the reconciliation results are not yet available or the report is not found, the API returns a `404 Not Found` 
+        response.
 
-        If the reconciliation results are not yet available or the report is not found, the API returns a `404 Not Found` response.
       operationId: getReportReconciliationResults
       tags:
         - Check report results
