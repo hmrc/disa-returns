@@ -40,7 +40,8 @@ info:
     [online support form](https://developer.service.hmrc.gov.uk/devhub-support/start) 
     or email your queries to [SDSTeam@hmrc.gov.uk](mailto:SDSTeam@hmrc.gov.uk).
     
-    When submitting a request, users should provide details of any available error information to help with the troubleshooting and resolution of the issue.
+    When submitting a request, users should provide details of any available error information to help with the 
+    troubleshooting and resolution of the issue.
 
 servers:
   - url: https://test-api.service.hmrc.gov.uk/obligations/declaration/isa/return
