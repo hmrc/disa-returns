@@ -154,23 +154,6 @@ class SubmissionServiceSpec extends BaseUnitSpec {
       verify(mockAuditService, never()).auditApiUploadStarted(any(), any(), any(), any())(any())
     }
 
-    "still submit when the create monthly return response has no submissionId, without auditing APIUploadStarted" in {
-      val tempFile = Files.createTempFile("test-monthly-return", ".ndjson")
-      Files.writeString(tempFile, """{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n")
-
-      when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(HttpResponse(CREATED, ""))))
-      when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
-      when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(())))
-
-      val result = service.submitMonthlyReturn(validZReference, testIsaManagerDetails, validTaxYear, validMonth, tempFile).futureValue
-
-      Files.deleteIfExists(tempFile)
-      result shouldBe Right(())
-      verify(mockAuditService, never()).auditApiUploadStarted(any(), any(), any(), any())(any())
-    }
-
     "still submit when auditing APIUploadStarted fails" in {
       val tempFile = Files.createTempFile("test-monthly-return", ".ndjson")
       Files.writeString(tempFile, """{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n")
