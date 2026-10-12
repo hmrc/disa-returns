@@ -21,18 +21,19 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
 import play.api.http.HeaderNames.AUTHORIZATION
 import play.api.libs.json.Json
-import play.api.mvc.{AnyContent, Request, Result}
+import play.api.mvc.{AnyContent, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
-import uk.gov.hmrc.auth.core.{Enrolment, Enrolments, UnsupportedAuthProvider}
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
+import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, ~}
+import uk.gov.hmrc.auth.core.{AffinityGroup, Enrolment, UnsupportedAuthProvider}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.{AuthenticatedAuthAction, EnrolmentVerificationAuthAction}
-import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
+import uk.gov.hmrc.disareturns.models.common.{IdentifierRequest, InternalServerErr, UnauthorisedErr, UserDetails}
 import utils.BaseUnitSpec
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 
 class AuthActionSpec extends BaseUnitSpec {
 
@@ -43,8 +44,13 @@ class AuthActionSpec extends BaseUnitSpec {
     new AuthenticatedAuthAction(mockAuthConnector, stubControllerComponents()).apply(zRef)
 
   import play.api.mvc.Results._
-  def testBlock: Request[AnyContent] => Future[Result] =
+  def testBlock: IdentifierRequest[AnyContent] => Future[Result] =
     _ => Future.successful(Ok("Success"))
+
+  private def capturingBlock(captured: Promise[UserDetails]): IdentifierRequest[AnyContent] => Future[Result] = request => {
+    captured.success(request.userDetails)
+    Future.successful(Ok("Success"))
+  }
 
   "AuthAction.invokeBlock" should {
 
@@ -61,8 +67,8 @@ class AuthActionSpec extends BaseUnitSpec {
       val predicateCaptor: ArgumentCaptor[Predicate] =
         ArgumentCaptor.forClass(classOf[Predicate])
 
-      val retrievalCaptor: ArgumentCaptor[Retrieval[Enrolments]] =
-        ArgumentCaptor.forClass(classOf[Retrieval[Enrolments]])
+      val retrievalCaptor: ArgumentCaptor[Retrieval[?]] =
+        ArgumentCaptor.forClass(classOf[Retrieval[?]])
 
       verify(mockAuthConnector).authorise(
         predicateCaptor.capture(),
@@ -73,7 +79,7 @@ class AuthActionSpec extends BaseUnitSpec {
       val expectedPredicate = Enrolment("HMRC-DISA-ORG")
 
       val actualRetrieval   = retrievalCaptor.getValue
-      val expectedRetrieval = authorisedEnrolments
+      val expectedRetrieval = authorisedEnrolments and (credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier)
 
       withClue(
         s"""
@@ -93,6 +99,53 @@ class AuthActionSpec extends BaseUnitSpec {
            |""".stripMargin
       ) {
         actualRetrieval shouldBe expectedRetrieval
+      }
+    }
+
+    "bind IM user details to the request" in {
+      authorizationForZRef()
+      val captured = Promise[UserDetails]()
+
+      val result = enrolmentAuthAction(validZReference).invokeBlock(FakeRequest(), capturingBlock(captured))
+
+      status(result)              shouldBe OK
+      captured.future.futureValue shouldBe testIsaManagerDetails
+    }
+
+    "bind Agent user details to the request" in {
+      stubEnrolments(userDetails = agentRetrievals())
+      val captured = Promise[UserDetails]()
+
+      val result = enrolmentAuthAction(validZReference).invokeBlock(FakeRequest(), capturingBlock(captured))
+
+      status(result)              shouldBe OK
+      captured.future.futureValue shouldBe testAgentDetails
+    }
+
+    "default missing agent information to unknown" in {
+      stubEnrolments(userDetails =
+        new ~(new ~(new ~(new ~(None, None), Some(AffinityGroup.Agent)), AgentInformation(None, None, None)), Some(testGroupId))
+      )
+      val captured = Promise[UserDetails]()
+
+      val result = enrolmentAuthAction(validZReference).invokeBlock(FakeRequest(), capturingBlock(captured))
+
+      status(result)              shouldBe OK
+      captured.future.futureValue shouldBe UserDetails.Agent(testGroupId, UserDetails.unknown, UserDetails.unknown)
+    }
+
+    Seq(
+      "group identifier"          -> isaManagerRetrievals(groupId = None),
+      "credentials for an IM"     -> isaManagerRetrievals(credentials = None),
+      "credential role for an IM" -> isaManagerRetrievals(credentialRole = None)
+    ).foreach { case (missing, retrievals) =>
+      s"return UNAUTHORISED when auth does not return the $missing" in {
+        stubEnrolments(userDetails = retrievals)
+
+        val result = enrolmentAuthAction(validZReference).invokeBlock(FakeRequest(), testBlock)
+
+        status(result)        shouldBe UNAUTHORIZED
+        contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
       }
     }
 
@@ -151,21 +204,23 @@ class AuthActionSpec extends BaseUnitSpec {
       contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
     }
 
-    "allow an authenticated request without checking enrolments" in {
-      when(mockAuthConnector.authorise[Unit](any(), any())(any(), any()))
-        .thenReturn(Future.successful(()))
+    "allow an authenticated request without checking enrolments and bind user details" in {
+      when(mockAuthConnector.authorise[UserDetailsRetrievals](any(), any())(any(), any()))
+        .thenReturn(Future.successful(isaManagerRetrievals()))
+      val captured = Promise[UserDetails]()
 
       val request = FakeRequest().withHeaders(AUTHORIZATION -> "Bearer abc123")
 
-      val result = authenticatedAuthAction(validZReference).invokeBlock(request, testBlock)
+      val result = authenticatedAuthAction(validZReference).invokeBlock(request, capturingBlock(captured))
 
-      status(result)          shouldBe OK
-      contentAsString(result) shouldBe "Success"
+      status(result)              shouldBe OK
+      contentAsString(result)     shouldBe "Success"
+      captured.future.futureValue shouldBe testIsaManagerDetails
 
       val predicateCaptor: ArgumentCaptor[Predicate] =
         ArgumentCaptor.forClass(classOf[Predicate])
 
-      verify(mockAuthConnector).authorise[Unit](predicateCaptor.capture(), any())(any(), any())
+      verify(mockAuthConnector).authorise[UserDetailsRetrievals](predicateCaptor.capture(), any())(any(), any())
       predicateCaptor.getValue should not be Enrolment("HMRC-DISA-ORG")
     }
 

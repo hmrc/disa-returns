@@ -128,16 +128,16 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
 
   "SubmissionConnector.createMonthlyReturn" should {
 
-    "return Right(()) when the POST is successful" in new TestSetup {
-      val httpResponse: HttpResponse = HttpResponse(CREATED, "")
+    "return Right(HttpResponse) when the POST is successful" in new TestSetup {
+      val httpResponse: HttpResponse = HttpResponse(CREATED, """{"submissionId":"abc-123"}""")
 
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(httpResponse)))
 
-      val result: Either[UpstreamErrorResponse, Unit] =
+      val result: Either[UpstreamErrorResponse, HttpResponse] =
         connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
 
-      result                                       shouldBe Right(())
+      result                                       shouldBe Right(httpResponse)
       verify(mockRequestBuilder).setHeader(AUTHORIZATION -> internalAuthToken)
     }
 
@@ -148,7 +148,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(UpstreamErrorResponse(body, CONFLICT, CONFLICT))))
 
-      val result: Either[UpstreamErrorResponse, Unit] =
+      val result: Either[UpstreamErrorResponse, HttpResponse] =
         connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
 
       result match {
@@ -166,7 +166,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(UpstreamErrorResponse(httpResponse.body, httpResponse.status, httpResponse.status))))
 
-      val result: Either[UpstreamErrorResponse, Unit] =
+      val result: Either[UpstreamErrorResponse, HttpResponse] =
         connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
 
       result match {
@@ -184,7 +184,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(exception))
 
-      val result: Either[UpstreamErrorResponse, Unit] =
+      val result: Either[UpstreamErrorResponse, HttpResponse] =
         connector.createMonthlyReturn(validZReference, validTaxYear, validMonth, nilReturn = false).futureValue
 
       result match {

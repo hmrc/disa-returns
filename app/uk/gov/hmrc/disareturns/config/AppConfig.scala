@@ -24,12 +24,15 @@ import javax.inject.{Inject, Singleton}
 @Singleton
 class AppConfig @Inject() (configuration: Configuration, config: ServicesConfig) {
 
-  lazy val etmpBaseUrl:       String = config.baseUrl(serviceName = "etmp")
-  lazy val ppnsBaseUrl:       String = config.baseUrl(serviceName = "ppns")
-  lazy val npsBaseUrl:        String = config.baseUrl(serviceName = "nps")
-  lazy val submissionBaseUrl: String = config.baseUrl(serviceName = "disa-returns-submission")
-  lazy val internalAuthUrl:   String = config.baseUrl(serviceName = "internal-auth")
-  lazy val selfHost:          String = config.baseUrl(serviceName = "self")
+  lazy val etmpBaseUrl:        String = config.baseUrl(serviceName = "etmp")
+  lazy val ppnsBaseUrl:        String = config.baseUrl(serviceName = "ppns")
+  lazy val npsBaseUrl:         String = config.baseUrl(serviceName = "nps")
+  lazy val submissionBaseUrl:  String = config.baseUrl(serviceName = "disa-returns-submission")
+  lazy val internalAuthUrl:    String = config.baseUrl(serviceName = "internal-auth")
+  lazy val selfHost:           String = config.baseUrl(serviceName = "self")
+  lazy val disaAccountBaseUrl: String = config.baseUrl(serviceName = "disa-account")
+
+  lazy val appName: String = configuration.get[String]("appName")
 
   lazy val internalAuthToken: String = configuration.get[String]("internal-auth.token")
 

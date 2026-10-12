@@ -21,7 +21,7 @@ import org.apache.pekko.stream.scaladsl.FileIO
 import play.api.Logging
 import play.api.http.Status.CONFLICT
 import uk.gov.hmrc.disareturns.connectors.SubmissionConnector
-import uk.gov.hmrc.disareturns.models.common.ErrorResponse
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, ReportingPeriod, UserDetails}
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.utils.UuidGenerator
@@ -30,9 +30,13 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
 import java.nio.file.Path
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
+import scala.util.control.NonFatal
 
 @Singleton
-class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator: UuidGenerator)(implicit ec: ExecutionContext) extends Logging {
+class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator: UuidGenerator, auditService: AuditService)(implicit
+  ec:                                         ExecutionContext
+) extends Logging {
 
   def declare(zReference: String, taxYear: String, month: Month, nilReturnReported: Boolean)(implicit
     hc:                   HeaderCarrier
@@ -43,7 +47,7 @@ class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator
     connector.sendDeclaration(zReference, taxYear, month, nilReturnReported).leftMap(mapToErrorResponse)
   }
 
-  def submitMonthlyReturn(zReference: String, taxYear: String, month: Month, path: Path)(implicit
+  def submitMonthlyReturn(zReference: String, userDetails: UserDetails, taxYear: String, month: Month, path: Path)(implicit
     hc:                               HeaderCarrier
   ): Future[Either[ErrorResponse, Unit]] = {
     logger.info(
@@ -56,9 +60,27 @@ class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator
         )
         sendSubmission(zReference, taxYear, month, path)
       case Left(upstreamError) => Future.successful(Left(mapToErrorResponse(upstreamError)))
-      case Right(())           => sendSubmission(zReference, taxYear, month, path)
+      case Right(response) =>
+        auditUploadStarted(zReference, userDetails, ReportingPeriod(taxYear, month), response)
+        sendSubmission(zReference, taxYear, month, path)
     }
   }
+
+  private def auditUploadStarted(zReference: String, userDetails: UserDetails, reportingPeriod: ReportingPeriod, createResponse: HttpResponse)(
+    implicit hc:                             HeaderCarrier
+  ): Unit =
+    Try((createResponse.json \ "submissionId").as[String]).toOption match {
+      case Some(internalReturnId) =>
+        auditService
+          .auditApiUploadStarted(zReference, userDetails, reportingPeriod, internalReturnId)
+          .recover { case NonFatal(e) =>
+            logger.warn(s"[SubmissionService][auditUploadStarted] Failed to audit APIUploadStarted for IM ref: [$zReference]", e)
+          }
+      case None =>
+        logger.warn(
+          s"[SubmissionService][auditUploadStarted] APIUploadStarted not audited for IM ref: [$zReference], no submissionId in create monthly return response"
+        )
+    }
 
   private def sendSubmission(zReference: String, taxYear: String, month: Month, path: Path)(implicit
     hc:                                  HeaderCarrier

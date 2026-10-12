@@ -21,7 +21,7 @@ import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import play.api.http.Status._
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.services.SubmissionService
+import uk.gov.hmrc.disareturns.services.{AuditService, SubmissionService}
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
@@ -31,9 +31,18 @@ import scala.concurrent.Future
 
 class SubmissionServiceSpec extends BaseUnitSpec {
 
-  val service           = new SubmissionService(mockSubmissionConnector, mockUuidGenerator)
+  val mockAuditService: AuditService = mock[AuditService]
+  val service           = new SubmissionService(mockSubmissionConnector, mockUuidGenerator, mockAuditService)
   val nilReturnReported = false
   val submissionId      = UUID.fromString("11111111-1111-4111-8111-111111111111")
+  val internalReturnId  = "2f1611e2-0df4-4ddd-b666-b93554e6c85c"
+  val createdResponse: HttpResponse = HttpResponse(CREATED, s"""{"submissionId":"$internalReturnId"}""")
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(mockAuditService)
+    when(mockAuditService.auditApiUploadStarted(any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
+  }
 
   "SubmissionService.declare" should {
 
@@ -97,18 +106,25 @@ class SubmissionServiceSpec extends BaseUnitSpec {
       Files.writeString(tempFile, """{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n")
 
       when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(())))
+        .thenReturn(Future.successful(Right(createdResponse)))
       when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
       when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
 
-      val result = service.submitMonthlyReturn(validZReference, validTaxYear, validMonth, tempFile).futureValue
+      val result = service.submitMonthlyReturn(validZReference, testIsaManagerDetails, validTaxYear, validMonth, tempFile).futureValue
 
       Files.deleteIfExists(tempFile)
       result shouldBe Right(())
       verify(mockUuidGenerator).randomUuid()
       verify(mockSubmissionConnector)
         .sendSubmission(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(submissionId), any())(any())
+      verify(mockAuditService)
+        .auditApiUploadStarted(
+          eqTo(validZReference),
+          eqTo(testIsaManagerDetails),
+          eqTo(ReportingPeriod(validTaxYear, validMonth)),
+          eqTo(internalReturnId)
+        )(any())
     }
 
     "return Right(()) when createMonthlyReturn returns 409 (monthly return already exists)" in {
@@ -128,13 +144,49 @@ class SubmissionServiceSpec extends BaseUnitSpec {
       when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
 
-      val result = service.submitMonthlyReturn(validZReference, validTaxYear, validMonth, tempFile).futureValue
+      val result = service.submitMonthlyReturn(validZReference, testIsaManagerDetails, validTaxYear, validMonth, tempFile).futureValue
 
       Files.deleteIfExists(tempFile)
       result shouldBe Right(())
       verify(mockUuidGenerator).randomUuid()
       verify(mockSubmissionConnector)
         .sendSubmission(eqTo(validZReference), eqTo(validTaxYear), eqTo(validMonth), eqTo(submissionId), any())(any())
+      verify(mockAuditService, never()).auditApiUploadStarted(any(), any(), any(), any())(any())
+    }
+
+    "still submit when the create monthly return response has no submissionId, without auditing APIUploadStarted" in {
+      val tempFile = Files.createTempFile("test-monthly-return", ".ndjson")
+      Files.writeString(tempFile, """{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n")
+
+      when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(HttpResponse(CREATED, ""))))
+      when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
+      when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(())))
+
+      val result = service.submitMonthlyReturn(validZReference, testIsaManagerDetails, validTaxYear, validMonth, tempFile).futureValue
+
+      Files.deleteIfExists(tempFile)
+      result shouldBe Right(())
+      verify(mockAuditService, never()).auditApiUploadStarted(any(), any(), any(), any())(any())
+    }
+
+    "still submit when auditing APIUploadStarted fails" in {
+      val tempFile = Files.createTempFile("test-monthly-return", ".ndjson")
+      Files.writeString(tempFile, """{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n")
+
+      when(mockAuditService.auditApiUploadStarted(any(), any(), any(), any())(any()))
+        .thenReturn(Future.failed(new RuntimeException("audit failed")))
+      when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(createdResponse)))
+      when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
+      when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(())))
+
+      val result = service.submitMonthlyReturn(validZReference, testIsaManagerDetails, validTaxYear, validMonth, tempFile).futureValue
+
+      Files.deleteIfExists(tempFile)
+      result shouldBe Right(())
     }
 
     "return Left(InternalServerErr) when createMonthlyReturn returns a 500 UpstreamErrorResponse" in {
@@ -151,7 +203,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
       when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(exception)))
 
-      val result = service.submitMonthlyReturn(validZReference, validTaxYear, validMonth, tempFile).futureValue
+      val result = service.submitMonthlyReturn(validZReference, testIsaManagerDetails, validTaxYear, validMonth, tempFile).futureValue
 
       Files.deleteIfExists(tempFile)
       result shouldBe Left(InternalServerErr())
@@ -171,12 +223,12 @@ class SubmissionServiceSpec extends BaseUnitSpec {
       )
 
       when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(())))
+        .thenReturn(Future.successful(Right(createdResponse)))
       when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
       when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(exception)))
 
-      val result = service.submitMonthlyReturn(validZReference, validTaxYear, validMonth, tempFile).futureValue
+      val result = service.submitMonthlyReturn(validZReference, testIsaManagerDetails, validTaxYear, validMonth, tempFile).futureValue
 
       Files.deleteIfExists(tempFile)
       result shouldBe Left(UnauthorisedErr)
@@ -194,12 +246,12 @@ class SubmissionServiceSpec extends BaseUnitSpec {
       )
 
       when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(())))
+        .thenReturn(Future.successful(Right(createdResponse)))
       when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
       when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(exception)))
 
-      val result = service.submitMonthlyReturn(validZReference, validTaxYear, validMonth, tempFile).futureValue
+      val result = service.submitMonthlyReturn(validZReference, testIsaManagerDetails, validTaxYear, validMonth, tempFile).futureValue
 
       Files.deleteIfExists(tempFile)
       result shouldBe Left(InternalServerErr())

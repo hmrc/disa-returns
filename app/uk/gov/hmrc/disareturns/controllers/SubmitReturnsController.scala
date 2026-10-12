@@ -80,7 +80,7 @@ class SubmitReturnsController @Inject() (
                     }
                   case Right(tempFile: TemporaryFile) =>
                     submissionService
-                      .submitMonthlyReturn(zRef, reportingPeriod.taxYear, reportingPeriod.month, tempFile.path)
+                      .submitMonthlyReturn(zRef, request.userDetails, reportingPeriod.taxYear, reportingPeriod.month, tempFile.path)
                       .map { result =>
                         tempFile.delete()
                         result match {

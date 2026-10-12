@@ -16,10 +16,9 @@
 
 package connectors
 
-import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers.*
+import org.mockito.Mockito.*
 import play.api.libs.json.Json
-import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.connectors.NPSConnector
 import uk.gov.hmrc.disareturns.models.returnResults.{IssueWithMessage, ReconciliationReportResponse, ReturnResults}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}

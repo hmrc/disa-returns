@@ -58,7 +58,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(tempFile)))
-      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
 
       val result = controller.submit(validZReference)(fakeRequestWithStream())
@@ -255,7 +255,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(tempFile)))
-      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(InternalServerErr())))
 
       val result = controller.submit(validZReference)(fakeRequestWithStream())

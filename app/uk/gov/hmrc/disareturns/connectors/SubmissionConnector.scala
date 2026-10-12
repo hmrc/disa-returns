@@ -76,7 +76,7 @@ class SubmissionConnector @Inject() (
 
   def createMonthlyReturn(zReference: String, taxYear: String, month: Month, nilReturn: Boolean)(implicit
     hc:                               HeaderCarrier
-  ): Future[Either[UpstreamErrorResponse, Unit]] = {
+  ): Future[Either[UpstreamErrorResponse, HttpResponse]] = {
     val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}"
     retryFor("create monthly return submission")(retryCondition) {
       httpClient
@@ -90,7 +90,7 @@ class SubmissionConnector @Inject() (
           logger.warn(s"[SubmissionConnector][createMonthlyReturn] Received error status ${response.status} with body: ${response.body}")
           Left(UpstreamErrorResponse(response.body, response.status, response.status))
         } else {
-          Right(())
+          Right(response)
         }
       }
       .recover {
