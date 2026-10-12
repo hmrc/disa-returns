@@ -47,18 +47,14 @@ class DisaAccountConnectorISpec extends BaseIntegrationSpec {
       await(connector.getCompanyName(validZReference)) shouldBe None
     }
 
-    "return None when no registration details are found" in {
-      stubGet(registrationPath, NOT_FOUND, "")
+    Seq(NOT_FOUND, INTERNAL_SERVER_ERROR).foreach { status =>
+      s"fail with the UpstreamErrorResponse when disa-account returns $status" in {
+        stubGet(registrationPath, status, "")
 
-      await(connector.getCompanyName(validZReference)) shouldBe None
-    }
+        val error = intercept[UpstreamErrorResponse](await(connector.getCompanyName(validZReference)))
 
-    "fail with an UpstreamErrorResponse for any other status" in {
-      stubGet(registrationPath, INTERNAL_SERVER_ERROR, "")
-
-      val error = intercept[UpstreamErrorResponse](await(connector.getCompanyName(validZReference)))
-
-      error.statusCode shouldBe INTERNAL_SERVER_ERROR
+        error.statusCode shouldBe status
+      }
     }
   }
 }

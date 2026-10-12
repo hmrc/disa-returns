@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.disareturns.connectors
 
-import play.api.http.Status.{NOT_FOUND, OK}
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -34,12 +33,9 @@ class DisaAccountConnector @Inject() (
   def getCompanyName(zRef: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
     val registrationUrl = s"${appConfig.disaAccountBaseUrl}/disa-account/registration/$zRef"
 
-    httpClient.get(url"$registrationUrl").execute[HttpResponse].flatMap { response =>
-      response.status match {
-        case OK        => Future.successful((response.json \ "businessVerification" \ "companyName").asOpt[String])
-        case NOT_FOUND => Future.successful(None)
-        case status    => Future.failed(UpstreamErrorResponse("Failed to get disa-account registration details", status))
-      }
+    httpClient.get(url"$registrationUrl").execute[Either[UpstreamErrorResponse, HttpResponse]].flatMap {
+      case Right(response) => Future.successful((response.json \ "businessVerification" \ "companyName").asOpt[String])
+      case Left(error)     => Future.failed(error)
     }
   }
 }
