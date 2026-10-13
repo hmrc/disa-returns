@@ -72,10 +72,13 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
 
   "SubmissionConnector.createMonthlyReturn" should {
 
-    "return Right(()) when disa-returns-submission returns 201 Created" in {
+    "return Right(HttpResponse) with the created submissionId when disa-returns-submission returns 201 Created" in {
       stubPost(createUrl, CREATED, """{"submissionId":"abc-123"}""")
 
-      await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)) shouldBe Right(())
+      val response = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)).value
+
+      response.status                                shouldBe CREATED
+      (response.json \ "submissionId").as[String] shouldBe "abc-123"
     }
 
     "return Left(UpstreamErrorResponse) preserving 409 status when disa-returns-submission returns 409 Conflict" in {

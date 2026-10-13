@@ -18,4 +18,12 @@ package uk.gov.hmrc.disareturns.models.common
 
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 
-case class ReportingPeriod(taxYear: String, month: Month)
+import java.time.YearMonth
+
+case class ReportingPeriod(taxYear: String, month: Month) {
+
+  def yearMonth: YearMonth = {
+    val taxYearStart = taxYear.take(4).toInt
+    YearMonth.of(if (month.id >= Month.APR.id) taxYearStart else taxYearStart + 1, month.id)
+  }
+}

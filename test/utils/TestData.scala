@@ -18,7 +18,7 @@ package utils
 
 import org.scalacheck.Gen
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.disareturns.models.common.Month
+import uk.gov.hmrc.disareturns.models.common.{Month, UserDetails}
 import uk.gov.hmrc.disareturns.models.ppns.ReconciliationReportReadyNotification
 
 trait TestData {
@@ -30,6 +30,15 @@ trait TestData {
   val validTaxYear:    String      = "2026-27"
   val validMonth:      Month.Value = Month.SEP
   val validMonthStr:   String      = "SEP"
+
+  val testGroupId:        String = "testGroupId-8d181856-2103-4183-bbda-b4d37a400d12"
+  val testCredId:         String = "5053588723516092"
+  val testCredentialRole: String = "User"
+  val testAgentId:        String = "8d181856-2103-4183-bbda-b4d37a400d1"
+  val testAgentName:      String = "testAgent"
+
+  val testIsaManagerDetails: UserDetails.IsaManager = UserDetails.IsaManager(testGroupId, testCredId, testCredentialRole)
+  val testAgentDetails:      UserDetails.Agent      = UserDetails.Agent(testGroupId, testAgentId, testAgentName)
   val reconciliationReportReadyNotification: ReconciliationReportReadyNotification =
     ReconciliationReportReadyNotification(returnResultsLocation = "some-location")
 

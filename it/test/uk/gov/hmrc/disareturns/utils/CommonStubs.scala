@@ -35,7 +35,12 @@ trait CommonStubs { self: TestData =>
         "key": "HMRC-DISA-ORG",
         "identifiers": [{ "key": "ZREF", "value": "$zRef" }],
         "state": "Activated"
-      }]
+      }],
+      "optionalCredentials": { "providerId": "5053588723516092", "providerType": "GovernmentGateway" },
+      "credentialRole": "User",
+      "affinityGroup": "Organisation",
+      "agentInformation": {},
+      "groupIdentifier": "testGroupId"
       }"""
 
     stubFor {

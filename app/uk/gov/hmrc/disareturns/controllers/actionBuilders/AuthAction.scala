@@ -21,8 +21,10 @@ import play.api.libs.json.Json
 import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
-import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, UnauthorisedErr}
+import uk.gov.hmrc.auth.core.AffinityGroup.Agent
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
+import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, Retrieval, ~}
+import uk.gov.hmrc.disareturns.models.common.{IdentifierRequest, InternalServerErr, UnauthorisedErr, UserDetails}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
@@ -30,28 +32,57 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 trait AuthAction {
-  def apply(zRef: String): ActionBuilder[Request, AnyContent]
+  def apply(zRef: String): ActionBuilder[IdentifierRequest, AnyContent]
 }
 
-abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext) extends AuthAction {
+abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext) extends AuthAction with Logging {
+
+  protected type UserDetailsRetrievals = Option[Credentials] ~ Option[CredentialRole] ~ Option[AffinityGroup] ~ AgentInformation ~ Option[String]
+
+  protected val userDetailsRetrievals: Retrieval[UserDetailsRetrievals] =
+    credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier
 
   protected val auth: AuthorisedFunctions = new AuthorisedFunctions {
     override def authConnector: AuthConnector = ac
   }
 
-  protected def authorise[A](zRef: String, request: Request[A], block: Request[A] => Future[Result])(implicit
+  protected def authorise[A](zRef: String, request: Request[A], block: IdentifierRequest[A] => Future[Result])(implicit
     hc:                            HeaderCarrier
   ): Future[Result]
 
-  final override def apply(zRef: String): ActionBuilder[Request, AnyContent] =
-    new ActionBuilder[Request, AnyContent] with Logging {
+  protected def withUserDetails[A](zRef: String, request: Request[A], retrievals: UserDetailsRetrievals)(
+    block:                               IdentifierRequest[A] => Future[Result]
+  ): Future[Result] = {
+    val maybeCredentials ~ maybeCredentialRole ~ maybeAffinityGroup ~ agentInfo ~ maybeGroupId = retrievals
+
+    val maybeUserDetails: Option[UserDetails] = (maybeCredentials, maybeCredentialRole, maybeAffinityGroup, maybeGroupId) match {
+      case (_, _, Some(Agent), Some(groupId)) =>
+        Some(
+          UserDetails.Agent(
+            groupId = groupId,
+            agentId = agentInfo.agentId.getOrElse(UserDetails.unknown),
+            agentName = agentInfo.agentFriendlyName.getOrElse(UserDetails.unknown)
+          )
+        )
+      case (Some(credentials), Some(role), Some(_), Some(groupId)) =>
+        Some(UserDetails.IsaManager(groupId = groupId, credId = credentials.providerId, credentialRole = role.toString))
+      case _ => None
+    }
+
+    maybeUserDetails.fold[Future[Result]](throw InternalError("User was missing audit identity details.")) { userDetails =>
+      block(IdentifierRequest(request, zRef, userDetails))
+    }
+  }
+
+  final override def apply(zRef: String): ActionBuilder[IdentifierRequest, AnyContent] =
+    new ActionBuilder[IdentifierRequest, AnyContent] {
 
       override def parser:                     BodyParser[AnyContent] = cc.parsers.defaultBodyParser
       override protected def executionContext: ExecutionContext       = cc.executionContext
 
       override def invokeBlock[A](
         request: Request[A],
-        block:   Request[A] => Future[Result]
+        block:   IdentifierRequest[A] => Future[Result]
       ): Future[Result] = {
         implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
@@ -72,15 +103,15 @@ abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(impli
 class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext)
     extends BaseAuthAction(ac, cc) {
 
-  override protected def authorise[A](zRef: String, request: Request[A], block: Request[A] => Future[Result])(implicit
+  override protected def authorise[A](zRef: String, request: Request[A], block: IdentifierRequest[A] => Future[Result])(implicit
     hc:                                     HeaderCarrier
   ): Future[Result] =
-    auth.authorised(Enrolment(enrolmentKey)).retrieve(authorisedEnrolments) { enrolments =>
+    auth.authorised(Enrolment(enrolmentKey)).retrieve(authorisedEnrolments and userDetailsRetrievals) { case enrolments ~ retrievals =>
       val zRefMatchesEnrolment = enrolments
         .getEnrolment(enrolmentKey)
         .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
 
-      if (zRefMatchesEnrolment) block(request)
+      if (zRefMatchesEnrolment) withUserDetails(zRef, request, retrievals)(block)
       else throw InternalError("Z-Ref does not match enrolment.")
     }
 
@@ -91,8 +122,8 @@ class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: Controll
 @Singleton
 class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext) extends BaseAuthAction(ac, cc) {
 
-  override protected def authorise[A](zRef: String, request: Request[A], block: Request[A] => Future[Result])(implicit
+  override protected def authorise[A](zRef: String, request: Request[A], block: IdentifierRequest[A] => Future[Result])(implicit
     hc:                                     HeaderCarrier
   ): Future[Result] =
-    auth.authorised()(block(request))
+    auth.authorised().retrieve(userDetailsRetrievals)(retrievals => withUserDetails(zRef, request, retrievals)(block))
 }

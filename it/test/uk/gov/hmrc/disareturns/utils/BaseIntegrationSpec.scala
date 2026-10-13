@@ -84,6 +84,8 @@ trait BaseIntegrationSpec
       "microservice.services.nps.port"                     -> wiremockPort.toString,
       "microservice.services.disa-returns-submission.host" -> wiremockHost,
       "microservice.services.disa-returns-submission.port" -> wiremockPort.toString,
+      "microservice.services.disa-account.host"            -> wiremockHost,
+      "microservice.services.disa-account.port"            -> wiremockPort.toString,
       "microservice.services.self.host"                    -> wiremockHost,
       "microservice.services.self.port"                    -> wiremockPort.toString,
       "returnResults.defaultLimit"                         -> "200",
