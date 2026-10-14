@@ -19,8 +19,9 @@ package uk.gov.hmrc.disareturns.services
 import play.api.Logging
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.disareturns.config.AppConfig
-import uk.gov.hmrc.disareturns.connectors.DisaAccountConnector
+import uk.gov.hmrc.disareturns.connectors.{DisaAccountConnector, SubmissionConnector}
 import uk.gov.hmrc.disareturns.models.common.{ReportingPeriod, UserDetails}
+import uk.gov.hmrc.disareturns.models.submission.{ErrorVolume, MonthlyReturn, ValidationMetrics}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.AuditExtensions
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.{Disabled, Failure, Success}
@@ -38,6 +39,7 @@ import scala.util.control.NonFatal
 class AuditService @Inject() (
   connector:            AuditConnector,
   disaAccountConnector: DisaAccountConnector,
+  submissionConnector:  SubmissionConnector,
   appConfig:            AppConfig,
   clock:                Clock
 )(implicit ec:          ExecutionContext)
@@ -73,6 +75,88 @@ class AuditService @Inject() (
     }
   }
 
+  def auditApiDeclarationSubmitted(
+    zReference:      String,
+    userDetails:     UserDetails,
+    reportingPeriod: ReportingPeriod,
+    nilReturn:       Boolean,
+    failureReason:   Option[String]
+  )(implicit hc:     HeaderCarrier): Future[Unit] =
+    for {
+      monthlyReturn <- retrieveMonthlyReturn(zReference, reportingPeriod, AuditTypes.APIDeclarationSubmitted)
+      groupName     <- retrieveGroupName(zReference, AuditTypes.APIDeclarationSubmitted)
+      returnDetail =
+        if (nilReturn) Json.obj(EventData.nilReturn -> "yes")
+        else if (failureReason.isDefined) Json.obj()
+        else
+          monthlyReturn.fold(Json.obj())(mr =>
+            Json.obj(EventData.numberOfRequests -> mr.numberOfStoredSubmissions.toString) ++
+              mr.numberOfEntries.fold(Json.obj())(entries => Json.obj(EventData.numberOfEntries -> entries.toString))
+          )
+      statusDetail = failureReason.fold(Json.obj(EventData.submissionStatus -> SubmissionStatus.Success)) { reason =>
+                       Json.obj(
+                         EventData.submissionStatus -> SubmissionStatus.Failure,
+                         EventData.failureReason    -> reason
+                       )
+                     }
+      detail =
+        monthlyReturn.fold(Json.obj())(mr => Json.obj(EventData.internalReturnId -> mr.submissionId)) ++
+          Json.obj(
+            EventData.period  -> periodFormatter.format(reportingPeriod.yearMonth),
+            EventData.groupId -> userDetails.groupId
+          ) ++
+          groupName.fold(Json.obj())(name => Json.obj(EventData.groupName -> name)) ++
+          Json.obj(
+            EventData.zReference -> zReference,
+            EventData.userType   -> userDetails.userType
+          ) ++
+          userDetail(userDetails) ++
+          returnDetail ++
+          statusDetail
+      _ <- sendEvent(AuditTypes.APIDeclarationSubmitted, detail)
+    } yield ()
+
+  def auditApiValidation(
+    zReference:      String,
+    userDetails:     UserDetails,
+    reportingPeriod: ReportingPeriod,
+    metrics:         ValidationMetrics,
+    errorVolumes:    Seq[ErrorVolume]
+  )(implicit hc:     HeaderCarrier): Future[Unit] =
+    retrieveGroupName(zReference, AuditTypes.APIValidation).flatMap { groupName =>
+      val statusDetail =
+        if (errorVolumes.isEmpty) Json.obj(EventData.apiUploadStatus -> SubmissionStatus.Success)
+        else
+          Json.obj(
+            EventData.apiUploadStatus -> SubmissionStatus.Failure,
+            EventData.errorDetails -> errorVolumes.map(ev =>
+              Json.obj(
+                EventData.errorType -> ev.errorType.toLowerCase(Locale.UK),
+                EventData.volume    -> ev.volume
+              )
+            )
+          )
+      val detail =
+        Json.obj(
+          EventData.period  -> periodFormatter.format(reportingPeriod.yearMonth),
+          EventData.groupId -> userDetails.groupId
+        ) ++
+          groupName.fold(Json.obj())(name => Json.obj(EventData.groupName -> name)) ++
+          Json.obj(
+            EventData.zReference -> zReference,
+            EventData.userType   -> userDetails.userType
+          ) ++
+          userDetail(userDetails) ++
+          Json.obj(
+            EventData.requestValidationTime -> metrics.requestValidationTime.toMillis.toString,
+            EventData.requestSize           -> metrics.requestSize.toString,
+            EventData.numberOfEntries       -> metrics.numberOfEntries.toString
+          ) ++
+          statusDetail
+
+      sendEvent(AuditTypes.APIValidation, detail)
+    }
+
   private def sendEvent(auditType: String, detail: JsObject)(implicit hc: HeaderCarrier): Future[Unit] = {
     val event = ExtendedDataEvent(
       auditSource = appConfig.appName,
@@ -100,6 +184,22 @@ class AuditService @Inject() (
         None
       }
 
+  private def retrieveMonthlyReturn(zReference: String, reportingPeriod: ReportingPeriod, auditType: String)(implicit
+    hc:                                         HeaderCarrier
+  ): Future[Option[MonthlyReturn]] =
+    submissionConnector
+      .getMonthlyReturn(zReference, reportingPeriod.taxYear, reportingPeriod.month)
+      .map { monthlyReturn =>
+        if (monthlyReturn.isEmpty) {
+          logger.warn(s"$auditType audit sent without internalReturnId, no monthly return found for zRef: [$zReference]")
+        }
+        monthlyReturn
+      }
+      .recover { case NonFatal(e) =>
+        logger.warn(s"$auditType audit sent without internalReturnId, failed to retrieve monthly return for zRef: [$zReference]", e)
+        None
+      }
+
   private def userDetail(userDetails: UserDetails): JsObject =
     userDetails match {
       case im: UserDetails.IsaManager =>
@@ -123,19 +223,37 @@ class AuditService @Inject() (
 }
 
 object AuditTypes {
-  val APIUploadStarted = "APIUploadStarted"
+  val APIUploadStarted        = "APIUploadStarted"
+  val APIDeclarationSubmitted = "APIDeclarationSubmitted"
+  val APIValidation           = "APIValidation"
+}
+
+object SubmissionStatus {
+  val Success = "Success"
+  val Failure = "Failure"
 }
 
 object EventData {
-  val internalReturnId  = "internalReturnId"
-  val uploadStartedTime = "uploadStartedTime"
-  val period            = "period"
-  val groupId           = "groupId"
-  val groupName         = "groupName"
-  val zReference        = "zReference"
-  val userType          = "userType"
-  val credId            = "credId"
-  val credentialRole    = "credentialRole"
-  val agentId           = "agentId"
-  val agentName         = "agentName"
+  val internalReturnId      = "internalReturnId"
+  val uploadStartedTime     = "uploadStartedTime"
+  val period                = "period"
+  val groupId               = "groupId"
+  val groupName             = "groupName"
+  val zReference            = "zReference"
+  val userType              = "userType"
+  val credId                = "credId"
+  val credentialRole        = "credentialRole"
+  val agentId               = "agentId"
+  val agentName             = "agentName"
+  val nilReturn             = "nilReturn"
+  val numberOfRequests      = "numberOfRequests"
+  val numberOfEntries       = "numberOfEntries"
+  val submissionStatus      = "submissionStatus"
+  val failureReason         = "failureReason"
+  val requestValidationTime = "requestValidationTime"
+  val requestSize           = "requestSize"
+  val apiUploadStatus       = "APIUploadStatus"
+  val errorDetails          = "errorDetails"
+  val errorType             = "errorType"
+  val volume                = "volume"
 }

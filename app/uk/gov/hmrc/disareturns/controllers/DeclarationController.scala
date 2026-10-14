@@ -25,15 +25,16 @@ import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Request}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.controllers.parsers.StrictJsonBodyParser
-import uk.gov.hmrc.disareturns.models.common.{DeclarationRequest, MalformedJsonFailureErr}
+import uk.gov.hmrc.disareturns.models.common.{DeclarationRequest, MalformedJsonFailureErr, ReportingPeriod, UserDetails}
 import uk.gov.hmrc.disareturns.models.declaration.{DeclarationSuccessfulResponse, ReportingNilReturn}
-import uk.gov.hmrc.disareturns.services.{ETMPService, NotificationContextService, PPNSService, ReportingPeriodSource, SubmissionService}
+import uk.gov.hmrc.disareturns.services.{AuditService, ETMPService, NotificationContextService, PPNSService, ReportingPeriodSource, SubmissionService}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 @Singleton
 class DeclarationController @Inject() (
@@ -46,7 +47,8 @@ class DeclarationController @Inject() (
   authAction:                 AuthAction,
   clientIdAction:             ClientIdAction,
   strictJsonBodyParser:       StrictJsonBodyParser,
-  validationHelper:           ValidationHelper
+  validationHelper:           ValidationHelper,
+  auditService:               AuditService
 )(implicit ec:                ExecutionContext)
     extends BackendController(cc)
     with Logging {
@@ -70,9 +72,22 @@ class DeclarationController @Inject() (
             case _ =>
               val nilReturnReported = request.body.as[ReportingNilReturn].nilReturn
               reportingPeriodSource.get(zReference).flatMap { reportingPeriod =>
+                val declaration = for {
+                  _ <- EitherT(etmpService.validateEtmpSubmissionEligibility(zReference))
+                  _ <- submissionService.declare(zReference, reportingPeriod.taxYear, reportingPeriod.month, nilReturnReported)
+                } yield ()
+
                 val result = for {
-                  _             <- EitherT(etmpService.validateEtmpSubmissionEligibility(zReference))
-                  _             <- submissionService.declare(zReference, reportingPeriod.taxYear, reportingPeriod.month, nilReturnReported)
+                  _ <- EitherT(declaration.value.map { declarationResult =>
+                         auditDeclarationSubmitted(
+                           zReference,
+                           request.userDetails,
+                           reportingPeriod,
+                           nilReturnReported,
+                           declarationResult.left.toOption.map(_.message)
+                         )
+                         declarationResult
+                       })
                   boxIdResponse <- EitherT(ppnsService.getBoxId(request.clientId))
                 } yield boxIdResponse
 
@@ -101,4 +116,17 @@ class DeclarationController @Inject() (
           }
         }
     }
+
+  private def auditDeclarationSubmitted(
+    zReference:      String,
+    userDetails:     UserDetails,
+    reportingPeriod: ReportingPeriod,
+    nilReturn:       Boolean,
+    failureReason:   Option[String]
+  )(implicit hc:     HeaderCarrier): Unit =
+    auditService
+      .auditApiDeclarationSubmitted(zReference, userDetails, reportingPeriod, nilReturn, failureReason)
+      .recover { case NonFatal(e) =>
+        logger.warn(s"[DeclarationController][auditDeclarationSubmitted] Failed to audit APIDeclarationSubmitted for IM ref: [$zReference]", e)
+      }
 }

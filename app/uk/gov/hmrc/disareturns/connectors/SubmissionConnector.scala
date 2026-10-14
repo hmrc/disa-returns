@@ -28,6 +28,8 @@ import play.api.libs.ws.{BodyWritable, SourceBody}
 import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common.Month.Month
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
+import uk.gov.hmrc.disareturns.models.submission.MonthlyReturn
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -74,6 +76,7 @@ class SubmissionConnector @Inject() (
     )
   }
 
+  //update naming create/get
   def createMonthlyReturn(zReference: String, taxYear: String, month: Month, nilReturn: Boolean)(implicit
     hc:                               HeaderCarrier
   ): Future[Either[UpstreamErrorResponse, HttpResponse]] = {
@@ -101,14 +104,21 @@ class SubmissionConnector @Inject() (
       }
   }
 
-  def sendSubmission(zReference: String, taxYear: String, month: Month, submissionId: UUID, source: Source[ByteString, _])(implicit
-    hc:                          HeaderCarrier
+  def sendSubmission(
+    zReference:      String,
+    taxYear:         String,
+    month:           Month,
+    submissionId:    UUID,
+    numberOfEntries: Long,
+    source:          Source[ByteString, _]
+  )(implicit
+    hc: HeaderCarrier
   ): Future[Either[UpstreamErrorResponse, Unit]] = {
     val url =
       s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}/submissions/$submissionId"
     retryFor("send monthly return submission")(retryCondition) {
       httpClient
-        .put(url"$url")
+        .put(url"$url?numberOfEntries=$numberOfEntries")
         .setHeader(authorizationHeader)
         .withBody(source)
         .executeOrFail
@@ -127,6 +137,14 @@ class SubmissionConnector @Inject() (
           logger.error(s"[SubmissionConnector][sendSubmission] Unexpected error: ${ex.getMessage}", ex)
           Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
       }
+  }
+
+  def getMonthlyReturn(zReference: String, taxYear: String, month: Month)(implicit hc: HeaderCarrier): Future[Option[MonthlyReturn]] = {
+    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}"
+    httpClient
+      .get(url"$url")
+      .setHeader(authorizationHeader)
+      .execute[Option[MonthlyReturn]]
   }
 
   def getReportingWindowStatus(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {

@@ -79,10 +79,15 @@ abstract class BaseUnitSpec
       mockNotificationContextService,
       mockReconciliationReportReadyCallbackService,
       mockReportingWindowService,
-      mockReportingPeriodSource
+      mockReportingPeriodSource,
+      mockAuditService
     )
     when(mockReportingPeriodSource.get(any())(any()))
       .thenReturn(Future.successful(ReportingPeriod(validTaxYear, validMonth)))
+    when(mockAuditService.auditApiDeclarationSubmitted(any(), any(), any(), any(), any())(any()))
+      .thenReturn(Future.successful(()))
+    when(mockAuditService.auditApiValidation(any(), any(), any(), any(), any())(any()))
+      .thenReturn(Future.successful(()))
   }
 
   //MOCKS
@@ -106,6 +111,7 @@ abstract class BaseUnitSpec
   val mockNotificationContextService:               NotificationContextService               = mock[NotificationContextService]
   val mockReportingWindowService:                   ReportingWindowService                   = mock[ReportingWindowService]
   val mockReportingPeriodSource:                    ReportingPeriodSource                    = mock[ReportingPeriodSource]
+  val mockAuditService:                             AuditService                             = mock[AuditService]
 
   override def fakeApplication(): Application = GuiceApplicationBuilder()
     .configure(
@@ -125,6 +131,7 @@ abstract class BaseUnitSpec
       bind[SubmissionService].toInstance(mockSubmissionService),
       bind[NotificationContextService].toInstance(mockNotificationContextService),
       bind[ReportingPeriodSource].toInstance(mockReportingPeriodSource),
+      bind[AuditService].toInstance(mockAuditService),
       bind[Clock].toInstance(testReportingPeriodClock)
     )
     .build()

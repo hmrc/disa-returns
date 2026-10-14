@@ -20,8 +20,10 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import play.api.http.Status._
 import play.api.test.Helpers.await
+import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.disareturns.connectors.SubmissionConnector
 import uk.gov.hmrc.disareturns.models.common.Month
+import uk.gov.hmrc.disareturns.models.submission.{MonthlyReturn, Submission, SubmissionDetails}
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 
@@ -36,7 +38,8 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
 
   private val declarationsUrl    = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/declarations"
   private val createUrl          = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt"
-  private val submissionsUrl     = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/submissions/$submissionId"
+  private val numberOfEntries    = 1L
+  private val submissionsUrl     = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/submissions/$submissionId?numberOfEntries=$numberOfEntries"
   private val reportingWindowUrl = s"/disa-returns-submission/reporting-window/status/$validZReference"
 
   private val connector: SubmissionConnector = app.injector.instanceOf[SubmissionConnector]
@@ -107,13 +110,13 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     "return Right(()) when disa-returns-submission returns 200 OK" in {
       stubPut(submissionsUrl, OK, "")
 
-      await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource)) shouldBe Right(())
+      await(connector.sendSubmission(validZReference, taxYear, month, submissionId, numberOfEntries, ndjsonSource)) shouldBe Right(())
     }
 
     "return Left(UpstreamErrorResponse) when disa-returns-submission returns 503" in {
       stubPut(submissionsUrl, SERVICE_UNAVAILABLE, "")
 
-      val err = await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource)).left.value
+      val err = await(connector.sendSubmission(validZReference, taxYear, month, submissionId, numberOfEntries, ndjsonSource)).left.value
 
       err.statusCode shouldBe SERVICE_UNAVAILABLE
       verifyPut(submissionsUrl, count = 4)
@@ -121,7 +124,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
 
     "not retry a client error" in {
       stubPut(submissionsUrl, BAD_REQUEST, "bad request")
-      await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource)).left.value.statusCode shouldBe BAD_REQUEST
+      await(connector.sendSubmission(validZReference, taxYear, month, submissionId, numberOfEntries, ndjsonSource)).left.value.statusCode shouldBe BAD_REQUEST
       verifyPut(submissionsUrl, count = 1)
     }
   }
@@ -145,6 +148,55 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
       stubGet(reportingWindowUrl, BAD_REQUEST, "bad request")
       await(connector.getReportingWindowStatus(validZReference).value).left.value.statusCode shouldBe BAD_REQUEST
       verifyGet(reportingWindowUrl, count = 1)
+    }
+  }
+
+  "SubmissionConnector.getMonthlyReturn" should {
+    "return the monthly return when disa-returns-submission returns 200 OK" in {
+      stubGet(
+        createUrl,
+        OK,
+        """{
+          |  "zReference": "Z1234",
+          |  "submissionId": "abc-123",
+          |  "taxYear": "2026-27",
+          |  "month": 9,
+          |  "nilReturn": false,
+          |  "submissions": [
+          |    {"reference": "ref-1", "status": "STORED", "submissionDetails": {"fileName": "ref-1", "fileMimeType": "application/x-ndjson", "checksum": "abc", "size": 100, "numberOfEntries": 2}},
+          |    {"reference": "ref-2", "status": "CREATED"}
+          |  ]
+          |}""".stripMargin
+      )
+      await(connector.getMonthlyReturn(validZReference, taxYear, month)) shouldBe Some(
+        MonthlyReturn("abc-123", Seq(Submission("STORED", Some(SubmissionDetails(Some(2L)))), Submission("CREATED")))
+      )
+    }
+
+    "return the monthly return when submissionDetails has no numberOfEntries" in {
+      stubGet(
+        createUrl,
+        OK,
+        """{
+          |  "submissionId": "abc-123",
+          |  "submissions": [
+          |    {"reference": "ref-1", "status": "STORED", "submissionDetails": {"fileName": "ref-1", "fileMimeType": "application/x-ndjson", "checksum": "abc", "size": 100}}
+          |  ]
+          |}""".stripMargin
+      )
+      await(connector.getMonthlyReturn(validZReference, taxYear, month)) shouldBe Some(
+        MonthlyReturn("abc-123", Seq(Submission("STORED", Some(SubmissionDetails(None)))))
+      )
+    }
+
+    "return None when disa-returns-submission returns 404 Not Found" in {
+      stubGet(createUrl, NOT_FOUND, "")
+      await(connector.getMonthlyReturn(validZReference, taxYear, month)) shouldBe None
+    }
+
+    "fail with UpstreamErrorResponse when disa-returns-submission returns 503" in {
+      stubGet(createUrl, SERVICE_UNAVAILABLE, "")
+      intercept[UpstreamErrorResponse](await(connector.getMonthlyReturn(validZReference, taxYear, month))).statusCode shouldBe SERVICE_UNAVAILABLE
     }
   }
 
