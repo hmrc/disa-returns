@@ -76,7 +76,7 @@ class SubmissionConnector @Inject() (
     )
   }
 
-  //update naming create/get
+  //update naming create/get - this creates and returns the submissionId/internalReturnId or returns the existing one
   def createMonthlyReturn(zReference: String, taxYear: String, month: Month, nilReturn: Boolean)(implicit
     hc:                               HeaderCarrier
   ): Future[Either[UpstreamErrorResponse, HttpResponse]] = {

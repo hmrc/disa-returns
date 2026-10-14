@@ -85,17 +85,14 @@ class AuditService @Inject() (
     for {
       monthlyReturn <- retrieveMonthlyReturn(zReference, reportingPeriod, AuditTypes.APIDeclarationSubmitted)
       groupName     <- retrieveGroupName(zReference, AuditTypes.APIDeclarationSubmitted)
-      returnDetail =
-        if (nilReturn) Json.obj(EventData.nilReturn -> "yes")
-        else if (failureReason.isDefined) Json.obj()
-        else
-          monthlyReturn.fold(Json.obj())(mr =>
-            Json.obj(EventData.numberOfRequests -> mr.numberOfStoredSubmissions.toString) ++
-              mr.numberOfEntries.fold(Json.obj())(entries => Json.obj(EventData.numberOfEntries -> entries.toString))
-          )
-      statusDetail = failureReason.fold(Json.obj(EventData.submissionStatus -> SubmissionStatus.Success)) { reason =>
+      returnDetail = (nilReturn, failureReason, monthlyReturn) match {
+                       case (true, _, _)            => Json.obj(EventData.nilReturn -> "yes")
+                       case (false, None, Some(mr)) => submissionCounts(mr)
+                       case _                       => Json.obj()
+                     }
+      statusDetail = failureReason.fold(Json.obj(EventData.submissionStatus -> AuditStatus.Success)) { reason =>
                        Json.obj(
-                         EventData.submissionStatus -> SubmissionStatus.Failure,
+                         EventData.submissionStatus -> AuditStatus.Failure,
                          EventData.failureReason    -> reason
                        )
                      }
@@ -125,10 +122,10 @@ class AuditService @Inject() (
   )(implicit hc:     HeaderCarrier): Future[Unit] =
     retrieveGroupName(zReference, AuditTypes.APIValidation).flatMap { groupName =>
       val statusDetail =
-        if (errorVolumes.isEmpty) Json.obj(EventData.apiUploadStatus -> SubmissionStatus.Success)
+        if (errorVolumes.isEmpty) Json.obj(EventData.apiUploadStatus -> AuditStatus.Success)
         else
           Json.obj(
-            EventData.apiUploadStatus -> SubmissionStatus.Failure,
+            EventData.apiUploadStatus -> AuditStatus.Failure,
             EventData.errorDetails -> errorVolumes.map(ev =>
               Json.obj(
                 EventData.errorType -> ev.errorType.toLowerCase(Locale.UK),
@@ -156,6 +153,12 @@ class AuditService @Inject() (
 
       sendEvent(AuditTypes.APIValidation, detail)
     }
+
+  private def submissionCounts(monthlyReturn: MonthlyReturn): JsObject =
+    Json.obj(
+      EventData.numberOfRequests -> monthlyReturn.numberOfRequests.toString,
+      EventData.numberOfEntries  -> monthlyReturn.numberOfEntries.toString
+    )
 
   private def sendEvent(auditType: String, detail: JsObject)(implicit hc: HeaderCarrier): Future[Unit] = {
     val event = ExtendedDataEvent(
@@ -191,12 +194,17 @@ class AuditService @Inject() (
       .getMonthlyReturn(zReference, reportingPeriod.taxYear, reportingPeriod.month)
       .map { monthlyReturn =>
         if (monthlyReturn.isEmpty) {
-          logger.warn(s"$auditType audit sent without internalReturnId, no monthly return found for zRef: [$zReference]")
+          logger.warn(
+            s"$auditType audit sent without internalReturnId, numberOfRequests or numberOfEntries, no monthly return found for zRef: [$zReference]"
+          )
         }
         monthlyReturn
       }
       .recover { case NonFatal(e) =>
-        logger.warn(s"$auditType audit sent without internalReturnId, failed to retrieve monthly return for zRef: [$zReference]", e)
+        logger.warn(
+          s"$auditType audit sent without internalReturnId, numberOfRequests or numberOfEntries, failed to retrieve monthly return for zRef: [$zReference]",
+          e
+        )
         None
       }
 
@@ -228,7 +236,7 @@ object AuditTypes {
   val APIValidation           = "APIValidation"
 }
 
-object SubmissionStatus {
+object AuditStatus {
   val Success = "Success"
   val Failure = "Failure"
 }

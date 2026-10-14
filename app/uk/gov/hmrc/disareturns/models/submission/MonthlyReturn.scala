@@ -18,31 +18,24 @@ package uk.gov.hmrc.disareturns.models.submission
 
 import play.api.libs.json.{Json, Reads}
 
-case class SubmissionDetails(numberOfEntries: Option[Long] = None)
+case class SubmissionDetails(numberOfEntries: Long)
 
 object SubmissionDetails {
-  implicit val reads: Reads[SubmissionDetails] = Json.using[Json.WithDefaultValues].reads[SubmissionDetails]
+  implicit val reads: Reads[SubmissionDetails] = Json.reads[SubmissionDetails]
 }
 
-case class Submission(status: String, submissionDetails: Option[SubmissionDetails] = None)
+case class Submission(submissionDetails: Option[SubmissionDetails])
 
 object Submission {
-  val Stored = "STORED"
-
-  implicit val reads: Reads[Submission] = Json.using[Json.WithDefaultValues].reads[Submission]
+  implicit val reads: Reads[Submission] = Json.reads[Submission]
 }
 
-case class MonthlyReturn(submissionId: String, submissions: Seq[Submission] = Seq.empty) {
-  private val storedSubmissions: Seq[Submission] = submissions.filter(_.status == Submission.Stored)
+case class MonthlyReturn(submissionId: String, submissions: Seq[Submission]) {
+  def numberOfRequests: Int = submissions.size
 
-  def numberOfStoredSubmissions: Int = storedSubmissions.size
-
-  def numberOfEntries: Option[Long] = {
-    val entries = storedSubmissions.flatMap(_.submissionDetails).flatMap(_.numberOfEntries)
-    if (entries.isEmpty) None else Some(entries.sum)
-  }
+  def numberOfEntries: Long = submissions.flatMap(_.submissionDetails).map(_.numberOfEntries).sum
 }
 
 object MonthlyReturn {
-  implicit val reads: Reads[MonthlyReturn] = Json.using[Json.WithDefaultValues].reads[MonthlyReturn]
+  implicit val reads: Reads[MonthlyReturn] = Json.reads[MonthlyReturn]
 }

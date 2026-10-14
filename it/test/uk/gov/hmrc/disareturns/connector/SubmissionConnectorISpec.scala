@@ -169,23 +169,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
           |}""".stripMargin
       )
       await(connector.getMonthlyReturn(validZReference, taxYear, month)) shouldBe Some(
-        MonthlyReturn("abc-123", Seq(Submission("STORED", Some(SubmissionDetails(Some(2L)))), Submission("CREATED")))
-      )
-    }
-
-    "return the monthly return when submissionDetails has no numberOfEntries" in {
-      stubGet(
-        createUrl,
-        OK,
-        """{
-          |  "submissionId": "abc-123",
-          |  "submissions": [
-          |    {"reference": "ref-1", "status": "STORED", "submissionDetails": {"fileName": "ref-1", "fileMimeType": "application/x-ndjson", "checksum": "abc", "size": 100}}
-          |  ]
-          |}""".stripMargin
-      )
-      await(connector.getMonthlyReturn(validZReference, taxYear, month)) shouldBe Some(
-        MonthlyReturn("abc-123", Seq(Submission("STORED", Some(SubmissionDetails(None)))))
+        MonthlyReturn("abc-123", Seq(Submission(Some(SubmissionDetails(2L))), Submission(None)))
       )
     }
 

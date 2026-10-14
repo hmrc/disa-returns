@@ -21,16 +21,10 @@ import uk.gov.hmrc.disareturns.models.common.ValidationError
 
 import java.time.Duration
 
-/** Measured in the same stream pass as validation.
-  *
-  * numberOfEntries is every non-empty line in the request, valid or invalid. requestSize is the number of bytes received.
-  */
 final case class ValidationMetrics(numberOfEntries: Long, requestSize: Long, requestValidationTime: Duration)
 
 final case class ErrorVolume(errorType: String, volume: Int)
 
-/** A submission payload that passed validation, written to a temp file one account per line. */
 final case class ValidatedSubmission(file: TemporaryFile, metrics: ValidationMetrics)
 
-/** error is the aggregated error returned in the HTTP response, errorVolumes covers every error collected from the stream. */
 final case class InvalidSubmission(error: ValidationError, errorVolumes: Seq[ErrorVolume], metrics: ValidationMetrics)

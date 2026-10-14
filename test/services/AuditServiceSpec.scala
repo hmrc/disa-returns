@@ -24,7 +24,7 @@ import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.connectors.{DisaAccountConnector, SubmissionConnector}
 import uk.gov.hmrc.disareturns.models.common.{Month, ReportingPeriod}
 import uk.gov.hmrc.disareturns.models.submission.{ErrorVolume, MonthlyReturn, Submission, SubmissionDetails, ValidationMetrics}
-import uk.gov.hmrc.disareturns.services.{AuditService, AuditTypes, EventData, SubmissionStatus}
+import uk.gov.hmrc.disareturns.services.{AuditService, AuditStatus, AuditTypes, EventData}
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
@@ -45,9 +45,8 @@ class AuditServiceSpec extends BaseUnitSpec {
     MonthlyReturn(
       internalReturnId,
       Seq(
-        Submission(Submission.Stored, Some(SubmissionDetails(Some(150L)))),
-        Submission(Submission.Stored, Some(SubmissionDetails(Some(209L)))),
-        Submission("CREATED")
+        Submission(Some(SubmissionDetails(150L))),
+        Submission(Some(SubmissionDetails(209L)))
       )
     )
 
@@ -177,7 +176,7 @@ class AuditServiceSpec extends BaseUnitSpec {
       (detail \ EventData.credentialRole).as[String]   shouldBe testCredentialRole
       (detail \ EventData.numberOfRequests).as[String] shouldBe "2"
       (detail \ EventData.numberOfEntries).as[String]  shouldBe "359"
-      (detail \ EventData.submissionStatus).as[String] shouldBe SubmissionStatus.Success
+      (detail \ EventData.submissionStatus).as[String] shouldBe AuditStatus.Success
     }
 
     "send a failed nil return APIDeclarationSubmitted with Agent detail fields in the agreed order" in new TestSetup {
@@ -204,7 +203,7 @@ class AuditServiceSpec extends BaseUnitSpec {
       (detail \ EventData.agentId).as[String]          shouldBe testAgentId
       (detail \ EventData.agentName).as[String]        shouldBe testAgentName
       (detail \ EventData.nilReturn).as[String]        shouldBe "yes"
-      (detail \ EventData.submissionStatus).as[String] shouldBe SubmissionStatus.Failure
+      (detail \ EventData.submissionStatus).as[String] shouldBe AuditStatus.Failure
       (detail \ EventData.failureReason).as[String]    shouldBe "Obligation closed"
     }
 
@@ -224,7 +223,7 @@ class AuditServiceSpec extends BaseUnitSpec {
         (detail \ EventData.internalReturnId).toOption   shouldBe None
         (detail \ EventData.numberOfRequests).toOption   shouldBe None
         (detail \ EventData.numberOfEntries).toOption    shouldBe None
-        (detail \ EventData.submissionStatus).as[String] shouldBe SubmissionStatus.Success
+        (detail \ EventData.submissionStatus).as[String] shouldBe AuditStatus.Success
       }
     }
 
@@ -254,7 +253,7 @@ class AuditServiceSpec extends BaseUnitSpec {
         EventData.failureReason
       )
       (detail \ EventData.internalReturnId).as[String] shouldBe internalReturnId
-      (detail \ EventData.submissionStatus).as[String] shouldBe SubmissionStatus.Failure
+      (detail \ EventData.submissionStatus).as[String] shouldBe AuditStatus.Failure
       (detail \ EventData.failureReason).as[String]    shouldBe "Obligation closed"
     }
 
@@ -267,20 +266,6 @@ class AuditServiceSpec extends BaseUnitSpec {
         .futureValue shouldBe ()
 
       (captureEvent().detail \ EventData.groupName).toOption shouldBe None
-    }
-
-    "send numberOfRequests without numberOfEntries when submission does not return numberOfEntries" in new TestSetup {
-      when(submissionConnector.getMonthlyReturn(any(), any(), any())(any[HeaderCarrier]))
-        .thenReturn(Future.successful(Some(MonthlyReturn(internalReturnId, Seq(Submission(Submission.Stored, Some(SubmissionDetails())))))))
-
-      service
-        .auditApiDeclarationSubmitted(validZReference, testIsaManagerDetails, reportingPeriod, nilReturn = false, failureReason = None)
-        .futureValue shouldBe ()
-
-      val detail: JsObject = captureEvent().detail.as[JsObject]
-
-      (detail \ EventData.numberOfRequests).as[String] shouldBe "1"
-      (detail \ EventData.numberOfEntries).toOption    shouldBe None
     }
   }
 
@@ -307,7 +292,7 @@ class AuditServiceSpec extends BaseUnitSpec {
         EventData.requestValidationTime -> "153",
         EventData.requestSize           -> "4096",
         EventData.numberOfEntries       -> "10",
-        EventData.apiUploadStatus       -> SubmissionStatus.Success
+        EventData.apiUploadStatus       -> AuditStatus.Success
       )
       detail.keys.toSeq shouldBe Seq(
         EventData.period,
@@ -344,7 +329,7 @@ class AuditServiceSpec extends BaseUnitSpec {
         EventData.requestValidationTime -> "153",
         EventData.requestSize           -> "4096",
         EventData.numberOfEntries       -> "10",
-        EventData.apiUploadStatus       -> SubmissionStatus.Failure,
+        EventData.apiUploadStatus       -> AuditStatus.Failure,
         EventData.errorDetails -> Json.arr(
           Json.obj(EventData.errorType -> "missing_first_name", EventData.volume      -> 6),
           Json.obj(EventData.errorType -> "nino_or_acc_num_missing", EventData.volume -> 1)
