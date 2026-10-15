@@ -88,7 +88,12 @@ class AuditService @Inject() (
       returnDetail = (nilReturn, failureReason, monthlyReturn) match {
                        case (true, _, _)            => Json.obj(EventData.nilReturn -> "yes")
                        case (false, None, Some(mr)) => submissionCounts(mr)
-                       case _                       => Json.obj()
+                       case (false, None, None) =>
+                         logger.warn(
+                           s"${AuditTypes.APIDeclarationSubmitted} audit sent without numberOfRequests or numberOfEntries for successful declaration, no monthly return for zRef: [$zReference]"
+                         )
+                         Json.obj()
+                       case _ => Json.obj()
                      }
       statusDetail = failureReason.fold(Json.obj(EventData.submissionStatus -> AuditStatus.Success)) { reason =>
                        Json.obj(
@@ -194,17 +199,12 @@ class AuditService @Inject() (
       .getMonthlyReturn(zReference, reportingPeriod.taxYear, reportingPeriod.month)
       .map { monthlyReturn =>
         if (monthlyReturn.isEmpty) {
-          logger.warn(
-            s"$auditType audit sent without internalReturnId, numberOfRequests or numberOfEntries, no monthly return found for zRef: [$zReference]"
-          )
+          logger.warn(s"$auditType audit sent without internalReturnId, no monthly return found for zRef: [$zReference]")
         }
         monthlyReturn
       }
       .recover { case NonFatal(e) =>
-        logger.warn(
-          s"$auditType audit sent without internalReturnId, numberOfRequests or numberOfEntries, failed to retrieve monthly return for zRef: [$zReference]",
-          e
-        )
+        logger.warn(s"$auditType audit sent without internalReturnId, failed to retrieve monthly return for zRef: [$zReference]", e)
         None
       }
 

@@ -73,12 +73,12 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     }
   }
 
-  "SubmissionConnector.createMonthlyReturn" should {
+  "SubmissionConnector.ensureMonthlyReturnExists" should {
 
     "return Right(HttpResponse) with the created submissionId when disa-returns-submission returns 201 Created" in {
       stubPost(createUrl, CREATED, """{"submissionId":"abc-123"}""")
 
-      val response = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)).value
+      val response = await(connector.ensureMonthlyReturnExists(validZReference, taxYear, month, nilReturn = false)).value
 
       response.status                                shouldBe CREATED
       (response.json \ "submissionId").as[String] shouldBe "abc-123"
@@ -87,7 +87,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     "return Left(UpstreamErrorResponse) preserving 409 status when disa-returns-submission returns 409 Conflict" in {
       stubPost(createUrl, CONFLICT, """{"submissionId":"existing-id"}""")
 
-      val err = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)).left.value
+      val err = await(connector.ensureMonthlyReturnExists(validZReference, taxYear, month, nilReturn = false)).left.value
 
       err.statusCode shouldBe CONFLICT
       verifyPost(createUrl, count = 1)
@@ -96,7 +96,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     "return Left(UpstreamErrorResponse) when disa-returns-submission returns 503" in {
       stubPost(createUrl, SERVICE_UNAVAILABLE, "")
 
-      val err = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)).left.value
+      val err = await(connector.ensureMonthlyReturnExists(validZReference, taxYear, month, nilReturn = false)).left.value
 
       err.statusCode shouldBe SERVICE_UNAVAILABLE
       verifyPost(createUrl, count = 4)

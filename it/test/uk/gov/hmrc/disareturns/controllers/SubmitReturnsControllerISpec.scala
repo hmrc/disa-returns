@@ -50,7 +50,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - LifetimeIsaSubscription" in {
       stubReportingWindow(status = OK, open = true)
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+      stubEnsureMonthlyReturnExists(CREATED, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validLifetimeIsaSubscription)
 
       val result = submitMonthlyReturnRequest(validLifetimeIsaSubscription)
@@ -60,7 +60,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - LifetimeIsaClosure" in {
       stubReportingWindow(status = OK, open = true)
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+      stubEnsureMonthlyReturnExists(CREATED, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validLifetimeIsaClosure)
 
       val result = submitMonthlyReturnRequest(validLifetimeIsaClosure)
@@ -70,7 +70,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaSubscription" in {
       stubReportingWindow(status = OK, open = true)
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+      stubEnsureMonthlyReturnExists(CREATED, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validStandardIsaSubscription)
 
       val result = submitMonthlyReturnRequest(validStandardIsaSubscription)
@@ -80,7 +80,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 for successful submission - StandardIsaClosure" in {
       stubReportingWindow(status = OK, open = true)
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+      stubEnsureMonthlyReturnExists(CREATED, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validStandardIsaClosure)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
@@ -93,7 +93,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       stubReportingWindow(status = OK, open = true)
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+      stubEnsureMonthlyReturnExists(CREATED, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturnWithBodyAssert(OK, validZReference, testTaxYear, 9, validStandardIsaClosureMiddleNameNull)
 
       val result = submitMonthlyReturnRequest(validStandardIsaClosureMiddleNameNull)
@@ -104,7 +104,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
   "return 204 for NDJSON payload with trailing newline at the end of the payload" in {
     stubReportingWindow(status = OK, open = true)
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+    stubEnsureMonthlyReturnExists(CREATED, validZReference, testTaxYear, 9)
     stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 9)
 
     val payload = validStandardIsaSubscription + "\n" + validStandardIsaClosure + "\n"
@@ -117,7 +117,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     stubAuth()
     stubReportingWindow(status = OK, open = true)
     stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-    stubCreateMonthlyReturn(CREATED, validZReference, testTaxYear, 9)
+    stubEnsureMonthlyReturnExists(CREATED, validZReference, testTaxYear, 9)
     stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 9)
 
     val result = await(
@@ -1392,7 +1392,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 500 Internal Server Error when upstream 503 serviceUnavailable returned from disa-returns-submission" in {
       stubReportingWindow(status = OK, open = true)
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubCreateMonthlyReturn(SERVICE_UNAVAILABLE, validZReference, testTaxYear, 9)
+      stubEnsureMonthlyReturnExists(SERVICE_UNAVAILABLE, validZReference, testTaxYear, 9)
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
 
       result.status shouldBe INTERNAL_SERVER_ERROR
@@ -1402,7 +1402,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
     "return 204 when upstream 409 conflict returned from create (monthly return already exists for this period)" in {
       stubReportingWindow(status = OK, open = true)
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-      stubCreateMonthlyReturn(CONFLICT, validZReference, testTaxYear, 9)
+      stubEnsureMonthlyReturnExists(CONFLICT, validZReference, testTaxYear, 9)
       stubStoreMonthlyReturn(OK, validZReference, testTaxYear, 9)
       val result = submitMonthlyReturnRequest(validStandardIsaClosure)
 

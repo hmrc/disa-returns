@@ -76,9 +76,8 @@ class SubmissionConnector @Inject() (
     )
   }
 
-  //update naming create/get - this creates and returns the submissionId/internalReturnId or returns the existing one
-  def createMonthlyReturn(zReference: String, taxYear: String, month: Month, nilReturn: Boolean)(implicit
-    hc:                               HeaderCarrier
+  def ensureMonthlyReturnExists(zReference: String, taxYear: String, month: Month, nilReturn: Boolean)(implicit
+    hc:                                     HeaderCarrier
   ): Future[Either[UpstreamErrorResponse, HttpResponse]] = {
     val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}"
     retryFor("create monthly return submission")(retryCondition) {
@@ -90,7 +89,7 @@ class SubmissionConnector @Inject() (
     }
       .map { response =>
         if (response.status >= BAD_REQUEST) {
-          logger.warn(s"[SubmissionConnector][createMonthlyReturn] Received error status ${response.status} with body: ${response.body}")
+          logger.warn(s"[SubmissionConnector][ensureMonthlyReturnExists] Received error status ${response.status} with body: ${response.body}")
           Left(UpstreamErrorResponse(response.body, response.status, response.status))
         } else {
           Right(response)
@@ -99,7 +98,7 @@ class SubmissionConnector @Inject() (
       .recover {
         case upstream: UpstreamErrorResponse => Left(upstream)
         case ex =>
-          logger.error(s"[SubmissionConnector][createMonthlyReturn] Unexpected error: ${ex.getMessage}", ex)
+          logger.error(s"[SubmissionConnector][ensureMonthlyReturnExists] Unexpected error: ${ex.getMessage}", ex)
           Left(UpstreamErrorResponse(s"Unexpected error: ${ex.getMessage}", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
       }
   }

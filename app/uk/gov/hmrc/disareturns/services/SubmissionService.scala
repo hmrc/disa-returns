@@ -53,7 +53,7 @@ class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator
     logger.info(
       s"[SubmissionService][submitMonthlyReturn] Sending monthly return to disa-returns-submission for IM ref: [$zReference], taxYear: [$taxYear], month: [$month]"
     )
-    connector.createMonthlyReturn(zReference, taxYear, month, nilReturn = false).flatMap {
+    connector.ensureMonthlyReturnExists(zReference, taxYear, month, nilReturn = false).flatMap {
       case Left(UpstreamErrorResponse(_, CONFLICT, _, _)) =>
         logger.info(
           s"[SubmissionService][submitMonthlyReturn] Monthly return already exists for IM ref: [$zReference], taxYear: [$taxYear], month: [$month] - proceeding to store submission data"

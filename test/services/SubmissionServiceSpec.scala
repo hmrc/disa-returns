@@ -104,7 +104,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
       val tempFile = Files.createTempFile("test-monthly-return", ".ndjson")
       Files.writeString(tempFile, """{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n")
 
-      when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionConnector.ensureMonthlyReturnExists(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(createdResponse)))
       when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
       when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any(), any())(any()))
@@ -127,7 +127,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
         )(any())
     }
 
-    "return Right(()) when createMonthlyReturn returns 409 (monthly return already exists)" in {
+    "return Right(()) when ensureMonthlyReturnExists returns 409 (monthly return already exists)" in {
       val tempFile = Files.createTempFile("test-monthly-return", ".ndjson")
       Files.writeString(tempFile, """{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n")
 
@@ -138,7 +138,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionConnector.ensureMonthlyReturnExists(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(conflict)))
       when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
       when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any(), any())(any()))
@@ -161,7 +161,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
 
       when(mockAuditService.auditApiUploadStarted(any(), any(), any(), any())(any()))
         .thenReturn(Future.failed(new RuntimeException("audit failed")))
-      when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionConnector.ensureMonthlyReturnExists(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(createdResponse)))
       when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
       when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any(), any())(any()))
@@ -174,7 +174,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
       result shouldBe Right(())
     }
 
-    "return Left(InternalServerErr) when createMonthlyReturn returns a 500 UpstreamErrorResponse" in {
+    "return Left(InternalServerErr) when ensureMonthlyReturnExists returns a 500 UpstreamErrorResponse" in {
       val tempFile = Files.createTempFile("test-monthly-return", ".ndjson")
       Files.writeString(tempFile, """{"nino":"AB000001C","accountNumber":"STD000001"}""" + "\n")
 
@@ -185,7 +185,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionConnector.ensureMonthlyReturnExists(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(exception)))
 
       val result =
@@ -208,7 +208,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionConnector.ensureMonthlyReturnExists(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(createdResponse)))
       when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
       when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any(), any())(any()))
@@ -232,7 +232,7 @@ class SubmissionServiceSpec extends BaseUnitSpec {
         headers = Map.empty
       )
 
-      when(mockSubmissionConnector.createMonthlyReturn(any(), any(), any(), any())(any()))
+      when(mockSubmissionConnector.ensureMonthlyReturnExists(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(createdResponse)))
       when(mockUuidGenerator.randomUuid()).thenReturn(submissionId)
       when(mockSubmissionConnector.sendSubmission(any(), any(), any(), any(), any(), any())(any()))
