@@ -65,7 +65,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(ValidatedSubmission(tempFile, metrics))))
-      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any(), any())(any()))
+      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
 
       val result = controller.submit(validZReference)(fakeRequestWithStream())
@@ -84,7 +84,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
           eqTo(metrics),
           eqTo(Seq.empty)
         )(any())
-      auditThenSubmit.verify(mockSubmissionService).submitMonthlyReturn(any(), any(), any(), any(), any(), eqTo(metrics.numberOfEntries))(any())
+      auditThenSubmit.verify(mockSubmissionService).submitMonthlyReturn(any(), any(), any(), any(), any())(any())
     }
 
     "return 204 when auditing APIValidation fails" in {
@@ -95,7 +95,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(ValidatedSubmission(tempFile, metrics))))
-      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any(), any())(any()))
+      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
       when(mockAuditService.auditApiValidation(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.failed(new RuntimeException("audit failed")))
@@ -140,7 +140,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         eqTo(metrics),
         eqTo(errorVolumes)
       )(any())
-      verify(mockSubmissionService, never()).submitMonthlyReturn(any(), any(), any(), any(), any(), any())(any())
+      verify(mockSubmissionService, never()).submitMonthlyReturn(any(), any(), any(), any(), any())(any())
     }
 
     "return 400 for SecondLevelValidationException - invalid DOB" in {
@@ -321,7 +321,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(ValidatedSubmission(tempFile, metrics))))
-      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any(), any())(any()))
+      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(InternalServerErr())))
 
       val result = controller.submit(validZReference)(fakeRequestWithStream())

@@ -47,7 +47,7 @@ class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator
     connector.sendDeclaration(zReference, taxYear, month, nilReturnReported).leftMap(mapToErrorResponse)
   }
 
-  def submitMonthlyReturn(zReference: String, userDetails: UserDetails, taxYear: String, month: Month, path: Path, numberOfEntries: Long)(implicit
+  def submitMonthlyReturn(zReference: String, userDetails: UserDetails, taxYear: String, month: Month, path: Path)(implicit
     hc:                               HeaderCarrier
   ): Future[Either[ErrorResponse, Unit]] = {
     logger.info(
@@ -58,11 +58,11 @@ class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator
         logger.info(
           s"[SubmissionService][submitMonthlyReturn] Monthly return already exists for IM ref: [$zReference], taxYear: [$taxYear], month: [$month] - proceeding to store submission data"
         )
-        sendSubmission(zReference, taxYear, month, path, numberOfEntries)
+        sendSubmission(zReference, taxYear, month, path)
       case Left(upstreamError) => Future.successful(Left(mapToErrorResponse(upstreamError)))
       case Right(response) =>
         auditUploadStarted(zReference, userDetails, ReportingPeriod(taxYear, month), response)
-        sendSubmission(zReference, taxYear, month, path, numberOfEntries)
+        sendSubmission(zReference, taxYear, month, path)
     }
   }
 
@@ -82,12 +82,12 @@ class SubmissionService @Inject() (connector: SubmissionConnector, uuidGenerator
         )
     }
 
-  private def sendSubmission(zReference: String, taxYear: String, month: Month, path: Path, numberOfEntries: Long)(implicit
+  private def sendSubmission(zReference: String, taxYear: String, month: Month, path: Path)(implicit
     hc:                                  HeaderCarrier
   ): Future[Either[ErrorResponse, Unit]] = {
     val submissionId = uuidGenerator.randomUuid()
 
-    connector.sendSubmission(zReference, taxYear, month, submissionId, numberOfEntries, FileIO.fromPath(path)).map {
+    connector.sendSubmission(zReference, taxYear, month, submissionId, FileIO.fromPath(path)).map {
       case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
       case Right(()) =>
         logger.info(

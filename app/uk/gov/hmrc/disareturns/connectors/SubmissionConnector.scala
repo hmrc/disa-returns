@@ -104,12 +104,11 @@ class SubmissionConnector @Inject() (
   }
 
   def sendSubmission(
-    zReference:      String,
-    taxYear:         String,
-    month:           Month,
-    submissionId:    UUID,
-    numberOfEntries: Long,
-    source:          Source[ByteString, _]
+    zReference:   String,
+    taxYear:      String,
+    month:        Month,
+    submissionId: UUID,
+    source:       Source[ByteString, _]
   )(implicit
     hc: HeaderCarrier
   ): Future[Either[UpstreamErrorResponse, Unit]] = {
@@ -117,7 +116,7 @@ class SubmissionConnector @Inject() (
       s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}/submissions/$submissionId"
     retryFor("send monthly return submission")(retryCondition) {
       httpClient
-        .put(url"$url?numberOfEntries=$numberOfEntries")
+        .put(url"$url")
         .setHeader(authorizationHeader)
         .withBody(source)
         .executeOrFail

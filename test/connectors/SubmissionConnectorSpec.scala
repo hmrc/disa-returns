@@ -41,7 +41,6 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     val monthInt          = validMonth.id
     val internalAuthToken = "valid-internal-auth-token-disa-returns"
     val submissionId      = UUID.fromString("11111111-1111-4111-8111-111111111111")
-    val numberOfEntries   = 1L
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -53,7 +52,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       .thenReturn(mockRequestBuilder)
     when(
       mockHttpClient.put(
-        url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions/$submissionId?numberOfEntries=$numberOfEntries"
+        url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions/$submissionId"
       )
     )
       .thenReturn(mockRequestBuilder)
@@ -212,11 +211,11 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Right(httpResponse)))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, numberOfEntries, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
 
       result shouldBe Right(())
       verify(mockHttpClient).put(
-        url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions/$submissionId?numberOfEntries=$numberOfEntries"
+        url"$testUrl/disa-returns-submission/monthly/$validZReference/$validTaxYear/$monthInt/submissions/$submissionId"
       )
       verify(mockRequestBuilder).setHeader(AUTHORIZATION -> internalAuthToken)
     }
@@ -229,7 +228,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Left(UpstreamErrorResponse(body, BAD_REQUEST, BAD_REQUEST))))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, numberOfEntries, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
 
       result match {
         case Left(err) =>
@@ -247,7 +246,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(Left(UpstreamErrorResponse(httpResponse.body, httpResponse.status, httpResponse.status))))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, numberOfEntries, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
 
       result match {
         case Left(err) =>
@@ -265,7 +264,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
         .thenReturn(Future.failed(exception))
 
       val result: Either[UpstreamErrorResponse, Unit] =
-        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, numberOfEntries, ndjsonSource).futureValue
+        connector.sendSubmission(validZReference, validTaxYear, validMonth, submissionId, ndjsonSource).futureValue
 
       result match {
         case Left(err) =>

@@ -84,14 +84,7 @@ class SubmitReturnsController @Inject() (
                   case Right(ValidatedSubmission(tempFile, metrics)) =>
                     auditValidation(zRef, request.userDetails, reportingPeriod, metrics, Seq.empty)
                     submissionService
-                      .submitMonthlyReturn(
-                        zRef,
-                        request.userDetails,
-                        reportingPeriod.taxYear,
-                        reportingPeriod.month,
-                        tempFile.path,
-                        metrics.numberOfEntries
-                      )
+                      .submitMonthlyReturn(zRef, request.userDetails, reportingPeriod.taxYear, reportingPeriod.month, tempFile.path)
                       .map { result =>
                         tempFile.delete()
                         result match {
