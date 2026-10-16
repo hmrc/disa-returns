@@ -20,8 +20,10 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import play.api.http.Status._
 import play.api.test.Helpers.await
+import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.disareturns.connectors.SubmissionConnector
 import uk.gov.hmrc.disareturns.models.common.Month
+import uk.gov.hmrc.disareturns.models.submission.{MonthlyReturn, Submission, SubmissionDetails}
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 import uk.gov.hmrc.disareturns.utils.WiremockHelper._
 
@@ -70,12 +72,12 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     }
   }
 
-  "SubmissionConnector.createMonthlyReturn" should {
+  "SubmissionConnector.ensureMonthlyReturnExists" should {
 
     "return Right(HttpResponse) with the created submissionId when disa-returns-submission returns 201 Created" in {
       stubPost(createUrl, CREATED, """{"submissionId":"abc-123"}""")
 
-      val response = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)).value
+      val response = await(connector.ensureMonthlyReturnExists(validZReference, taxYear, month, nilReturn = false)).value
 
       response.status                                shouldBe CREATED
       (response.json \ "submissionId").as[String] shouldBe "abc-123"
@@ -84,7 +86,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     "return Left(UpstreamErrorResponse) preserving 409 status when disa-returns-submission returns 409 Conflict" in {
       stubPost(createUrl, CONFLICT, """{"submissionId":"existing-id"}""")
 
-      val err = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)).left.value
+      val err = await(connector.ensureMonthlyReturnExists(validZReference, taxYear, month, nilReturn = false)).left.value
 
       err.statusCode shouldBe CONFLICT
       verifyPost(createUrl, count = 1)
@@ -93,7 +95,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
     "return Left(UpstreamErrorResponse) when disa-returns-submission returns 503" in {
       stubPost(createUrl, SERVICE_UNAVAILABLE, "")
 
-      val err = await(connector.createMonthlyReturn(validZReference, taxYear, month, nilReturn = false)).left.value
+      val err = await(connector.ensureMonthlyReturnExists(validZReference, taxYear, month, nilReturn = false)).left.value
 
       err.statusCode shouldBe SERVICE_UNAVAILABLE
       verifyPost(createUrl, count = 4)
@@ -145,6 +147,39 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
       stubGet(reportingWindowUrl, BAD_REQUEST, "bad request")
       await(connector.getReportingWindowStatus(validZReference).value).left.value.statusCode shouldBe BAD_REQUEST
       verifyGet(reportingWindowUrl, count = 1)
+    }
+  }
+
+  "SubmissionConnector.getMonthlyReturn" should {
+    "return the monthly return when disa-returns-submission returns 200 OK" in {
+      stubGet(
+        createUrl,
+        OK,
+        """{
+          |  "zReference": "Z1234",
+          |  "submissionId": "abc-123",
+          |  "taxYear": "2026-27",
+          |  "month": 9,
+          |  "nilReturn": false,
+          |  "submissions": [
+          |    {"reference": "ref-1", "status": "STORED", "submissionDetails": {"fileName": "ref-1", "fileMimeType": "application/x-ndjson", "checksum": "abc", "size": 100, "numberOfEntries": 2}},
+          |    {"reference": "ref-2", "status": "CREATED"}
+          |  ]
+          |}""".stripMargin
+      )
+      await(connector.getMonthlyReturn(validZReference, taxYear, month)) shouldBe Some(
+        MonthlyReturn("abc-123", Seq(Submission(Some(SubmissionDetails(2L))), Submission(None)))
+      )
+    }
+
+    "return None when disa-returns-submission returns 404 Not Found" in {
+      stubGet(createUrl, NOT_FOUND, "")
+      await(connector.getMonthlyReturn(validZReference, taxYear, month)) shouldBe None
+    }
+
+    "fail with UpstreamErrorResponse when disa-returns-submission returns 503" in {
+      stubGet(createUrl, SERVICE_UNAVAILABLE, "")
+      intercept[UpstreamErrorResponse](await(connector.getMonthlyReturn(validZReference, taxYear, month))).statusCode shouldBe SERVICE_UNAVAILABLE
     }
   }
 

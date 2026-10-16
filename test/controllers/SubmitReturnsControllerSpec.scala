@@ -28,10 +28,11 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.controllers.SubmitReturnsController
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.etmp.EtmpObligations
-import uk.gov.hmrc.disareturns.models.submission.ReportingWindowStatus
+import uk.gov.hmrc.disareturns.models.submission._
 import utils.BaseUnitSpec
 
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
+import java.time.Duration
 import scala.concurrent.Future
 
 class SubmitReturnsControllerSpec extends BaseUnitSpec {
@@ -40,6 +41,12 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
   val obligation:      EtmpObligations       = EtmpObligations(false)
   val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(true)
+
+  val metrics:         ValidationMetrics = ValidationMetrics(numberOfEntries = 1L, requestSize = 300L, requestValidationTime = Duration.ofMillis(5))
+  val reportingPeriod: ReportingPeriod   = ReportingPeriod(validTaxYear, validMonth)
+
+  def invalidSubmission(error: SecondLevelValidationFailure): InvalidSubmission =
+    InvalidSubmission(error, error.errors.groupBy(_.code).map { case (code, errs) => ErrorVolume(code, errs.size) }.toSeq, metrics)
 
   val ndJsonLine =
     """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
@@ -57,7 +64,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
-        .thenReturn(Future.successful(Right(tempFile)))
+        .thenReturn(Future.successful(Right(ValidatedSubmission(tempFile, metrics))))
       when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(())))
 
@@ -66,6 +73,36 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       status(result) shouldBe NO_CONTENT
       verify(mockReportingPeriodSource).get(eqTo(validZReference))(any())
       verify(mockETMPService).validateEtmpSubmissionEligibility(eqTo(validZReference))(any(), any())
+
+      val auditThenSubmit = org.mockito.Mockito.inOrder(mockAuditService, mockSubmissionService)
+      auditThenSubmit
+        .verify(mockAuditService)
+        .auditApiValidation(
+          eqTo(validZReference),
+          any(),
+          eqTo(reportingPeriod),
+          eqTo(metrics),
+          eqTo(Seq.empty)
+        )(any())
+      auditThenSubmit.verify(mockSubmissionService).submitMonthlyReturn(any(), any(), any(), any(), any())(any())
+    }
+
+    "return 204 when auditing APIValidation fails" in {
+      val tempFile: TemporaryFile = SingletonTemporaryFileCreator.create("test-submit-", ".ndjson")
+
+      authorizationForZRef()
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockStreamingParserService.processToTempFile(any()))
+        .thenReturn(Future.successful(Right(ValidatedSubmission(tempFile, metrics))))
+      when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(())))
+      when(mockAuditService.auditApiValidation(any(), any(), any(), any(), any())(any()))
+        .thenReturn(Future.failed(new RuntimeException("audit failed")))
+
+      val result = controller.submit(validZReference)(fakeRequestWithStream())
+
+      status(result) shouldBe NO_CONTENT
     }
 
     "return 400 for FirstLevelValidationException - missing accountNumber" in {
@@ -75,13 +112,35 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
-        .thenReturn(Future.successful(Left(FirstLevelValidationFailure(NinoOrAccountNumMissingErr))))
+        .thenReturn(Future.successful(Left(InvalidSubmission(FirstLevelValidationFailure(NinoOrAccountNumMissingErr), Seq.empty, metrics))))
 
       val result = controller.submit(validZReference).apply(fakeRequestWithStream(ndJsonLineError))
 
       status(result)                                 shouldBe BAD_REQUEST
       (contentAsJson(result) \ "code").as[String]    shouldBe "NINO_OR_ACC_NUM_MISSING"
       (contentAsJson(result) \ "message").as[String] shouldBe "All models sent must include an account number and nino in order to process correctly"
+    }
+
+    "audit APIValidation failure with error details when validation fails" in {
+      val errorVolumes = Seq(ErrorVolume(NinoOrAccountNumMissingErr.code, 2), ErrorVolume("MISSING_FIRST_NAME", 1))
+
+      authorizationForZRef()
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockStreamingParserService.processToTempFile(any()))
+        .thenReturn(Future.successful(Left(InvalidSubmission(FirstLevelValidationFailure(NinoOrAccountNumMissingErr), errorVolumes, metrics))))
+
+      val result = controller.submit(validZReference).apply(fakeRequestWithStream())
+
+      status(result) shouldBe BAD_REQUEST
+      verify(mockAuditService).auditApiValidation(
+        eqTo(validZReference),
+        any(),
+        eqTo(reportingPeriod),
+        eqTo(metrics),
+        eqTo(errorVolumes)
+      )(any())
+      verify(mockSubmissionService, never()).submitMonthlyReturn(any(), any(), any(), any(), any())(any())
     }
 
     "return 400 for SecondLevelValidationException - invalid DOB" in {
@@ -95,13 +154,15 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(
           Future.successful(
             Left(
-              SecondLevelValidationFailure(
-                Seq(
-                  SecondLevelValidationError(
-                    nino = "AB000001C",
-                    accountNumber = "STD000001",
-                    code = "INVALID_DATE_OF_BIRTH",
-                    message = "Date of birth is not formatted correctly"
+              invalidSubmission(
+                SecondLevelValidationFailure(
+                  Seq(
+                    SecondLevelValidationError(
+                      nino = "AB000001C",
+                      accountNumber = "STD000001",
+                      code = "INVALID_DATE_OF_BIRTH",
+                      message = "Date of birth is not formatted correctly"
+                    )
                   )
                 )
               )
@@ -137,13 +198,15 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(
           Future.successful(
             Left(
-              SecondLevelValidationFailure(
-                Seq(
-                  SecondLevelValidationError(
-                    nino = "AB000001C",
-                    accountNumber = "STD000001",
-                    code = "INVALID_DATE_OF_BIRTH",
-                    message = "Date of birth is not formatted correctly"
+              invalidSubmission(
+                SecondLevelValidationFailure(
+                  Seq(
+                    SecondLevelValidationError(
+                      nino = "AB000001C",
+                      accountNumber = "STD000001",
+                      code = "INVALID_DATE_OF_BIRTH",
+                      message = "Date of birth is not formatted correctly"
+                    )
                   )
                 )
               )
@@ -181,19 +244,21 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         .thenReturn(
           Future.successful(
             Left(
-              SecondLevelValidationFailure(
-                Seq(
-                  SecondLevelValidationError(
-                    nino = "AB000001C",
-                    accountNumber = "STD000001",
-                    code = "INVALID_DATE_OF_BIRTH",
-                    message = "Date of birth is not formatted correctly"
-                  ),
-                  SecondLevelValidationError(
-                    nino = "AB000002C",
-                    accountNumber = "STD000002",
-                    code = "INVALID_FIRST_NAME",
-                    message = "First name must not be empty"
+              invalidSubmission(
+                SecondLevelValidationFailure(
+                  Seq(
+                    SecondLevelValidationError(
+                      nino = "AB000001C",
+                      accountNumber = "STD000001",
+                      code = "INVALID_DATE_OF_BIRTH",
+                      message = "Date of birth is not formatted correctly"
+                    ),
+                    SecondLevelValidationError(
+                      nino = "AB000002C",
+                      accountNumber = "STD000002",
+                      code = "INVALID_FIRST_NAME",
+                      message = "First name must not be empty"
+                    )
                   )
                 )
               )
@@ -245,16 +310,17 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
       status(result)                                 shouldBe FORBIDDEN
       (contentAsJson(result) \ "code").as[String]    shouldBe "OBLIGATION_CLOSED"
       (contentAsJson(result) \ "message").as[String] shouldBe "Obligation closed"
+      verify(mockAuditService, never()).auditApiValidation(any(), any(), any(), any(), any())(any())
     }
 
-    "return 500 when submission returns unexpected error" in {
+    "return 500 when submission returns unexpected error, having already audited APIValidation as a success" in {
       val tempFile: TemporaryFile = SingletonTemporaryFileCreator.create("test-submit-", ".ndjson")
 
       authorizationForZRef()
       when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Right((reportingWindow, obligation))))
       when(mockStreamingParserService.processToTempFile(any()))
-        .thenReturn(Future.successful(Right(tempFile)))
+        .thenReturn(Future.successful(Right(ValidatedSubmission(tempFile, metrics))))
       when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Left(InternalServerErr())))
 
@@ -262,6 +328,13 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
       status(result)        shouldBe INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
+      verify(mockAuditService).auditApiValidation(
+        eqTo(validZReference),
+        any(),
+        eqTo(reportingPeriod),
+        eqTo(metrics),
+        eqTo(Seq.empty)
+      )(any())
     }
 
     "return 500 for unexpected errors" in {

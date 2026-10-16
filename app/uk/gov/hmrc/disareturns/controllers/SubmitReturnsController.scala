@@ -27,14 +27,15 @@ import play.api.libs.streams.Accumulator
 import play.api.mvc.{Action, BodyParser, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.services.{ETMPService, ReportingPeriodSource, StreamingParserService, SubmissionService}
+import uk.gov.hmrc.disareturns.models.submission.{ErrorVolume, InvalidSubmission, ValidatedSubmission, ValidationMetrics}
+import uk.gov.hmrc.disareturns.services.{AuditService, ETMPService, ReportingPeriodSource, StreamingParserService, SubmissionService}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import play.api.libs.Files.TemporaryFile
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 @Singleton
 class SubmitReturnsController @Inject() (
@@ -44,6 +45,7 @@ class SubmitReturnsController @Inject() (
   reportingPeriodSource:    ReportingPeriodSource,
   authAction:               AuthAction,
   validationHelper:         ValidationHelper,
+  auditService:             AuditService,
   implicit val etmpService: ETMPService
 )(implicit ec:              ExecutionContext, val mat: Materializer)
     extends BackendController(cc)
@@ -65,7 +67,8 @@ class SubmitReturnsController @Inject() (
             etmpService.validateEtmpSubmissionEligibility(zRef).flatMap {
               case Right(_) =>
                 streamingParserService.processToTempFile(request.body).flatMap {
-                  case Left(error: ValidationError) =>
+                  case Left(InvalidSubmission(error, errorVolumes, metrics)) =>
+                    auditValidation(zRef, request.userDetails, reportingPeriod, metrics, errorVolumes)
                     error match {
                       case FirstLevelValidationFailure(err) =>
                         logger.warn(
@@ -78,7 +81,8 @@ class SubmitReturnsController @Inject() (
                         )
                         Future.successful(BadRequest(Json.toJson(SecondLevelValidationResponse(errors = errors))))
                     }
-                  case Right(tempFile: TemporaryFile) =>
+                  case Right(ValidatedSubmission(tempFile, metrics)) =>
+                    auditValidation(zRef, request.userDetails, reportingPeriod, metrics, Seq.empty)
                     submissionService
                       .submitMonthlyReturn(zRef, request.userDetails, reportingPeriod.taxYear, reportingPeriod.month, tempFile.path)
                       .map { result =>
@@ -118,4 +122,17 @@ class SubmitReturnsController @Inject() (
           }
         }: Action[Source[ByteString, _]]
     }
+
+  private def auditValidation(
+    zReference:      String,
+    userDetails:     UserDetails,
+    reportingPeriod: ReportingPeriod,
+    metrics:         ValidationMetrics,
+    errorVolumes:    Seq[ErrorVolume]
+  )(implicit hc:     HeaderCarrier): Unit =
+    auditService
+      .auditApiValidation(zReference, userDetails, reportingPeriod, metrics, errorVolumes)
+      .recover { case NonFatal(e) =>
+        logger.warn(s"[SubmitReturnsController][auditValidation] Failed to audit APIValidation for IM ref: [$zReference]", e)
+      }
 }

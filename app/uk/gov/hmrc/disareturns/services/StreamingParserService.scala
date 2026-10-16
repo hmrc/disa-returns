@@ -20,20 +20,24 @@ import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{FileIO, Flow, Framing, Keep, Sink, Source}
 import org.apache.pekko.util.ByteString
 import play.api.Logging
-import play.api.libs.Files.{TemporaryFile, TemporaryFileCreator}
+import play.api.libs.Files.TemporaryFileCreator
 import play.api.libs.json._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
+import uk.gov.hmrc.disareturns.models.submission.{ErrorVolume, InvalidSubmission, ValidatedSubmission, ValidationMetrics}
 import uk.gov.hmrc.disareturns.utils.JsonErrorMapper.jsErrorToDomainError
 import uk.gov.hmrc.disareturns.utils.JsonValidation
 import uk.gov.hmrc.disareturns.utils.JsonValidation.findDuplicateFields
 
+import java.time.{Clock, Duration}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class StreamingParserService @Inject() (temporaryFileCreator: TemporaryFileCreator)(implicit val mat: Materializer, ec: ExecutionContext)
-    extends Logging {
+class StreamingParserService @Inject() (temporaryFileCreator: TemporaryFileCreator, clock: Clock)(implicit
+  val mat:                                                    Materializer,
+  ec:                                                         ExecutionContext
+) extends Logging {
 
   private def validateSecondLevel(line: String, jsValue: JsValue, nino: String, accountNumber: String): Either[ValidationError, String] = {
     val combinedValidation: JsResult[IsaAccount] = findDuplicateFields(line).flatMap { _ =>
@@ -43,16 +47,18 @@ class StreamingParserService @Inject() (temporaryFileCreator: TemporaryFileCreat
       case JsSuccess(_, _) =>
         Right(line)
       case JsError(errors) =>
-        val domainErrors = jsErrorToDomainError(errors, nino, accountNumber).headOption.toSeq
-        Left(SecondLevelValidationFailure(domainErrors))
+        Left(SecondLevelValidationFailure(jsErrorToDomainError(errors, nino, accountNumber).toSeq))
     }
   }
 
-  private def validatedLinesStream(source: Source[ByteString, _]): Source[Either[ValidationError, String], _] = {
-    val rawValidated = source
+  private def validatedLinesFlow: Flow[ByteString, Either[ValidationError, String], Future[Long]] = {
+    val entriesSink: Sink[String, Future[Long]] = Sink.fold(0L)((count, _) => count + 1)
+
+    val rawValidated = Flow[ByteString]
       .via(Framing.delimiter(ByteString("\n"), 65536, allowTruncation = true))
       .map(_.utf8String.trim)
       .filter(_.nonEmpty)
+      .alsoToMat(entriesSink)(Keep.right)
       .map { line =>
         JsonValidation.ensureValidNDJson(line) match {
           case Right(jsValue) =>
@@ -75,39 +81,57 @@ class StreamingParserService @Inject() (temporaryFileCreator: TemporaryFileCreat
     }
   }
 
-  private def aggregateErrors(errors: Seq[ValidationError]): Left[ValidationError, TemporaryFile] = {
+  private def aggregateErrors(errors: Seq[ValidationError]): ValidationError = {
     val firstLevelErrors  = errors.collect { case FirstLevelValidationFailure(err) => err }
-    val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err }.flatten
+    val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err.headOption }.flatten
 
-    if (firstLevelErrors.nonEmpty) Left(FirstLevelValidationFailure(firstLevelErrors.head))
-    else Left(SecondLevelValidationFailure(secondLevelErrors.toList))
+    if (firstLevelErrors.nonEmpty) FirstLevelValidationFailure(firstLevelErrors.head)
+    else SecondLevelValidationFailure(secondLevelErrors.toList)
   }
 
-  def processToTempFile(source: Source[ByteString, _]): Future[Either[ValidationError, TemporaryFile]] = {
-    val tempFile = temporaryFileCreator.create("disa-returns-", ".ndjson")
+  private def errorVolumes(errors: Seq[ValidationError]): Seq[ErrorVolume] = {
+    val errorTypes = errors.flatMap {
+      case FirstLevelValidationFailure(err)   => Seq(err.code)
+      case SecondLevelValidationFailure(errs) => errs.map(_.code)
+    }
+    val volumes = errorTypes.groupMapReduce(identity)(_ => 1)(_ + _)
+    errorTypes.distinct.map(errorType => ErrorVolume(errorType, volumes(errorType)))
+  }
+
+  def processToTempFile(source: Source[ByteString, _]): Future[Either[InvalidSubmission, ValidatedSubmission]] = {
+    val validationStarted = clock.instant()
+    val tempFile          = temporaryFileCreator.create("disa-returns-", ".ndjson")
+
+    val requestSizeSink: Sink[ByteString, Future[Long]] = Sink.fold(0L)((size, bytes) => size + bytes.length)
 
     val errorSink: Sink[Either[ValidationError, String], Future[Seq[ValidationError]]] =
       Flow[Either[ValidationError, String]]
         .collect { case Left(err) => err }
         .toMat(Sink.seq)(Keep.right)
 
-    val (errorsFuture, ioResultFuture) =
-      validatedLinesStream(source)
-        .alsoToMat(errorSink)(Keep.right)
+    val (((requestSizeFuture, entriesFuture), errorsFuture), ioResultFuture) =
+      source
+        .alsoToMat(requestSizeSink)(Keep.right)
+        .viaMat(validatedLinesFlow)(Keep.both)
+        .alsoToMat(errorSink)(Keep.both)
         .collect { case Right(line) => ByteString(line + "\n") }
         .toMat(FileIO.toPath(tempFile.path))(Keep.both)
         .run()
 
     (for {
-      errors <- errorsFuture
-      _      <- ioResultFuture
-    } yield
+      requestSize     <- requestSizeFuture
+      numberOfEntries <- entriesFuture
+      errors          <- errorsFuture
+      _               <- ioResultFuture
+    } yield {
+      val metrics = ValidationMetrics(numberOfEntries, requestSize, Duration.between(validationStarted, clock.instant()))
       if (errors.nonEmpty) {
         tempFile.delete()
-        aggregateErrors(errors)
+        Left(InvalidSubmission(aggregateErrors(errors), errorVolumes(errors), metrics))
       } else {
-        Right(tempFile)
-      }).recover { case ex =>
+        Right(ValidatedSubmission(tempFile, metrics))
+      }
+    }).recover { case ex =>
       tempFile.delete()
       throw ex
     }

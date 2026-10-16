@@ -117,7 +117,7 @@ trait CommonStubs { self: TestData =>
         .willReturn(status)
     )
 
-  def stubCreateMonthlyReturn(status: Int, zReference: String, taxYear: String, monthInt: Int): Unit =
+  def stubEnsureMonthlyReturnExists(status: Int, zReference: String, taxYear: String, monthInt: Int): Unit =
     stubFor(
       post(urlEqualTo(s"/disa-returns-submission/monthly/$zReference/$taxYear/$monthInt"))
         .willReturn(aResponse().withStatus(status))

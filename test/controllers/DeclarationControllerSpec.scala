@@ -19,7 +19,7 @@ package controllers
 import cats.data.EitherT
 import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.Mockito.{verify, when}
+import org.mockito.Mockito.{never, verify, when}
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -208,6 +208,113 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       status(result)        shouldBe INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.toJson(InternalServerErr())
 
+    }
+
+    "audit APIDeclarationSubmitted as a success when the declaration is successful" in {
+      authorizationForZRef()
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
+        .thenReturn(EitherT.rightT[Future, ErrorResponse](HttpResponse(200, "")))
+      when(mockPPNSService.getBoxId(any())(any()))
+        .thenReturn(Future.successful(Right(Some(boxId))))
+      when(mockNotificationContextService.saveContext(any(), any(), any()))
+        .thenReturn(Future.successful(Right((): Unit)))
+
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
+        .withHeaders("X-Client-ID" -> clientId)
+        .withJsonBody(Json.toJson(ReportingNilReturn(nilReturn = true)))
+
+      status(call(controller.declare(validZReference), request)) shouldBe OK
+      verify(mockAuditService).auditApiDeclarationSubmitted(
+        eqTo(validZReference),
+        any[UserDetails](),
+        eqTo(ReportingPeriod(validTaxYear, validMonth)),
+        eqTo(true),
+        eqTo(None)
+      )(any())
+    }
+
+    "audit APIDeclarationSubmitted as a success when the declaration is successful but a later step fails" in {
+      authorizationForZRef()
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
+        .thenReturn(EitherT.rightT[Future, ErrorResponse](HttpResponse(200, "")))
+      when(mockPPNSService.getBoxId(any())(any()))
+        .thenReturn(Future.successful(Left(InternalServerErr())))
+
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
+        .withHeaders("X-Client-ID" -> clientId)
+        .withJsonBody(nilReturnBody)
+
+      status(call(controller.declare(validZReference), request)) shouldBe INTERNAL_SERVER_ERROR
+      verify(mockAuditService).auditApiDeclarationSubmitted(any(), any(), any(), eqTo(false), eqTo(None))(any())
+    }
+
+    "audit APIDeclarationSubmitted as a failure when the submission service rejects the declaration" in {
+      authorizationForZRef()
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
+        .thenReturn(EitherT.leftT[Future, HttpResponse](MonthlyReturnNotSubmitted: ErrorResponse))
+
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
+        .withHeaders("X-Client-ID" -> clientId)
+        .withJsonBody(nilReturnBody)
+
+      call(controller.declare(validZReference), request).futureValue
+      verify(mockAuditService).auditApiDeclarationSubmitted(
+        eqTo(validZReference),
+        any[UserDetails](),
+        eqTo(ReportingPeriod(validTaxYear, validMonth)),
+        eqTo(false),
+        eqTo(Some(MonthlyReturnNotSubmitted.message))
+      )(any())
+      verify(mockPPNSService, never()).getBoxId(any())(any())
+    }
+
+    "audit APIDeclarationSubmitted as a failure when the reporting window is closed" in {
+      authorizationForZRef()
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Left(ReportingWindowClosed)))
+
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
+        .withHeaders("X-Client-ID" -> clientId)
+        .withJsonBody(nilReturnBody)
+
+      status(call(controller.declare(validZReference), request)) shouldBe FORBIDDEN
+      verify(mockAuditService).auditApiDeclarationSubmitted(any(), any(), any(), any(), eqTo(Some(ReportingWindowClosed.message)))(any())
+    }
+
+    "still return 200 OK when auditing APIDeclarationSubmitted fails" in {
+      authorizationForZRef()
+      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
+        .thenReturn(EitherT.rightT[Future, ErrorResponse](HttpResponse(200, "")))
+      when(mockPPNSService.getBoxId(any())(any()))
+        .thenReturn(Future.successful(Right(Some(boxId))))
+      when(mockNotificationContextService.saveContext(any(), any(), any()))
+        .thenReturn(Future.successful(Right((): Unit)))
+      when(mockAuditService.auditApiDeclarationSubmitted(any(), any(), any(), any(), any())(any()))
+        .thenReturn(Future.failed(new RuntimeException("audit failed")))
+
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
+        .withHeaders("X-Client-ID" -> clientId)
+        .withJsonBody(nilReturnBody)
+
+      status(call(controller.declare(validZReference), request)) shouldBe OK
+    }
+
+    "not audit APIDeclarationSubmitted when the request body fails validation" in {
+      authorizationForZRef()
+      val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
+        .withHeaders("X-Client-ID" -> clientId)
+        .withJsonBody(Json.obj("invalid" -> "field"))
+
+      status(call(controller.declare(validZReference), request)) shouldBe BAD_REQUEST
+      verify(mockAuditService, never()).auditApiDeclarationSubmitted(any(), any(), any(), any(), any())(any())
     }
   }
 }

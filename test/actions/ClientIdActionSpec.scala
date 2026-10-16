@@ -21,6 +21,7 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.ClientIdAction
+import uk.gov.hmrc.disareturns.models.common.IdentifierRequest
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
@@ -31,12 +32,13 @@ class ClientIdActionSpec extends BaseUnitSpec {
 
     "allow request when X-Client-ID header is present" in {
       val action  = new ClientIdAction()
-      val request = FakeRequest().withHeaders("X-Client-ID" -> "client-123")
+      val request = IdentifierRequest(FakeRequest().withHeaders("X-Client-ID" -> "client-123"), validZReference, testIsaManagerDetails)
 
       whenReady(action.refine(request)) {
         case Right(clientIdRequest) =>
-          clientIdRequest.clientId shouldBe "client-123"
-          clientIdRequest.request  shouldBe request
+          clientIdRequest.clientId    shouldBe "client-123"
+          clientIdRequest.request     shouldBe request
+          clientIdRequest.userDetails shouldBe testIsaManagerDetails
 
         case Left(_) =>
           fail("Expected request to be allowed but got BadRequest")
@@ -45,7 +47,7 @@ class ClientIdActionSpec extends BaseUnitSpec {
 
     "block request when X-Client-ID header is missing" in {
       val action  = new ClientIdAction()
-      val request = FakeRequest()
+      val request = IdentifierRequest(FakeRequest(), validZReference, testIsaManagerDetails)
 
       whenReady(action.refine(request)) {
         case Left(result) =>
