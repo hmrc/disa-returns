@@ -20,6 +20,7 @@ import org.apache.pekko.NotUsed
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
+import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.{ErrorVolume, InvalidSubmission, ValidatedSubmission, ValidationMetrics}
 import uk.gov.hmrc.disareturns.services.StreamingParserService
@@ -57,7 +58,11 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
     val clock:             Clock   = mock[Clock]
     when(clock.instant()).thenReturn(validationStarted, validationStarted.plusMillis(250))
 
-    val service = new StreamingParserService(capturingCreator, clock)
+    def maxErrors: Int       = 200
+    val appConfig: AppConfig = mock[AppConfig]
+    when(appConfig.monthlyReturnMaxErrors).thenReturn(maxErrors)
+
+    val service = new StreamingParserService(capturingCreator, clock, appConfig)
   }
 
   val validIsaAccountJson: String =
@@ -124,15 +129,16 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
       Files.exists(lastCreatedPath.get) shouldBe false
 
       result.left.toOption.get.error match {
-        case SecondLevelValidationFailure(err :: err2 :: _) =>
-          err.code           shouldBe "MISSING_FIRST_NAME"
-          err.message        shouldBe "First name field is missing"
-          err.nino           shouldBe "AB000001C"
-          err.accountNumber  shouldBe "STD000001"
-          err2.code          shouldBe "MISSING_LAST_NAME"
-          err2.message       shouldBe "Last name field is missing"
-          err2.nino          shouldBe "AB000001C"
-          err2.accountNumber shouldBe "STD000002"
+        case SecondLevelValidationFailure(errors) =>
+          val firstNameError = errors.find(_.code == "MISSING_FIRST_NAME").get
+          firstNameError.message       shouldBe "First name field is missing"
+          firstNameError.nino          shouldBe "AB000001C"
+          firstNameError.accountNumber shouldBe "STD000001"
+
+          val lastNameError = errors.find(_.code == "MISSING_LAST_NAME").get
+          lastNameError.message       shouldBe "Last name field is missing"
+          lastNameError.nino          shouldBe "AB000001C"
+          lastNameError.accountNumber shouldBe "STD000002"
         case other =>
           fail(s"Unexpected validation error: $other")
       }
@@ -174,6 +180,8 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
     val missingFirstNameJson =
       """{"accountNumber":"STD000003","nino":"AB000003C","middleName":null,"lastName":"Last3","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
     val missingNinoJson = """{"accountNumber":"STD000004"}"""
+    val missingLastNameJson =
+      """{"accountNumber":"STD000006","nino":"AB000006C","firstName":"First6","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":250.00,"amountTransferredOut":2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
     "count entries, request size and validation time for a valid payload with a trailing newline" in new Setup {
       val payload: ByteString = ByteString(s"$validIsaAccountJson\n$validIsaAccountJson2\n")
@@ -233,7 +241,7 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
       Files.exists(lastCreatedPath.get) shouldBe false
     }
 
-    "count every error on a line in errorVolumes but return only the first error per line in the response" in new Setup {
+    "return every error on a line in the response" in new Setup {
       val missingFirstAndLastNameJson =
         """{"accountNumber":"STD000005","nino":"AB000005C","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":250.00,"amountTransferredOut":2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
       val payload: ByteString = ByteString(s"$missingFirstAndLastNameJson\n$validIsaAccountJson\n")
@@ -242,8 +250,8 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
 
       result.error match {
         case SecondLevelValidationFailure(errors) =>
-          errors                      should have size 1
-          errors.head.accountNumber shouldBe "STD000005"
+          errors.map(_.code)                     should contain theSameElementsAs Seq("MISSING_FIRST_NAME", "MISSING_LAST_NAME")
+          errors.map(_.accountNumber).distinct shouldBe Seq("STD000005")
         case other =>
           fail(s"Unexpected validation error: $other")
       }
@@ -251,6 +259,47 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
         ErrorVolume("MISSING_FIRST_NAME", 1),
         ErrorVolume("MISSING_LAST_NAME", 1)
       )
+    }
+
+    "limit the second level errors in the response to the configured maximum" in new Setup {
+      override def maxErrors: Int = 4
+
+      val payload: ByteString = ByteString(s"$missingFirstNameJson\n$missingFirstNameJson\n$missingFirstNameJson\n")
+
+      val result: InvalidSubmission = service.processToTempFile(Source.single(payload)).futureValue.left.toOption.get
+
+      result.error match {
+        case SecondLevelValidationFailure(errors) =>
+          errors should have size 4
+        case other =>
+          fail(s"Unexpected validation error: $other")
+      }
+      result.errorVolumes.map(_.volume).sum shouldBe 9
+    }
+
+    "stop adding errors part way through a line when the maximum is reached" in new Setup {
+      override def maxErrors: Int = 4
+
+      val payload: ByteString = ByteString(s"$missingFirstNameJson\n$missingLastNameJson\n")
+
+      val result: InvalidSubmission = service.processToTempFile(Source.single(payload)).futureValue.left.toOption.get
+
+      result.error match {
+        case SecondLevelValidationFailure(errors) =>
+          errors.map(_.accountNumber) shouldBe Seq("STD000003", "STD000003", "STD000003", "STD000006")
+        case other =>
+          fail(s"Unexpected validation error: $other")
+      }
+    }
+
+    "return the first level error when the second level errors exceed the maximum" in new Setup {
+      override def maxErrors: Int = 2
+
+      val payload: ByteString = ByteString(s"$missingFirstNameJson\n$missingFirstNameJson\n$missingNinoJson\n")
+
+      val result: InvalidSubmission = service.processToTempFile(Source.single(payload)).futureValue.left.toOption.get
+
+      result.error shouldBe FirstLevelValidationFailure(NinoOrAccountNumMissingErr)
     }
 
     "report zero entries and a single EmptyPayload error for an empty payload" in new Setup {
