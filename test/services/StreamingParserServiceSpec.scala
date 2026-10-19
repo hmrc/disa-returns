@@ -177,11 +177,11 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
 
   "processToTempFile metrics" should {
 
-    val missingFirstNameJson =
+    val missingThreeFieldsJson =
       """{"accountNumber":"STD000003","nino":"AB000003C","middleName":null,"lastName":"Last3","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
     val missingNinoJson = """{"accountNumber":"STD000004"}"""
-    val missingLastNameJson =
-      """{"accountNumber":"STD000006","nino":"AB000006C","firstName":"First6","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":250.00,"amountTransferredOut":2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
+    val missingFirstAndLastNameJson =
+      """{"accountNumber":"STD000005","nino":"AB000005C","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":250.00,"amountTransferredOut":2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
 
     "count entries, request size and validation time for a valid payload with a trailing newline" in new Setup {
       val payload: ByteString = ByteString(s"$validIsaAccountJson\n$validIsaAccountJson2\n")
@@ -226,7 +226,7 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
 
     "count valid and invalid entries and group every error by type for a mixed payload" in new Setup {
       val payload: ByteString =
-        ByteString(s"$validIsaAccountJson\n$missingFirstNameJson\n$missingNinoJson\n$missingFirstNameJson\n$validIsaAccountJson2\n")
+        ByteString(s"$validIsaAccountJson\n$missingThreeFieldsJson\n$missingNinoJson\n$missingThreeFieldsJson\n$validIsaAccountJson2\n")
 
       val result: InvalidSubmission = service.processToTempFile(Source.single(payload)).futureValue.left.toOption.get
 
@@ -242,8 +242,6 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
     }
 
     "return every error on a line in the response" in new Setup {
-      val missingFirstAndLastNameJson =
-        """{"accountNumber":"STD000005","nino":"AB000005C","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","amountTransferredIn":250.00,"amountTransferredOut":2500.00,"dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
       val payload: ByteString = ByteString(s"$missingFirstAndLastNameJson\n$validIsaAccountJson\n")
 
       val result: InvalidSubmission = service.processToTempFile(Source.single(payload)).futureValue.left.toOption.get
@@ -261,10 +259,10 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
       )
     }
 
-    "limit the second level errors in the response to the configured maximum" in new Setup {
+    "return only the configured maximum of errors in the response but count every error in errorVolumes" in new Setup {
       override def maxErrors: Int = 4
 
-      val payload: ByteString = ByteString(s"$missingFirstNameJson\n$missingFirstNameJson\n$missingFirstNameJson\n")
+      val payload: ByteString = ByteString(s"$missingThreeFieldsJson\n$missingThreeFieldsJson\n$missingThreeFieldsJson\n")
 
       val result: InvalidSubmission = service.processToTempFile(Source.single(payload)).futureValue.left.toOption.get
 
@@ -277,25 +275,26 @@ class StreamingParserServiceSpec extends BaseUnitSpec {
       result.errorVolumes.map(_.volume).sum shouldBe 9
     }
 
-    "stop adding errors part way through a line when the maximum is reached" in new Setup {
+    "only return the errors from a line that fit within the configured maximum" in new Setup {
       override def maxErrors: Int = 4
 
-      val payload: ByteString = ByteString(s"$missingFirstNameJson\n$missingLastNameJson\n")
+      val payload: ByteString = ByteString(s"$missingThreeFieldsJson\n$missingFirstAndLastNameJson\n")
 
       val result: InvalidSubmission = service.processToTempFile(Source.single(payload)).futureValue.left.toOption.get
 
       result.error match {
         case SecondLevelValidationFailure(errors) =>
-          errors.map(_.accountNumber) shouldBe Seq("STD000003", "STD000003", "STD000003", "STD000006")
+          errors.map(_.accountNumber) shouldBe Seq("STD000003", "STD000003", "STD000003", "STD000005")
         case other =>
           fail(s"Unexpected validation error: $other")
       }
+      result.errorVolumes.map(_.volume).sum shouldBe 5
     }
 
-    "return the first level error when the second level errors exceed the maximum" in new Setup {
+    "return a first level error found after the maximum number of second level errors has been reached" in new Setup {
       override def maxErrors: Int = 2
 
-      val payload: ByteString = ByteString(s"$missingFirstNameJson\n$missingFirstNameJson\n$missingNinoJson\n")
+      val payload: ByteString = ByteString(s"$missingThreeFieldsJson\n$missingThreeFieldsJson\n$missingNinoJson\n")
 
       val result: InvalidSubmission = service.processToTempFile(Source.single(payload)).futureValue.left.toOption.get
 

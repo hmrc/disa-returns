@@ -368,7 +368,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
       )
     }
 
-    "return 400 with at most the configured maximum of 200 errors when the request body has more errors" in {
+    "return 400 with only the configured maximum of 200 errors when 70 records each have 3 errors (missing last name, amount transferred in and amount transferred out)" in {
       stubReportingWindow(status = OK, open = true)
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val lineWithThreeErrors =
