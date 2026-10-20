@@ -57,6 +57,12 @@ The `features.strict-z-reference-validation-enabled` flag controls the accepted 
 `true`, which accepts `Z` followed by exactly four digits. When disabled, loose validation accepts references containing
 between four and eight digits. Validation is case-insensitive and valid references are normalized to uppercase.
 
+### Monthly return error limit
+
+The `monthly-return.maxErrors` setting caps the number of record validation errors returned in a single monthly return
+submission response. It defaults to `200`. Every issue found in each record is reported. If the limit is changed, the `200` stated in the API specification
+(`resources/public/api/conf/1.0/application.yaml`) should be updated to match.
+
 ### Running the test suite
 
 To run the unit tests:
