@@ -40,4 +40,6 @@ class AppConfig @Inject() (configuration: Configuration, config: ServicesConfig)
 
   lazy val returnResultsDefaultLimit: Int = config.getInt("returnResults.defaultLimit")
   lazy val returnResultsMaxLimit:     Int = config.getInt("returnResults.maxLimit")
+
+  lazy val monthlyReturnMaxErrors: Int = config.getInt("monthly-return.maxErrors")
 }

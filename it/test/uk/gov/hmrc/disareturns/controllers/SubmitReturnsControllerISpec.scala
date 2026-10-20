@@ -207,7 +207,7 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
     }
 
-    "return 400 with correct single error response body when request body has multiple validation errors but only displays one - invalid first & last name" in {
+    "return 400 with every error on the line when request body has multiple validation errors - invalid first & last name" in {
       stubReportingWindow(status = OK, open = true)
       stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
       val invalidLifetimeIsaSubscription =
@@ -221,6 +221,12 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
             accountNumber = "STD000001",
             code = "INVALID_FIRST_NAME",
             message = "First name is not formatted correctly"
+          ),
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "INVALID_LAST_NAME",
+            message = "Last name is not formatted correctly"
           )
         )
       )
@@ -345,9 +351,36 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
             accountNumber = "STD000001",
             code = "MISSING_LAST_NAME",
             message = "Last name field is missing"
+          ),
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_AMOUNT_TRANSFERRED_IN",
+            message = "Amount transferred in field is missing"
+          ),
+          SecondLevelValidationError(
+            nino = "AB000001C",
+            accountNumber = "STD000001",
+            code = "MISSING_AMOUNT_TRANSFERRED_OUT",
+            message = "Amount transferred out field is missing"
           )
         )
       )
+    }
+
+    "return 400 with only the configured maximum of 200 errors when 70 records each have 3 errors (missing last name, amount transferred in and amount transferred out)" in {
+      stubReportingWindow(status = OK, open = true)
+      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+      val lineWithThreeErrors =
+        """{"accountNumber":"STD000001","nino":"AB000001C","firstName":"First1","middleName":null,"dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
+
+      val result = submitMonthlyReturnRequest(Seq.fill(70)(lineWithThreeErrors).mkString("\n"))
+
+      result.status shouldBe BAD_REQUEST
+      result.json.as[ErrorResponse] match {
+        case response: SecondLevelValidationResponse => response.errors should have size 200
+        case other                                   => fail(s"Unexpected error response: $other")
+      }
     }
 
     "return 400 with correct error response body when request body has invalid DOB - wrong format" in {

@@ -22,6 +22,7 @@ import org.apache.pekko.util.ByteString
 import play.api.Logging
 import play.api.libs.Files.TemporaryFileCreator
 import play.api.libs.json._
+import uk.gov.hmrc.disareturns.config.AppConfig
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.isaAccounts.IsaAccount
 import uk.gov.hmrc.disareturns.models.submission.{ErrorVolume, InvalidSubmission, ValidatedSubmission, ValidationMetrics}
@@ -34,7 +35,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class StreamingParserService @Inject() (temporaryFileCreator: TemporaryFileCreator, clock: Clock)(implicit
+class StreamingParserService @Inject() (temporaryFileCreator: TemporaryFileCreator, clock: Clock, appConfig: AppConfig)(implicit
   val mat:                                                    Materializer,
   ec:                                                         ExecutionContext
 ) extends Logging {
@@ -82,8 +83,11 @@ class StreamingParserService @Inject() (temporaryFileCreator: TemporaryFileCreat
   }
 
   private def aggregateErrors(errors: Seq[ValidationError]): ValidationError = {
-    val firstLevelErrors  = errors.collect { case FirstLevelValidationFailure(err) => err }
-    val secondLevelErrors = errors.collect { case SecondLevelValidationFailure(err) => err.headOption }.flatten
+    val firstLevelErrors = errors.collect { case FirstLevelValidationFailure(err) => err }
+    val secondLevelErrors = errors
+      .collect { case SecondLevelValidationFailure(err) => err }
+      .flatten
+      .take(appConfig.monthlyReturnMaxErrors)
 
     if (firstLevelErrors.nonEmpty) FirstLevelValidationFailure(firstLevelErrors.head)
     else SecondLevelValidationFailure(secondLevelErrors.toList)

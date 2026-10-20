@@ -802,7 +802,7 @@ components:
         errors:
           title: Errors
           type: array
-          description: Array of errors outlining issues found in the format of a record. (This will outline only the first issue.)
+          description: Array of errors outlining issues found in the format of a record. Every issue in a record is listed, up to a maximum of 200 errors per response.
           items:
             anyOf:
               - $ref: '#/components/schemas/badSubmissionComplexChild'
