@@ -20,7 +20,7 @@ import com.typesafe.config.Config
 import org.apache.pekko.Done
 import org.apache.pekko.actor.ActorSystem
 import play.api.Logging
-import play.api.http.Status.CREATED
+import play.api.http.Status.{CREATED, OK}
 import play.api.libs.concurrent.Futures
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -56,12 +56,26 @@ class InternalAuthTokenInitialiserImpl @Inject() (
     with Retries {
 
   override protected def initialise(): Future[Done] =
-    futures.timeout(30.seconds)(createClientAuthToken())
+    futures.timeout(30.seconds)(ensureAuthToken())
+
+  private def ensureAuthToken(): Future[Done] =
+    authTokenIsValid.flatMap { isValid =>
+      if (isValid) {
+        logger.info(
+          "[InternalAuthTokenInitialiser][ensureAuthToken] Auth token is already valid"
+        )
+        Future.successful(Done)
+      } else {
+        createClientAuthToken()
+      }
+    }
 
   private def createClientAuthToken(): Future[Done] = {
-    logger.info("[InternalAuthTokenInitialiser][createClientAuthToken] Initialising auth token")
+    logger.info(
+      "[InternalAuthTokenInitialiser][createClientAuthToken] Initialising auth token"
+    )
 
-    retryFor("POST Send auth token") {
+    retryFor("POST Initialise Auth token") {
       case _: BadGatewayException | _: GatewayTimeoutException => true
       case UpstreamErrorResponse.Upstream4xxResponse(_)        => true
       case UpstreamErrorResponse.Upstream5xxResponse(_)        => true
@@ -84,7 +98,9 @@ class InternalAuthTokenInitialiserImpl @Inject() (
         .execute[Either[UpstreamErrorResponse, HttpResponse]]
         .flatMap {
           case Right(response) if response.status == CREATED =>
-            logger.info("[InternalAuthTokenInitialiser][createClientAuthToken] Auth token initialised")
+            logger.info(
+              "[InternalAuthTokenInitialiser][createClientAuthToken] Auth token initialised"
+            )
             Future.successful(Done)
 
           case Left(error) =>
@@ -94,8 +110,34 @@ class InternalAuthTokenInitialiserImpl @Inject() (
             Future.failed(error)
 
           case Right(_) =>
-            logger.error("[InternalAuthTokenInitialiser][createClientAuthToken] Failed to initialise internal-auth token")
-            Future.failed(new RuntimeException("Failed to initialise internal-auth token"))
+            logger.error(
+              "[InternalAuthTokenInitialiser][createClientAuthToken] Failed to initialise internal-auth token"
+            )
+            Future.failed(
+              new RuntimeException("Failed to initialise internal-auth token")
+            )
+        }
+    }
+  }
+
+  private def authTokenIsValid: Future[Boolean] = {
+    logger.info(
+      "[InternalAuthTokenInitialiser][authTokenIsValid] Checking auth token"
+    )
+    retryFor("GET Check auth token") {
+      case _: BadGatewayException | _: GatewayTimeoutException => true
+      case UpstreamErrorResponse.Upstream4xxResponse(_)        => true
+      case UpstreamErrorResponse.Upstream5xxResponse(_)        => true
+    } {
+      httpClient
+        .get(url"${appConfig.internalAuthUrl}/test-only/token")(HeaderCarrier())
+        .setHeader("Authorization" -> appConfig.internalAuthToken)
+        .execute[HttpResponse]
+        .flatMap {
+          case response if response.status >= 500 && response.status < 600 =>
+            Future.failed(UpstreamErrorResponse("Unable to check internal-auth token", response.status))
+          case response =>
+            Future.successful(response.status == OK)
         }
     }
   }
