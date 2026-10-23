@@ -127,10 +127,10 @@ class AuditService @Inject() (
   )(implicit hc:     HeaderCarrier): Future[Unit] =
     retrieveGroupName(zReference, AuditTypes.APIValidation).flatMap { groupName =>
       val statusDetail =
-        if (errorVolumes.isEmpty) Json.obj(EventData.apiUploadStatus -> AuditStatus.Success)
+        if (errorVolumes.isEmpty) Json.obj(EventData.apiValidationStatus -> AuditStatus.Success)
         else
           Json.obj(
-            EventData.apiUploadStatus -> AuditStatus.Failure,
+            EventData.apiValidationStatus -> AuditStatus.Failure,
             EventData.errorDetails -> errorVolumes.map(ev =>
               Json.obj(
                 EventData.errorType -> ev.errorType.toLowerCase(Locale.UK),
@@ -261,6 +261,7 @@ object EventData {
   val requestValidationTime = "requestValidationTime"
   val requestSize           = "requestSize"
   val apiUploadStatus       = "APIUploadStatus"
+  val apiValidationStatus   = "APIValidationStatus"
   val errorDetails          = "errorDetails"
   val errorType             = "errorType"
   val volume                = "volume"

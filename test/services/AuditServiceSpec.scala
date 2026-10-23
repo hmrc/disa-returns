@@ -292,7 +292,7 @@ class AuditServiceSpec extends BaseUnitSpec {
         EventData.requestValidationTime -> "153",
         EventData.requestSize           -> "4096",
         EventData.numberOfEntries       -> "10",
-        EventData.apiUploadStatus       -> AuditStatus.Success
+        EventData.apiValidationStatus   -> AuditStatus.Success
       )
       detail.keys.toSeq shouldBe Seq(
         EventData.period,
@@ -305,7 +305,7 @@ class AuditServiceSpec extends BaseUnitSpec {
         EventData.requestValidationTime,
         EventData.requestSize,
         EventData.numberOfEntries,
-        EventData.apiUploadStatus
+        EventData.apiValidationStatus
       )
     }
 
@@ -329,7 +329,7 @@ class AuditServiceSpec extends BaseUnitSpec {
         EventData.requestValidationTime -> "153",
         EventData.requestSize           -> "4096",
         EventData.numberOfEntries       -> "10",
-        EventData.apiUploadStatus       -> AuditStatus.Failure,
+        EventData.apiValidationStatus   -> AuditStatus.Failure,
         EventData.errorDetails -> Json.arr(
           Json.obj(EventData.errorType -> "missing_first_name", EventData.volume      -> 6),
           Json.obj(EventData.errorType -> "nino_or_acc_num_missing", EventData.volume -> 1)
@@ -346,7 +346,7 @@ class AuditServiceSpec extends BaseUnitSpec {
         EventData.requestValidationTime,
         EventData.requestSize,
         EventData.numberOfEntries,
-        EventData.apiUploadStatus,
+        EventData.apiValidationStatus,
         EventData.errorDetails
       )
     }
