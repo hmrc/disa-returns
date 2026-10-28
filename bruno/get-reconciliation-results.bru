@@ -1,0 +1,16 @@
+meta {
+  name: Get report reconciliation results
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{API_BASE}}/obligations/declaration/isa/return/monthly/{{zReference}}/results
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 2
+  ~cursor: {{cursor}}
+}

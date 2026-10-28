@@ -1,0 +1,22 @@
+meta {
+  name: Declare monthly report as complete
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{API_BASE}}/obligations/declaration/isa/return/monthly/{{zReference}}/declaration
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  X-Client-ID: {{clientId}}
+}
+
+body:json {
+  {
+    "nilReturn": false
+  }
+}
