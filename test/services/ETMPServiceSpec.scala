@@ -31,16 +31,14 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
   "ETMPService.validateSubmissionEligibility" should {
 
-    "return Right(MonthlyReturnReportingStatus) when the reporting window is open and the obligation is not closed" in new TestSetup {
-      val reportingStatus: MonthlyReturnReportingStatus = MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = false)
-
+    "return Right(()) when the reporting window is open and the obligation is not closed" in new TestSetup {
       when(mockReportingStatusService.getReportingStatus(any())(any()))
-        .thenReturn(EitherT.rightT[Future, ErrorResponse](reportingStatus))
+        .thenReturn(EitherT.rightT[Future, ErrorResponse](MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = false)))
 
-      val result: Either[ErrorResponse, MonthlyReturnReportingStatus] =
+      val result: Either[ErrorResponse, Unit] =
         service.validateSubmissionEligibility(validZReference).futureValue
 
-      result shouldBe Right(reportingStatus)
+      result shouldBe Right(())
       verify(mockReportingStatusService).getReportingStatus(validZReference)
     }
 
@@ -48,7 +46,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
       when(mockReportingStatusService.getReportingStatus(any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](MonthlyReturnReportingStatus(reportingWindowOpen = false, obligationClosed = false)))
 
-      val result: Either[ErrorResponse, MonthlyReturnReportingStatus] =
+      val result: Either[ErrorResponse, Unit] =
         service.validateSubmissionEligibility(validZReference).futureValue
 
       result shouldBe Left(ReportingWindowClosed)
@@ -58,7 +56,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
       when(mockReportingStatusService.getReportingStatus(any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = true)))
 
-      val result: Either[ErrorResponse, MonthlyReturnReportingStatus] =
+      val result: Either[ErrorResponse, Unit] =
         service.validateSubmissionEligibility(validZReference).futureValue
 
       result shouldBe Left(ObligationClosed)
@@ -68,7 +66,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
       when(mockReportingStatusService.getReportingStatus(any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](MonthlyReturnReportingStatus(reportingWindowOpen = false, obligationClosed = true)))
 
-      val result: Either[ErrorResponse, MonthlyReturnReportingStatus] =
+      val result: Either[ErrorResponse, Unit] =
         service.validateSubmissionEligibility(validZReference).futureValue
 
       result shouldBe Left(MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ReportingWindowClosed, ObligationClosed)))
@@ -78,7 +76,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
       when(mockReportingStatusService.getReportingStatus(any())(any()))
         .thenReturn(EitherT.leftT[Future, MonthlyReturnReportingStatus](UnauthorisedErr))
 
-      val result: Either[ErrorResponse, MonthlyReturnReportingStatus] =
+      val result: Either[ErrorResponse, Unit] =
         service.validateSubmissionEligibility(validZReference).futureValue
 
       result shouldBe Left(UnauthorisedErr)

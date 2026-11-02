@@ -38,8 +38,6 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
   val controller: SubmitReturnsController = app.injector.instanceOf[SubmitReturnsController]
 
-  val reportingStatus: MonthlyReturnReportingStatus = MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = false)
-
   val metrics:         ValidationMetrics = ValidationMetrics(numberOfEntries = 1L, requestSize = 300L, requestValidationTime = Duration.ofMillis(5))
   val reportingPeriod: ReportingPeriod   = ReportingPeriod(validTaxYear, validMonth)
 
@@ -60,7 +58,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
       authorizationForZRef()
       when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right(reportingStatus)))
+        .thenReturn(Future.successful(Right(())))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(ValidatedSubmission(tempFile, metrics))))
       when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
@@ -90,7 +88,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
       authorizationForZRef()
       when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right(reportingStatus)))
+        .thenReturn(Future.successful(Right(())))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(ValidatedSubmission(tempFile, metrics))))
       when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
@@ -108,7 +106,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
         """{"nino":"AB000001C","firstName":"First1","middleName":null,"lastName":"Last1","dateOfBirth":"1980-01-02","isaType":"STOCKS_AND_SHARES","dateOfLastSubscription":"2025-06-01","totalCurrentYearSubscriptionsToDate":2500.00,"marketValueOfAccount":10000.00,"flexibleIsa":false}"""
       authorizationForZRef()
       when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right(reportingStatus)))
+        .thenReturn(Future.successful(Right(())))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Left(InvalidSubmission(FirstLevelValidationFailure(NinoOrAccountNumMissingErr), Seq.empty, metrics))))
 
@@ -124,7 +122,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
       authorizationForZRef()
       when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right(reportingStatus)))
+        .thenReturn(Future.successful(Right(())))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Left(InvalidSubmission(FirstLevelValidationFailure(NinoOrAccountNumMissingErr), errorVolumes, metrics))))
 
@@ -147,7 +145,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
       authorizationForZRef()
       when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right(reportingStatus)))
+        .thenReturn(Future.successful(Right(())))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
           Future.successful(
@@ -191,7 +189,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
       authorizationForZRef()
       when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right(reportingStatus)))
+        .thenReturn(Future.successful(Right(())))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
           Future.successful(
@@ -237,7 +235,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
       authorizationForZRef()
       when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right(reportingStatus)))
+        .thenReturn(Future.successful(Right(())))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(
           Future.successful(
@@ -316,7 +314,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
 
       authorizationForZRef()
       when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right(reportingStatus)))
+        .thenReturn(Future.successful(Right(())))
       when(mockStreamingParserService.processToTempFile(any()))
         .thenReturn(Future.successful(Right(ValidatedSubmission(tempFile, metrics))))
       when(mockSubmissionService.submitMonthlyReturn(any(), any(), any(), any(), any())(any()))
@@ -338,7 +336,7 @@ class SubmitReturnsControllerSpec extends BaseUnitSpec {
     "return 500 for unexpected errors" in {
       authorizationForZRef()
       when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right(reportingStatus)))
+        .thenReturn(Future.successful(Right(())))
       when(
         mockStreamingParserService.processToTempFile(any[Source[ByteString, _]])
       ).thenReturn(Future.failed(new RuntimeException("boom")))

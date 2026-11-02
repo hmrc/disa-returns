@@ -33,26 +33,28 @@ class ETMPService @Inject() (connector: ETMPConnector, reportingStatusService: M
 
   def validateSubmissionEligibility(
     zReference:  String
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[ErrorResponse, MonthlyReturnReportingStatus]] =
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[ErrorResponse, Unit]] =
     reportingStatusService
       .getReportingStatus(zReference)
-      .subflatMap { reportingStatus =>
-        val errors: Seq[ErrorResponse] = Seq(
-          if (!reportingStatus.reportingWindowOpen) Some(ReportingWindowClosed) else None,
-          if (reportingStatus.obligationClosed) Some(ObligationClosed) else None
-        ).flatten
-
-        errors match {
-          case Nil                => Right(reportingStatus)
-          case singleError :: Nil => Left(singleError)
-          case multipleErrors     => Left(MultipleErrorResponse(code = "FORBIDDEN", errors = multipleErrors))
-        }
-      }
       .value
+      .map(_.flatMap(checkEligibility))
 
   def declaration(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
     logger.info(s"[ETMPService][declaration] Submitting declaration for IM ref: [$zReference]")
     connector.sendDeclaration(zReference).leftMap(mapToErrorResponse)
+  }
+
+  private def checkEligibility(reportingStatus: MonthlyReturnReportingStatus): Either[ErrorResponse, Unit] = {
+    val errors: Seq[ErrorResponse] = Seq(
+      if (!reportingStatus.reportingWindowOpen) Some(ReportingWindowClosed) else None,
+      if (reportingStatus.obligationClosed) Some(ObligationClosed) else None
+    ).flatten
+
+    errors match {
+      case Nil                => Right(())
+      case singleError :: Nil => Left(singleError)
+      case multipleErrors     => Left(MultipleErrorResponse(code = "FORBIDDEN", errors = multipleErrors))
+    }
   }
 
 }
