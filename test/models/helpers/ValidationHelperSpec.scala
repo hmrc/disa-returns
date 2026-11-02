@@ -24,30 +24,30 @@ class ValidationHelperSpec extends BaseUnitSpec {
   private val strictValidationHelper = new ValidationHelper(new StrictZReferenceValidator)
   private val looseValidationHelper  = new ValidationHelper(new LooseZReferenceValidator)
 
-  "ValidationHelper.validateParams" should {
+  "ValidationHelper.validateZReference" should {
     "normalise a valid lowercase Z-reference" in {
-      strictValidationHelper.validateParams(validZReference.toLowerCase) shouldBe Right((validZReference, None))
+      strictValidationHelper.validateZReference(validZReference.toLowerCase) shouldBe Right(validZReference)
     }
 
     "reject invalid and null Z-references" in {
       Seq("Invalid", "|1234", null).foreach { zReference =>
-        strictValidationHelper.validateParams(zReference) shouldBe Left(InvalidZReference)
+        strictValidationHelper.validateZReference(zReference) shouldBe Left(InvalidZReference)
       }
     }
 
     "accept exactly four digits with strict validation" in {
-      strictValidationHelper.validateParams("Z1234") shouldBe Right(("Z1234", None))
+      strictValidationHelper.validateZReference("Z1234") shouldBe Right("Z1234")
       Seq("Z123", "Z12345").foreach { zReference =>
-        strictValidationHelper.validateParams(zReference) shouldBe Left(InvalidZReference)
+        strictValidationHelper.validateZReference(zReference) shouldBe Left(InvalidZReference)
       }
     }
 
     "accept between four and eight digits with loose validation" in {
       Seq("Z1234", "Z12345", "Z12345678").foreach { zReference =>
-        looseValidationHelper.validateParams(zReference) shouldBe Right((zReference, None))
+        looseValidationHelper.validateZReference(zReference) shouldBe Right(zReference)
       }
       Seq("Z123", "Z123456789").foreach { zReference =>
-        looseValidationHelper.validateParams(zReference) shouldBe Left(InvalidZReference)
+        looseValidationHelper.validateZReference(zReference) shouldBe Left(InvalidZReference)
       }
     }
   }

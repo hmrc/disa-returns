@@ -58,13 +58,13 @@ class SubmitReturnsController @Inject() (
   private def ignoreBodyParser: BodyParser[Source[ByteString, _]] = BodyParser(_ => Accumulator.done(Right(Source.empty[ByteString])))
 
   def submit(zReference: String): Action[Source[ByteString, _]] =
-    validationHelper.validateParams(zReference) match {
+    validationHelper.validateZReference(zReference) match {
       case Left(errors) => Action.async(ignoreBodyParser)(_ => Future.successful(BadRequest(Json.toJson(errors))))
-      case Right((zRef, _)) =>
+      case Right(zRef) =>
         (Action andThen authAction(zRef)).async(streamingParser) { implicit request =>
           implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
           reportingPeriodSource.get(zRef).flatMap { reportingPeriod =>
-            etmpService.validateEtmpSubmissionEligibility(zRef).flatMap {
+            etmpService.validateSubmissionEligibility(zRef).flatMap {
               case Right(_) =>
                 streamingParserService.processToTempFile(request.body).flatMap {
                   case Left(InvalidSubmission(error, errorVolumes, metrics)) =>

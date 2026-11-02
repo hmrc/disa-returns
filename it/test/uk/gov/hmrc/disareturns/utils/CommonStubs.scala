@@ -61,9 +61,14 @@ trait CommonStubs { self: TestData =>
         }
     }
   
-  def stubReportingWindow(status: Int, open: Boolean, zReference: String = validZReference): Unit =
+  def stubMonthlyReturnReportingStatus(
+    status:              Int,
+    reportingWindowOpen: Boolean = true,
+    obligationClosed:    Boolean = false,
+    zReference:          String = validZReference
+  ): Unit =
     stubFor(
-      get(urlEqualTo(s"/disa-returns-submission/reporting-window/status/$zReference"))
+      get(urlEqualTo(s"/disa-returns-submission/monthly/$zReference/reporting-status"))
         .withHeader(AUTHORIZATION, matching(".+"))
         .willReturn(
           aResponse()
@@ -71,21 +76,21 @@ trait CommonStubs { self: TestData =>
             .withBody(
               Json
                 .obj(
-                  "reportingWindowOpen"  -> open,
-                  "reportingWindowStart" -> "2026-06-06T00:00:00Z",
-                  "reportingWindowEnd"   -> "2026-06-19T23:59:59Z",
-                  "resolvedAt"           -> "2026-06-12T00:00:00Z"
+                  "reportingWindowOpen"   -> reportingWindowOpen,
+                  "reportingWindowStart"  -> "2026-06-06T00:00:00Z",
+                  "reportingWindowEnd"    -> "2026-06-19T23:59:59Z",
+                  "resolvedAt"            -> "2026-06-12T00:00:00Z",
+                  "taxYear"               -> "2026-27",
+                  "month"                 -> 5,
+                  "obligationClosed"      -> obligationClosed,
+                  "monthlyReturnDeclared" -> false,
+                  "nilReturn"             -> false
                 )
                 .toString
             )
         )
     )
 
-  def stubEtmpObligation(status: Int, body: JsObject, zReference: String): Unit =
-    stubFor(
-      get(urlEqualTo(s"/etmp/check-obligation-status/$zReference"))
-        .willReturn(aResponse().withStatus(status).withBody(body.toString))
-    )
   def stubCloseEtmpObligation(status: Int, body: JsObject, zReference: String): Unit =
     stubFor(
       post(urlEqualTo(s"/etmp/close-obligation-status/$zReference"))

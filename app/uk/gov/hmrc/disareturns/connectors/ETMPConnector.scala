@@ -35,17 +35,6 @@ class ETMPConnector @Inject() (
 )(implicit val ec:            ExecutionContext)
     extends BaseConnector {
 
-  def getReturnsObligationStatus(
-    zReference:  String
-  )(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.etmpBaseUrl}/etmp/check-obligation-status/$zReference"
-    read(
-      retryFor("get ETMP returns obligation status")(retryCondition) {
-        http.get(url"$url").executeOrFail.map(Right(_))
-      },
-      context = "[ETMPConnector][getReturnsObligationStatus]"
-    )
-  }
   def sendDeclaration(
     zReference:  String
   )(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {

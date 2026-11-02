@@ -54,12 +54,12 @@ class DeclarationController @Inject() (
     with Logging {
 
   def declare(zReference: String): Action[JsValue] =
-    validationHelper.validateParams(zReference) match {
+    validationHelper.validateZReference(zReference) match {
       case Left(errors) =>
         Action(strictJsonBodyParser) { (_: Request[JsValue]) =>
           BadRequest(Json.toJson(errors))
         }
-      case Right((zReference, _)) =>
+      case Right(zReference) =>
         (
           Action(strictJsonBodyParser)
             andThen authAction(zReference)
@@ -73,7 +73,7 @@ class DeclarationController @Inject() (
               val nilReturnReported = request.body.as[ReportingNilReturn].nilReturn
               reportingPeriodSource.get(zReference).flatMap { reportingPeriod =>
                 val declaration = for {
-                  _ <- EitherT(etmpService.validateEtmpSubmissionEligibility(zReference))
+                  _ <- EitherT(etmpService.validateSubmissionEligibility(zReference))
                   _ <- submissionService.declare(zReference, reportingPeriod.taxYear, reportingPeriod.month, nilReturnReported)
                 } yield ()
 

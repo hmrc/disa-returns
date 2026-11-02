@@ -21,56 +21,34 @@ import play.api.Logging
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
 import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common._
-import uk.gov.hmrc.disareturns.models.etmp.EtmpObligations
-import uk.gov.hmrc.disareturns.models.submission.ReportingWindowStatus
+import uk.gov.hmrc.disareturns.models.submission.MonthlyReturnReportingStatus
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ETMPService @Inject() (connector: ETMPConnector, reportingWindowService: ReportingWindowService)(implicit ec: ExecutionContext)
+class ETMPService @Inject() (connector: ETMPConnector, reportingStatusService: MonthlyReturnReportingStatusService)(implicit ec: ExecutionContext)
     extends Logging {
 
-  def getObligationStatus(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, EtmpObligations] = {
-    logger.info(s"[ETMPService][getObligationStatus] Getting obligation status for IM ref: [$zReference]")
-
-    EitherT {
-      connector.getReturnsObligationStatus(zReference).value.map {
-        case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
-        case Right(response) =>
-          response.json
-            .validate[EtmpObligations]
-            .fold(
-              _ => Left(InternalServerErr()),
-              obligation => Right(obligation)
-            )
-      }
-    }
-  }
-
-  def validateEtmpSubmissionEligibility(
+  def validateSubmissionEligibility(
     zReference:  String
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[ErrorResponse, (ReportingWindowStatus, EtmpObligations)]] =
-    for {
-      reportingWindowEither <- reportingWindowService.getReportingWindowStatus(zReference).value
-      obligationsEither     <- getObligationStatus(zReference).value
-    } yield for {
-      reportingWindow <- reportingWindowEither
-      obligations     <- obligationsEither
-      _ <- {
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[ErrorResponse, MonthlyReturnReportingStatus]] =
+    reportingStatusService
+      .getReportingStatus(zReference)
+      .subflatMap { reportingStatus =>
         val errors: Seq[ErrorResponse] = Seq(
-          if (!reportingWindow.reportingWindowOpen) Some(ReportingWindowClosed) else None,
-          if (obligations.obligationAlreadyMet) Some(ObligationClosed) else None
+          if (!reportingStatus.reportingWindowOpen) Some(ReportingWindowClosed) else None,
+          if (reportingStatus.obligationClosed) Some(ObligationClosed) else None
         ).flatten
 
         errors match {
-          case Nil                => Right(())
+          case Nil                => Right(reportingStatus)
           case singleError :: Nil => Left(singleError)
           case multipleErrors     => Left(MultipleErrorResponse(code = "FORBIDDEN", errors = multipleErrors))
         }
       }
-    } yield (reportingWindow, obligations)
+      .value
 
   def declaration(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
     logger.info(s"[ETMPService][declaration] Submitting declaration for IM ref: [$zReference]")

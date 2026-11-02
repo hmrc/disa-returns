@@ -78,7 +78,7 @@ abstract class BaseUnitSpec
       mockUuidGenerator,
       mockNotificationContextService,
       mockReconciliationReportReadyCallbackService,
-      mockReportingWindowService,
+      mockReportingStatusService,
       mockReportingPeriodSource,
       mockAuditService
     )
@@ -109,7 +109,7 @@ abstract class BaseUnitSpec
   val mockUuidGenerator:                            UuidGenerator                            = mock[UuidGenerator]
   val mockNotificationContextRepository:            NotificationContextRepository            = mock[NotificationContextRepository]
   val mockNotificationContextService:               NotificationContextService               = mock[NotificationContextService]
-  val mockReportingWindowService:                   ReportingWindowService                   = mock[ReportingWindowService]
+  val mockReportingStatusService:                   MonthlyReturnReportingStatusService      = mock[MonthlyReturnReportingStatusService]
   val mockReportingPeriodSource:                    ReportingPeriodSource                    = mock[ReportingPeriodSource]
   val mockAuditService:                             AuditService                             = mock[AuditService]
 

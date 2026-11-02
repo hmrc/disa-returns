@@ -16,81 +16,15 @@
 
 package connectors
 
-import cats.data.EitherT
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.connectors.ETMPConnector
-import uk.gov.hmrc.disareturns.models.etmp.EtmpObligations
 import uk.gov.hmrc.http.{HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
 
 class ETMPConnectorSpec extends BaseUnitSpec {
-
-  "EtmpConnector.checkReturnsObligationStatus" should {
-
-    "return Right(EtmpObligations) when call to ETMP returns an obligation status successfully" in new TestSetup {
-      val expectedResponse: EtmpObligations = EtmpObligations(true)
-      val mockHttpResponse: HttpResponse = HttpResponse(
-        status = 200,
-        json = Json.toJson(expectedResponse),
-        headers = Map.empty
-      )
-
-      when(mockBaseConnector.read(any(), any()))
-        .thenAnswer { invocation =>
-          val future = invocation
-            .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
-          EitherT(future)
-        }
-
-      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
-        .thenReturn(Future.successful(Right(mockHttpResponse)))
-
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getReturnsObligationStatus(testZReference).value.futureValue
-
-      result shouldBe Right(mockHttpResponse)
-    }
-
-    "return Left(UpstreamErrorResponse) when the call to ETMP fails with an UpstreamErrorResponse" in new TestSetup {
-      val upstreamErrorResponse: UpstreamErrorResponse = UpstreamErrorResponse(
-        message = "Not authorised to access this service",
-        statusCode = 401,
-        reportAs = 401,
-        headers = Map.empty
-      )
-      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
-        .thenReturn(Future.successful(Left(upstreamErrorResponse)))
-
-      val result: Either[UpstreamErrorResponse, HttpResponse] = connector.getReturnsObligationStatus(testZReference).value.futureValue
-
-      result shouldBe Left(upstreamErrorResponse)
-    }
-
-    "return Left(UpstreamErrorResponse) when the call to ETMP fails with an unexpected Throwable exception" in new TestSetup {
-      val runtimeException = new RuntimeException("Connection timeout")
-
-      when(mockBaseConnector.read(any(), any()))
-        .thenAnswer { invocation =>
-          val future = invocation
-            .getArgument[Future[Either[UpstreamErrorResponse, HttpResponse]]](0, classOf[Future[Either[UpstreamErrorResponse, HttpResponse]]])
-          EitherT(
-            future.recover { case e =>
-              Left(UpstreamErrorResponse(s"Unexpected error: ${e.getMessage}", 500, 500))
-            }
-          )
-        }
-      when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
-        .thenReturn(Future.failed(runtimeException))
-
-      val result = connector.getReturnsObligationStatus("123456").value.futureValue.left.value
-
-      result.statusCode shouldBe 500
-      result.message      should include("Unexpected error: Connection timeout")
-    }
-  }
 
   "EtmpConnector.sendDeclaration" should {
 
@@ -138,8 +72,6 @@ class ETMPConnectorSpec extends BaseUnitSpec {
     val connector:      ETMPConnector = new ETMPConnector(mockHttpClient, mockAppConfig, retryConfig, actorSystem)
     val testUrl:        String        = "http://localhost:1204"
     when(mockAppConfig.etmpBaseUrl).thenReturn(testUrl)
-    when(mockHttpClient.get(url"$testUrl/etmp/check-obligation-status/$testZReference"))
-      .thenReturn(mockRequestBuilder)
     when(mockHttpClient.post(url"$testUrl/etmp/declaration/$testZReference"))
       .thenReturn(mockRequestBuilder)
   }

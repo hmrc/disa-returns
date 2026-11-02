@@ -26,8 +26,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.disareturns.controllers.DeclarationController
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
-import uk.gov.hmrc.disareturns.models.etmp.EtmpObligations
-import uk.gov.hmrc.disareturns.models.submission.ReportingWindowStatus
+import uk.gov.hmrc.disareturns.models.submission.MonthlyReturnReportingStatus
 import uk.gov.hmrc.http.HttpResponse
 import utils.BaseUnitSpec
 
@@ -40,8 +39,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
   val clientId = "client-id"
   val boxId    = "box-123"
-  val obligation:      EtmpObligations       = EtmpObligations(false)
-  val reportingWindow: ReportingWindowStatus = ReportingWindowStatus(true)
+  val reportingStatus: MonthlyReturnReportingStatus = MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = false)
   val invalidZReference = "Z12345454"
 
   val nilReturnBody: JsValue = Json.toJson(ReportingNilReturn(nilReturn = false))
@@ -50,8 +48,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 200 OK when the declaration is successful" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right(reportingStatus)))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
@@ -69,13 +67,13 @@ class DeclarationControllerSpec extends BaseUnitSpec {
       status(result)                               shouldBe OK
       (contentAsJson(result) \ "boxId").as[String] shouldBe boxId
       verify(mockReportingPeriodSource).get(eqTo(validZReference))(any())
-      verify(mockETMPService).validateEtmpSubmissionEligibility(eqTo(validZReference))(any(), any())
+      verify(mockETMPService).validateSubmissionEligibility(eqTo(validZReference))(any(), any())
     }
 
     "return 200 OK when the declaration is successful but no boxId has been retrieved from PPNS" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right(reportingStatus)))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
@@ -130,7 +128,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 403 Forbidden when the reporting window is closed" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ReportingWindowClosed)))
 
       val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
@@ -148,7 +146,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 403 Forbidden when the obligation is closed" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ObligationClosed)))
 
       val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
@@ -166,8 +164,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 500 Internal Server Error when the call to PPNS fails" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right(reportingStatus)))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
@@ -189,8 +187,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "return 500 Internal Server Error when there is a failure whilst saving the notification context" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right(reportingStatus)))
       val httpResponse: HttpResponse = HttpResponse(200, "")
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](httpResponse))
@@ -212,8 +210,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "audit APIDeclarationSubmitted as a success when the declaration is successful" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right(reportingStatus)))
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](HttpResponse(200, "")))
       when(mockPPNSService.getBoxId(any())(any()))
@@ -237,8 +235,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "audit APIDeclarationSubmitted as a success when the declaration is successful but a later step fails" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right(reportingStatus)))
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](HttpResponse(200, "")))
       when(mockPPNSService.getBoxId(any())(any()))
@@ -254,8 +252,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "audit APIDeclarationSubmitted as a failure when the submission service rejects the declaration" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right(reportingStatus)))
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
         .thenReturn(EitherT.leftT[Future, HttpResponse](MonthlyReturnNotSubmitted: ErrorResponse))
 
@@ -276,7 +274,7 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "audit APIDeclarationSubmitted as a failure when the reporting window is closed" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
         .thenReturn(Future.successful(Left(ReportingWindowClosed)))
 
       val request = FakeRequest(POST, s"/monthly/$validZReference/declaration")
@@ -289,8 +287,8 @@ class DeclarationControllerSpec extends BaseUnitSpec {
 
     "still return 200 OK when auditing APIDeclarationSubmitted fails" in {
       authorizationForZRef()
-      when(mockETMPService.validateEtmpSubmissionEligibility(any())(any(), any()))
-        .thenReturn(Future.successful(Right((reportingWindow, obligation))))
+      when(mockETMPService.validateSubmissionEligibility(any())(any(), any()))
+        .thenReturn(Future.successful(Right(reportingStatus)))
       when(mockSubmissionService.declare(any(), any(), any(), any())(any()))
         .thenReturn(EitherT.rightT[Future, ErrorResponse](HttpResponse(200, "")))
       when(mockPPNSService.getBoxId(any())(any()))
