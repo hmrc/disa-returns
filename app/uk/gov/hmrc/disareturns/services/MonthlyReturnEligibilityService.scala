@@ -16,20 +16,15 @@
 
 package uk.gov.hmrc.disareturns.services
 
-import cats.data.EitherT
-import play.api.Logging
-import uk.gov.hmrc.disareturns.connectors.ETMPConnector
-import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.MonthlyReturnReportingStatus
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ETMPService @Inject() (connector: ETMPConnector, reportingStatusService: MonthlyReturnReportingStatusService)(implicit ec: ExecutionContext)
-    extends Logging {
+class MonthlyReturnEligibilityService @Inject() (reportingStatusService: MonthlyReturnReportingStatusService) {
 
   def validateSubmissionEligibility(
     zReference:  String
@@ -38,11 +33,6 @@ class ETMPService @Inject() (connector: ETMPConnector, reportingStatusService: M
       .getReportingStatus(zReference)
       .value
       .map(_.flatMap(checkEligibility))
-
-  def declaration(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, HttpResponse] = {
-    logger.info(s"[ETMPService][declaration] Submitting declaration for IM ref: [$zReference]")
-    connector.sendDeclaration(zReference).leftMap(mapToErrorResponse)
-  }
 
   private def checkEligibility(reportingStatus: MonthlyReturnReportingStatus): Either[ErrorResponse, Unit] = {
     val errors: Seq[ErrorResponse] = Seq(

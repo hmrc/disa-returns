@@ -27,7 +27,7 @@ import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.controllers.parsers.StrictJsonBodyParser
 import uk.gov.hmrc.disareturns.models.common.{DeclarationRequest, MalformedJsonFailureErr, ReportingPeriod, UserDetails}
 import uk.gov.hmrc.disareturns.models.declaration.{DeclarationSuccessfulResponse, ReportingNilReturn}
-import uk.gov.hmrc.disareturns.services.{AuditService, ETMPService, NotificationContextService, PPNSService, ReportingPeriodSource, SubmissionService}
+import uk.gov.hmrc.disareturns.services.{AuditService, MonthlyReturnEligibilityService, NotificationContextService, PPNSService, ReportingPeriodSource, SubmissionService}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -39,7 +39,7 @@ import scala.util.control.NonFatal
 @Singleton
 class DeclarationController @Inject() (
   cc:                         ControllerComponents,
-  etmpService:                ETMPService,
+  eligibilityService:         MonthlyReturnEligibilityService,
   ppnsService:                PPNSService,
   submissionService:          SubmissionService,
   reportingPeriodSource:      ReportingPeriodSource,
@@ -73,7 +73,7 @@ class DeclarationController @Inject() (
               val nilReturnReported = request.body.as[ReportingNilReturn].nilReturn
               reportingPeriodSource.get(zReference).flatMap { reportingPeriod =>
                 val declaration = for {
-                  _ <- EitherT(etmpService.validateSubmissionEligibility(zReference))
+                  _ <- EitherT(eligibilityService.validateSubmissionEligibility(zReference))
                   _ <- submissionService.declare(zReference, reportingPeriod.taxYear, reportingPeriod.month, nilReturnReported)
                 } yield ()
 

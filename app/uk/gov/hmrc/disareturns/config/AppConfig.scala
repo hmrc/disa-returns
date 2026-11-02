@@ -24,7 +24,6 @@ import javax.inject.{Inject, Singleton}
 @Singleton
 class AppConfig @Inject() (configuration: Configuration, config: ServicesConfig) {
 
-  lazy val etmpBaseUrl:        String = config.baseUrl(serviceName = "etmp")
   lazy val ppnsBaseUrl:        String = config.baseUrl(serviceName = "ppns")
   lazy val npsBaseUrl:         String = config.baseUrl(serviceName = "nps")
   lazy val submissionBaseUrl:  String = config.baseUrl(serviceName = "disa-returns-submission")

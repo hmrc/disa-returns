@@ -70,7 +70,7 @@ abstract class BaseUnitSpec
     super.beforeEach()
     reset[AnyRef](
       mockAuthConnector,
-      mockETMPService,
+      mockMonthlyReturnEligibilityService,
       mockNPSService,
       mockPPNSService,
       mockSubmissionConnector,
@@ -96,8 +96,7 @@ abstract class BaseUnitSpec
   val mockRequestBuilder:                           RequestBuilder                           = mock[RequestBuilder]
   val mockPPNSService:                              PPNSService                              = mock[PPNSService]
   val mockPPNSConnector:                            PPNSConnector                            = mock[PPNSConnector]
-  val mockETMPConnector:                            ETMPConnector                            = mock[ETMPConnector]
-  val mockETMPService:                              ETMPService                              = mock[ETMPService]
+  val mockMonthlyReturnEligibilityService:          MonthlyReturnEligibilityService          = mock[MonthlyReturnEligibilityService]
   val mockBaseConnector:                            BaseConnector                            = mock[BaseConnector]
   val mockStreamingParserService:                   StreamingParserService                   = mock[StreamingParserService]
   val mockReconciliationReportReadyCallbackService: ReconciliationReportReadyCallbackService = mock[ReconciliationReportReadyCallbackService]
@@ -121,7 +120,7 @@ abstract class BaseUnitSpec
     )
     .overrides(
       bind[AuthConnector].toInstance(mockAuthConnector),
-      bind[ETMPService].toInstance(mockETMPService),
+      bind[MonthlyReturnEligibilityService].toInstance(mockMonthlyReturnEligibilityService),
       bind[PPNSService].toInstance(mockPPNSService),
       bind[StreamingParserService].toInstance(mockStreamingParserService),
       bind[AppConfig].toInstance(mockAppConfig),

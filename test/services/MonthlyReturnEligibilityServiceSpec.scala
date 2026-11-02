@@ -21,15 +21,14 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, MultipleErrorResponse, ObligationClosed, ReportingWindowClosed, UnauthorisedErr}
 import uk.gov.hmrc.disareturns.models.submission.MonthlyReturnReportingStatus
-import uk.gov.hmrc.disareturns.services.ETMPService
-import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.disareturns.services.MonthlyReturnEligibilityService
 import utils.BaseUnitSpec
 
 import scala.concurrent.Future
 
-class ETMPServiceSpec extends BaseUnitSpec {
+class MonthlyReturnEligibilityServiceSpec extends BaseUnitSpec {
 
-  "ETMPService.validateSubmissionEligibility" should {
+  "MonthlyReturnEligibilityService.validateSubmissionEligibility" should {
 
     "return Right(()) when the reporting window is open and the obligation is not closed" in new TestSetup {
       when(mockReportingStatusService.getReportingStatus(any())(any()))
@@ -141,38 +140,7 @@ class ETMPServiceSpec extends BaseUnitSpec {
     }
   }
 
-  "ETMPService.closeObligationStatus" should {
-    "return Right(HttpResponse(200)) when call to ETMP connector is successful" in new TestSetup {
-      val httpResponse: HttpResponse = HttpResponse(200, "")
-
-      when(mockETMPConnector.sendDeclaration(validZReference))
-        .thenReturn(EitherT.rightT[Future, UpstreamErrorResponse](httpResponse))
-
-      val result: Either[ErrorResponse, HttpResponse] = service.declaration(validZReference).value.futureValue
-
-      result shouldBe Right(httpResponse)
-    }
-  }
-  "ETMPService.closeObligationStatus" should {
-    "return Left(UpstreamErrorResponse) when the call to ETMP connector returns an UpstreamErrorResponse" in new TestSetup {
-
-      val exception: UpstreamErrorResponse = UpstreamErrorResponse(
-        message = "Not authorised to access this service",
-        statusCode = 401,
-        reportAs = 401,
-        headers = Map.empty
-      )
-
-      when(mockETMPConnector.sendDeclaration(validZReference))
-        .thenReturn(EitherT.leftT[Future, HttpResponse](exception))
-
-      val result: Either[ErrorResponse, HttpResponse] = service.declaration(validZReference).value.futureValue
-
-      result shouldBe Left(UnauthorisedErr)
-    }
-  }
-
   trait TestSetup {
-    val service: ETMPService = new ETMPService(mockETMPConnector, mockReportingStatusService)
+    val service: MonthlyReturnEligibilityService = new MonthlyReturnEligibilityService(mockReportingStatusService)
   }
 }

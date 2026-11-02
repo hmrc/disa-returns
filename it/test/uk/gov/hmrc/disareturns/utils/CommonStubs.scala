@@ -22,7 +22,7 @@ import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
 import play.api.http.MimeTypes.JSON
 import play.api.http.Status
 import play.api.http.Status.OK
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
 
 trait CommonStubs { self: TestData =>
@@ -92,22 +92,10 @@ trait CommonStubs { self: TestData =>
         )
     )
 
-  def stubCloseEtmpObligation(status: Int, body: JsObject, zReference: String): Unit =
-    stubFor(
-      post(urlEqualTo(s"/etmp/close-obligation-status/$zReference"))
-        .willReturn(aResponse().withStatus(status).withBody(body.toString))
-    )
-
   def stubPPNSBoxId(boxResponseJson: String, clientId: String): Unit =
     stubFor(
       get(urlEqualTo(s"/box?clientId=$clientId&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"))
         .willReturn(ok(boxResponseJson))
-    )
-
-  def stubETMPDeclaration(status: ResponseDefinitionBuilder, zReference: String): Unit =
-    stubFor(
-      post(urlEqualTo(s"/etmp/declaration/$zReference"))
-        .willReturn(status)
     )
 
   def stubSubmissionDeclaration(

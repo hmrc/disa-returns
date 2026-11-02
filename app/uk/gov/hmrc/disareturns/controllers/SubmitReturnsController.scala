@@ -28,7 +28,7 @@ import play.api.mvc.{Action, BodyParser, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.{ErrorVolume, InvalidSubmission, ValidatedSubmission, ValidationMetrics}
-import uk.gov.hmrc.disareturns.services.{AuditService, ETMPService, ReportingPeriodSource, StreamingParserService, SubmissionService}
+import uk.gov.hmrc.disareturns.services.{AuditService, MonthlyReturnEligibilityService, ReportingPeriodSource, StreamingParserService, SubmissionService}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -39,15 +39,15 @@ import scala.util.control.NonFatal
 
 @Singleton
 class SubmitReturnsController @Inject() (
-  cc:                       ControllerComponents,
-  streamingParserService:   StreamingParserService,
-  submissionService:        SubmissionService,
-  reportingPeriodSource:    ReportingPeriodSource,
-  authAction:               AuthAction,
-  validationHelper:         ValidationHelper,
-  auditService:             AuditService,
-  implicit val etmpService: ETMPService
-)(implicit ec:              ExecutionContext, val mat: Materializer)
+  cc:                              ControllerComponents,
+  streamingParserService:          StreamingParserService,
+  submissionService:               SubmissionService,
+  reportingPeriodSource:           ReportingPeriodSource,
+  authAction:                      AuthAction,
+  validationHelper:                ValidationHelper,
+  auditService:                    AuditService,
+  implicit val eligibilityService: MonthlyReturnEligibilityService
+)(implicit ec:                     ExecutionContext, val mat: Materializer)
     extends BackendController(cc)
     with Logging {
 
@@ -64,7 +64,7 @@ class SubmitReturnsController @Inject() (
         (Action andThen authAction(zRef)).async(streamingParser) { implicit request =>
           implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
           reportingPeriodSource.get(zRef).flatMap { reportingPeriod =>
-            etmpService.validateSubmissionEligibility(zRef).flatMap {
+            eligibilityService.validateSubmissionEligibility(zRef).flatMap {
               case Right(_) =>
                 streamingParserService.processToTempFile(request.body).flatMap {
                   case Left(InvalidSubmission(error, errorVolumes, metrics)) =>

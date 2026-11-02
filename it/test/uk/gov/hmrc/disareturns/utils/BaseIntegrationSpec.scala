@@ -72,8 +72,6 @@ trait BaseIntegrationSpec
   def config: Map[String, Any] =
     Map(
       "auditing.enabled"                                   -> "false",
-      "microservice.services.etmp.host"                    -> wiremockHost,
-      "microservice.services.etmp.port"                    -> wiremockPort.toString,
       "microservice.services.ppns.host"                    -> wiremockHost,
       "microservice.services.ppns.port"                    -> wiremockPort.toString,
       "microservice.services.auth.host"                    -> wiremockHost,
