@@ -1317,6 +1317,24 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
     }
 
+    "return FORBIDDEN with ObligationClosed if the monthly return has already been declared" in {
+
+      stubMonthlyReturnReportingStatus(status = OK, monthlyReturnDeclared = true)
+
+      val result = submitMonthlyReturnRequest(validStandardIsaClosure)
+      result.status                 shouldBe FORBIDDEN
+      result.json.as[ErrorResponse] shouldBe ObligationClosed
+      verify(
+        0,
+        putRequestedFor(
+          urlPathMatching(
+            s"/disa-returns-submission/monthly/$validZReference/$testTaxYear/9/submissions/.*"
+          )
+        )
+      )
+
+    }
+
     "return FORBIDDEN if ETMP reportingWindowOpen check returns false" in {
 
       stubMonthlyReturnReportingStatus(status = OK, reportingWindowOpen = false, obligationClosed = false)
@@ -1335,6 +1353,52 @@ class SubmitReturnsControllerISpec extends BaseIntegrationSpec {
 
       result.status                 shouldBe FORBIDDEN
       result.json.as[ErrorResponse] shouldBe MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ReportingWindowClosed, ObligationClosed))
+    }
+
+    "return FORBIDDEN with ObligationClosed if the monthly return is declared after the eligibility check" in {
+      stubMonthlyReturnReportingStatus(status = OK, reportingWindowOpen = true, obligationClosed = false)
+      stubEnsureMonthlyReturnExists(CONFLICT, validZReference, testTaxYear, 9)
+      stubFor(
+        put(urlPathMatching(s"/disa-returns-submission/monthly/$validZReference/$testTaxYear/9/submissions/.*"))
+          .willReturn(
+            aResponse()
+              .withStatus(CONFLICT)
+              .withBody("""{"code":"MONTHLY_RETURN_ALREADY_DECLARED","message":"This monthly return was already declared"}""")
+          )
+      )
+
+      val result = submitMonthlyReturnRequest(validStandardIsaClosure)
+
+      result.status                 shouldBe FORBIDDEN
+      result.json.as[ErrorResponse] shouldBe ObligationClosed
+    }
+
+    "return 500 Internal Server Error if storing the submission returns a 409 without the already declared code" in {
+      stubMonthlyReturnReportingStatus(status = OK, reportingWindowOpen = true, obligationClosed = false)
+      stubEnsureMonthlyReturnExists(CONFLICT, validZReference, testTaxYear, 9)
+      stubStoreMonthlyReturn(CONFLICT, validZReference, testTaxYear, 9)
+
+      val result = submitMonthlyReturnRequest(validStandardIsaClosure)
+
+      result.status shouldBe INTERNAL_SERVER_ERROR
+      result.json   shouldBe Json.toJson(InternalServerErr())
+    }
+
+    "return FORBIDDEN with ReportingWindowClosed if the reporting window closes after the eligibility check" in {
+      stubMonthlyReturnReportingStatus(status = OK, reportingWindowOpen = true, obligationClosed = false)
+      stubFor(
+        post(urlEqualTo(s"/disa-returns-submission/monthly/$validZReference/$testTaxYear/9"))
+          .willReturn(
+            aResponse()
+              .withStatus(UNPROCESSABLE_ENTITY)
+              .withBody("""{"code":"DECLARATION_PERIOD_CLOSED","message":"Monthly declaration period is closed."}""")
+          )
+      )
+
+      val result = submitMonthlyReturnRequest(validStandardIsaClosure)
+
+      result.status                 shouldBe FORBIDDEN
+      result.json.as[ErrorResponse] shouldBe ReportingWindowClosed
     }
 
     "return 500 Internal Server Error when the monthly return reporting status check fails" in {

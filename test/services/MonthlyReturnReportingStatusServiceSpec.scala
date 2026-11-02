@@ -49,7 +49,7 @@ class MonthlyReturnReportingStatusServiceSpec extends BaseUnitSpec {
 
       val result: Either[ErrorResponse, MonthlyReturnReportingStatus] = service.getReportingStatus(validZReference).value.futureValue
 
-      result shouldBe Right(MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = false))
+      result shouldBe Right(MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = false, monthlyReturnDeclared = false))
     }
 
     "return Left(UnauthorisedErr) when the call to disa-returns-submission returns an UpstreamErrorResponse" in new TestSetup {

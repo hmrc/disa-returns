@@ -47,7 +47,7 @@ class ETMPService @Inject() (connector: ETMPConnector, reportingStatusService: M
   private def checkEligibility(reportingStatus: MonthlyReturnReportingStatus): Either[ErrorResponse, Unit] = {
     val errors: Seq[ErrorResponse] = Seq(
       if (!reportingStatus.reportingWindowOpen) Some(ReportingWindowClosed) else None,
-      if (reportingStatus.obligationClosed) Some(ObligationClosed) else None
+      if (reportingStatus.obligationClosed || reportingStatus.monthlyReturnDeclared) Some(ObligationClosed) else None
     ).flatten
 
     errors match {

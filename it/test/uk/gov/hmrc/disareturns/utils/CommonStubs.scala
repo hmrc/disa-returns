@@ -62,10 +62,11 @@ trait CommonStubs { self: TestData =>
     }
   
   def stubMonthlyReturnReportingStatus(
-    status:              Int,
-    reportingWindowOpen: Boolean = true,
-    obligationClosed:    Boolean = false,
-    zReference:          String = validZReference
+    status:                Int,
+    reportingWindowOpen:   Boolean = true,
+    obligationClosed:      Boolean = false,
+    monthlyReturnDeclared: Boolean = false,
+    zReference:            String = validZReference
   ): Unit =
     stubFor(
       get(urlEqualTo(s"/disa-returns-submission/monthly/$zReference/reporting-status"))
@@ -83,7 +84,7 @@ trait CommonStubs { self: TestData =>
                   "taxYear"               -> "2026-27",
                   "month"                 -> 5,
                   "obligationClosed"      -> obligationClosed,
-                  "monthlyReturnDeclared" -> false,
+                  "monthlyReturnDeclared" -> monthlyReturnDeclared,
                   "nilReturn"             -> false
                 )
                 .toString

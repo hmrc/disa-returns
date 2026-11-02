@@ -18,7 +18,7 @@ package uk.gov.hmrc.disareturns.models.submission
 
 import play.api.libs.json.{Json, OFormat}
 
-case class MonthlyReturnReportingStatus(reportingWindowOpen: Boolean, obligationClosed: Boolean)
+case class MonthlyReturnReportingStatus(reportingWindowOpen: Boolean, obligationClosed: Boolean, monthlyReturnDeclared: Boolean)
 
 object MonthlyReturnReportingStatus {
   implicit val format: OFormat[MonthlyReturnReportingStatus] = Json.format[MonthlyReturnReportingStatus]

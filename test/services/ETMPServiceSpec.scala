@@ -33,7 +33,11 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
     "return Right(()) when the reporting window is open and the obligation is not closed" in new TestSetup {
       when(mockReportingStatusService.getReportingStatus(any())(any()))
-        .thenReturn(EitherT.rightT[Future, ErrorResponse](MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = false)))
+        .thenReturn(
+          EitherT.rightT[Future, ErrorResponse](
+            MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = false, monthlyReturnDeclared = false)
+          )
+        )
 
       val result: Either[ErrorResponse, Unit] =
         service.validateSubmissionEligibility(validZReference).futureValue
@@ -44,7 +48,11 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
     "return Left(ReportingWindowClosed) when the reporting window is closed" in new TestSetup {
       when(mockReportingStatusService.getReportingStatus(any())(any()))
-        .thenReturn(EitherT.rightT[Future, ErrorResponse](MonthlyReturnReportingStatus(reportingWindowOpen = false, obligationClosed = false)))
+        .thenReturn(
+          EitherT.rightT[Future, ErrorResponse](
+            MonthlyReturnReportingStatus(reportingWindowOpen = false, obligationClosed = false, monthlyReturnDeclared = false)
+          )
+        )
 
       val result: Either[ErrorResponse, Unit] =
         service.validateSubmissionEligibility(validZReference).futureValue
@@ -54,7 +62,11 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
     "return Left(ObligationClosed) when the reporting window is open but the obligation is closed" in new TestSetup {
       when(mockReportingStatusService.getReportingStatus(any())(any()))
-        .thenReturn(EitherT.rightT[Future, ErrorResponse](MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = true)))
+        .thenReturn(
+          EitherT.rightT[Future, ErrorResponse](
+            MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = true, monthlyReturnDeclared = false)
+          )
+        )
 
       val result: Either[ErrorResponse, Unit] =
         service.validateSubmissionEligibility(validZReference).futureValue
@@ -64,7 +76,53 @@ class ETMPServiceSpec extends BaseUnitSpec {
 
     "return Left(MultipleErrorResponse) when the reporting window is closed and the obligation is closed" in new TestSetup {
       when(mockReportingStatusService.getReportingStatus(any())(any()))
-        .thenReturn(EitherT.rightT[Future, ErrorResponse](MonthlyReturnReportingStatus(reportingWindowOpen = false, obligationClosed = true)))
+        .thenReturn(
+          EitherT.rightT[Future, ErrorResponse](
+            MonthlyReturnReportingStatus(reportingWindowOpen = false, obligationClosed = true, monthlyReturnDeclared = false)
+          )
+        )
+
+      val result: Either[ErrorResponse, Unit] =
+        service.validateSubmissionEligibility(validZReference).futureValue
+
+      result shouldBe Left(MultipleErrorResponse(code = "FORBIDDEN", errors = Seq(ReportingWindowClosed, ObligationClosed)))
+    }
+
+    "return Left(ObligationClosed) when the monthly return has been declared" in new TestSetup {
+      when(mockReportingStatusService.getReportingStatus(any())(any()))
+        .thenReturn(
+          EitherT.rightT[Future, ErrorResponse](
+            MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = false, monthlyReturnDeclared = true)
+          )
+        )
+
+      val result: Either[ErrorResponse, Unit] =
+        service.validateSubmissionEligibility(validZReference).futureValue
+
+      result shouldBe Left(ObligationClosed)
+    }
+
+    "return a single Left(ObligationClosed) when the obligation is closed and the monthly return has been declared" in new TestSetup {
+      when(mockReportingStatusService.getReportingStatus(any())(any()))
+        .thenReturn(
+          EitherT.rightT[Future, ErrorResponse](
+            MonthlyReturnReportingStatus(reportingWindowOpen = true, obligationClosed = true, monthlyReturnDeclared = true)
+          )
+        )
+
+      val result: Either[ErrorResponse, Unit] =
+        service.validateSubmissionEligibility(validZReference).futureValue
+
+      result shouldBe Left(ObligationClosed)
+    }
+
+    "return Left(MultipleErrorResponse) when the reporting window is closed and the monthly return has been declared" in new TestSetup {
+      when(mockReportingStatusService.getReportingStatus(any())(any()))
+        .thenReturn(
+          EitherT.rightT[Future, ErrorResponse](
+            MonthlyReturnReportingStatus(reportingWindowOpen = false, obligationClosed = false, monthlyReturnDeclared = true)
+          )
+        )
 
       val result: Either[ErrorResponse, Unit] =
         service.validateSubmissionEligibility(validZReference).futureValue
