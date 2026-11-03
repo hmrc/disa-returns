@@ -38,12 +38,21 @@ object UpstreamErrorMapper extends Logging {
           case Some("NO_SUBMISSION_DATA") =>
             logger.warn("[UpstreamErrorMapper][mapToErrorResponse] Mapping 422 (NO_SUBMISSION_DATA) to MonthlyReturnNotSubmitted")
             MonthlyReturnNotSubmitted
+          case Some("MONTHLY_RETURN_ALREADY_DECLARED") =>
+            logger.warn("[UpstreamErrorMapper][mapToErrorResponse] Mapping 422 (MONTHLY_RETURN_ALREADY_DECLARED) to ObligationClosed")
+            ObligationClosed
+          case Some("DECLARATION_PERIOD_CLOSED") =>
+            logger.warn("[UpstreamErrorMapper][mapToErrorResponse] Mapping 422 (DECLARATION_PERIOD_CLOSED) to ReportingWindowClosed")
+            ReportingWindowClosed
           case _ =>
             logger.error(
               s"[UpstreamErrorMapper][mapToErrorResponse] Unhandled 422 error code: ${code.getOrElse("none")}, mapping to InternalServerError"
             )
             InternalServerErr()
         }
+      case UpstreamErrorResponse(message, CONFLICT, _, _) if extractCode(message).contains("MONTHLY_RETURN_ALREADY_DECLARED") =>
+        logger.warn("[UpstreamErrorMapper][mapToErrorResponse] Mapping 409 (MONTHLY_RETURN_ALREADY_DECLARED) to ObligationClosed")
+        ObligationClosed
       case UpstreamErrorResponse(_, INTERNAL_SERVER_ERROR, _, _) | UpstreamErrorResponse(_, BAD_GATEWAY, _, _) |
           UpstreamErrorResponse(_, SERVICE_UNAVAILABLE, _, _) =>
         logger.error(s"[UpstreamErrorMapper][mapToErrorResponse] Mapping ${err.statusCode} to InternalServerError")

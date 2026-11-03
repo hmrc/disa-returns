@@ -28,8 +28,9 @@ import scala.util.Try
 @Singleton
 class ValidationHelper @Inject() (zReferenceValidator: ZReferenceValidator) extends Logging {
 
-  def validateParams(zReference: String): Either[ErrorResponse, (String, Option[Int])] =
-    validateZReference(zReference).map(_ -> None)
+  def validateZReference(zReference: String): Either[ErrorResponse, String] =
+    if (zReferenceValidator.isValid(zReference)) Right(zReference.toUpperCase(Locale.ROOT))
+    else Left(InvalidZReference)
 
   def validatePaginationParams(
     zReference:   String,
@@ -53,13 +54,9 @@ class ValidationHelper @Inject() (zReferenceValidator: ZReferenceValidator) exte
 
     combined.toEither.leftMap { nonEmptyList =>
       val errs = nonEmptyList.toList
-      logger.warn(s"[ValidationHelper][validateParams] Failed path or query string parameter validation with errors: [$errs]")
+      logger.warn(s"[ValidationHelper][validatePaginationParams] Failed path or query string parameter validation with errors: [$errs]")
       if (errs.size == 1) errs.head
       else MultipleErrorResponse(code = "BAD_REQUEST", errors = errs)
     }
   }
-
-  private def validateZReference(zReference: String): Either[ErrorResponse, String] =
-    if (zReferenceValidator.isValid(zReference)) Right(zReference.toUpperCase(Locale.ROOT))
-    else Left(InvalidZReference)
 }

@@ -25,8 +25,6 @@ import utils.BaseUnitSpec
 class AppConfigSpec extends BaseUnitSpec {
 
   private val configMap: Map[String, Any] = Map(
-    "microservice.services.etmp.host"          -> "etmp",
-    "microservice.services.etmp.port"          -> "1204",
     "microservice.services.internal-auth.host" -> "internal-auth",
     "microservice.services.internal-auth.port" -> "8470",
     "internal-auth.token"                      -> "valid-internal-auth-token-disa-returns",
@@ -43,7 +41,7 @@ class AppConfigSpec extends BaseUnitSpec {
   "AppConfig" should {
 
     "load the correct base URLs" in {
-      appConfig.etmpBaseUrl mustBe "http://etmp:1204"
+      appConfig.internalAuthUrl mustBe "http://internal-auth:8470"
     }
 
     "read the mongodb timeToLive correctly" in {

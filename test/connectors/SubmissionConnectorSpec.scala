@@ -56,7 +56,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
       )
     )
       .thenReturn(mockRequestBuilder)
-    when(mockHttpClient.get(url"$testUrl/disa-returns-submission/reporting-window/status/$validZReference"))
+    when(mockHttpClient.get(url"$testUrl/disa-returns-submission/monthly/$validZReference/reporting-status"))
       .thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.setHeader(AUTHORIZATION -> internalAuthToken)).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.withBody(any())(any, any, any)).thenReturn(mockRequestBuilder)
@@ -179,7 +179,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
           err.message    shouldBe "Internal Server Error"
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
-      verify(mockRequestBuilder, times(4)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
+      verify(mockRequestBuilder, times(1)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
     "return Left(UpstreamErrorResponse) when an unexpected exception occurs" in new TestSetup {
@@ -254,7 +254,7 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
           err.message    shouldBe "Internal Server Error"
         case _ => fail("Expected Left(UpstreamErrorResponse)")
       }
-      verify(mockRequestBuilder, times(4)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
+      verify(mockRequestBuilder, times(1)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
     "return Left(UpstreamErrorResponse) when an unexpected exception occurs" in new TestSetup {
@@ -275,40 +275,40 @@ class SubmissionConnectorSpec extends BaseUnitSpec {
     }
   }
 
-  "SubmissionConnector.getReportingWindowStatus" should {
+  "SubmissionConnector.getMonthlyReturnReportingStatus" should {
     "return the successful response and send internal authorization" in new TestSetup {
-      val response = HttpResponse(OK, """{"reportingWindowOpen":true}""")
+      val response = HttpResponse(OK, """{"reportingWindowOpen":true,"obligationClosed":false}""")
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Right(response)))
 
-      connector.getReportingWindowStatus(validZReference).value.futureValue shouldBe Right(response)
-      verify(mockHttpClient).get(url"$testUrl/disa-returns-submission/reporting-window/status/$validZReference")
+      connector.getMonthlyReturnReportingStatus(validZReference).value.futureValue shouldBe Right(response)
+      verify(mockHttpClient).get(url"$testUrl/disa-returns-submission/monthly/$validZReference/reporting-status")
       verify(mockRequestBuilder).setHeader(AUTHORIZATION -> internalAuthToken)
     }
 
-    "return a client error without retrying" in new TestSetup {
+    "return a client error" in new TestSetup {
       val error = UpstreamErrorResponse("bad request", BAD_REQUEST, BAD_REQUEST)
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(error)))
 
-      connector.getReportingWindowStatus(validZReference).value.futureValue shouldBe Left(error)
+      connector.getMonthlyReturnReportingStatus(validZReference).value.futureValue shouldBe Left(error)
       verify(mockRequestBuilder, times(1)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
-    "retry a persistent server error exactly four times" in new TestSetup {
+    "return a server error" in new TestSetup {
       val error = UpstreamErrorResponse("server error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.successful(Left(error)))
 
-      connector.getReportingWindowStatus(validZReference).value.futureValue shouldBe Left(error)
-      verify(mockRequestBuilder, times(4)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
+      connector.getMonthlyReturnReportingStatus(validZReference).value.futureValue shouldBe Left(error)
+      verify(mockRequestBuilder, times(1)).execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any())
     }
 
     "return an internal server error for an unexpected exception" in new TestSetup {
       when(mockRequestBuilder.execute[Either[UpstreamErrorResponse, HttpResponse]](any(), any()))
         .thenReturn(Future.failed(new RuntimeException("Connection timeout")))
 
-      val result = connector.getReportingWindowStatus(validZReference).value.futureValue.left.value
+      val result = connector.getMonthlyReturnReportingStatus(validZReference).value.futureValue.left.value
       result.statusCode shouldBe INTERNAL_SERVER_ERROR
       result.message      should include("Unexpected error: Connection timeout")
     }

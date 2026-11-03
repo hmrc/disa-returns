@@ -39,7 +39,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
   private val declarationsUrl    = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/declarations"
   private val createUrl          = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt"
   private val submissionsUrl     = s"/disa-returns-submission/monthly/$validZReference/$taxYear/$monthInt/submissions/$submissionId"
-  private val reportingWindowUrl = s"/disa-returns-submission/reporting-window/status/$validZReference"
+  private val reportingStatusUrl = s"/disa-returns-submission/monthly/$validZReference/reporting-status"
 
   private val connector: SubmissionConnector = app.injector.instanceOf[SubmissionConnector]
 
@@ -98,7 +98,7 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
       val err = await(connector.ensureMonthlyReturnExists(validZReference, taxYear, month, nilReturn = false)).left.value
 
       err.statusCode shouldBe SERVICE_UNAVAILABLE
-      verifyPost(createUrl, count = 4)
+      verifyPost(createUrl, count = 1)
     }
   }
 
@@ -118,35 +118,35 @@ class SubmissionConnectorISpec extends BaseIntegrationSpec {
       val err = await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource)).left.value
 
       err.statusCode shouldBe SERVICE_UNAVAILABLE
-      verifyPut(submissionsUrl, count = 4)
+      verifyPut(submissionsUrl, count = 1)
     }
 
-    "not retry a client error" in {
+    "return a client error" in {
       stubPut(submissionsUrl, BAD_REQUEST, "bad request")
       await(connector.sendSubmission(validZReference, taxYear, month, submissionId, ndjsonSource)).left.value.statusCode shouldBe BAD_REQUEST
       verifyPut(submissionsUrl, count = 1)
     }
   }
 
-  "SubmissionConnector.getReportingWindowStatus" should {
-    "return a successful reporting window response" in {
-      stubGet(reportingWindowUrl, OK, """{"reportingWindowOpen":true}""")
-      val response = await(connector.getReportingWindowStatus(validZReference).value).value
+  "SubmissionConnector.getMonthlyReturnReportingStatus" should {
+    "return a successful reporting status response" in {
+      stubGet(reportingStatusUrl, OK, """{"reportingWindowOpen":true,"obligationClosed":false}""")
+      val response = await(connector.getMonthlyReturnReportingStatus(validZReference).value).value
       response.status                                     shouldBe OK
       (response.json \ "reportingWindowOpen").as[Boolean] shouldBe true
-      verifyGet(reportingWindowUrl, count = 1)
+      verifyGet(reportingStatusUrl, count = 1)
     }
 
-    "retry a persistent server error exactly four times" in {
-      stubGet(reportingWindowUrl, INTERNAL_SERVER_ERROR, "failed")
-      await(connector.getReportingWindowStatus(validZReference).value).left.value.statusCode shouldBe INTERNAL_SERVER_ERROR
-      verifyGet(reportingWindowUrl, count = 4)
+    "return a server error" in {
+      stubGet(reportingStatusUrl, INTERNAL_SERVER_ERROR, "failed")
+      await(connector.getMonthlyReturnReportingStatus(validZReference).value).left.value.statusCode shouldBe INTERNAL_SERVER_ERROR
+      verifyGet(reportingStatusUrl, count = 1)
     }
 
-    "not retry a client error" in {
-      stubGet(reportingWindowUrl, BAD_REQUEST, "bad request")
-      await(connector.getReportingWindowStatus(validZReference).value).left.value.statusCode shouldBe BAD_REQUEST
-      verifyGet(reportingWindowUrl, count = 1)
+    "return a client error" in {
+      stubGet(reportingStatusUrl, BAD_REQUEST, "bad request")
+      await(connector.getMonthlyReturnReportingStatus(validZReference).value).left.value.statusCode shouldBe BAD_REQUEST
+      verifyGet(reportingStatusUrl, count = 1)
     }
   }
 

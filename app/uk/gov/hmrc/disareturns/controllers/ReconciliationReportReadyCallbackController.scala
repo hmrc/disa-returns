@@ -41,9 +41,9 @@ class ReconciliationReportReadyCallbackController @Inject() (
 
   def callback(zReference: String): Action[AnyContent] =
     Action.async { implicit request =>
-      validationHelper.validateParams(zReference) match {
+      validationHelper.validateZReference(zReference) match {
         case Left(errors) => Future.successful(BadRequest(Json.toJson(errors)))
-        case Right((zReference, _)) =>
+        case Right(zReference) =>
           reconciliationReportReadyCallbackService.save(ReconciliationReportReady(zReference)).flatMap {
             case Left(err: InternalServerErr) =>
               Future.successful(InternalServerError(Json.toJson(err)))

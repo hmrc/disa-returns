@@ -80,13 +80,11 @@ class SubmissionConnector @Inject() (
     hc:                                     HeaderCarrier
   ): Future[Either[UpstreamErrorResponse, HttpResponse]] = {
     val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}"
-    retryFor("create monthly return submission")(retryCondition) {
-      httpClient
-        .post(url"$url")
-        .setHeader(authorizationHeader)
-        .withBody(Json.toJson(ReportingNilReturn(nilReturn = nilReturn)))
-        .executeOrFail
-    }
+    httpClient
+      .post(url"$url")
+      .setHeader(authorizationHeader)
+      .withBody(Json.toJson(ReportingNilReturn(nilReturn = nilReturn)))
+      .executeOrFail
       .map { response =>
         if (response.status >= BAD_REQUEST) {
           logger.warn(s"[SubmissionConnector][ensureMonthlyReturnExists] Received error status ${response.status} with body: ${response.body}")
@@ -114,13 +112,11 @@ class SubmissionConnector @Inject() (
   ): Future[Either[UpstreamErrorResponse, Unit]] = {
     val url =
       s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/$taxYear/${month.id}/submissions/$submissionId"
-    retryFor("send monthly return submission")(retryCondition) {
-      httpClient
-        .put(url"$url")
-        .setHeader(authorizationHeader)
-        .withBody(source)
-        .executeOrFail
-    }
+    httpClient
+      .put(url"$url")
+      .setHeader(authorizationHeader)
+      .withBody(source)
+      .executeOrFail
       .map { response =>
         if (response.status >= BAD_REQUEST) {
           logger.warn(s"[SubmissionConnector][sendSubmission] Received error status ${response.status} with body: ${response.body}")
@@ -145,17 +141,15 @@ class SubmissionConnector @Inject() (
       .execute[Option[MonthlyReturn]]
   }
 
-  def getReportingWindowStatus(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
-    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/reporting-window/status/$zReference"
+  def getMonthlyReturnReportingStatus(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, UpstreamErrorResponse, HttpResponse] = {
+    val url = s"${appConfig.submissionBaseUrl}/disa-returns-submission/monthly/$zReference/reporting-status"
     read(
-      retryFor("get submission reporting window status")(retryCondition) {
-        httpClient
-          .get(url"$url")
-          .setHeader(authorizationHeader)
-          .executeOrFail
-          .map(Right(_))
-      },
-      context = "[SubmissionConnector][getReportingWindowStatus]"
+      httpClient
+        .get(url"$url")
+        .setHeader(authorizationHeader)
+        .executeOrFail
+        .map(Right(_)),
+      context = "[SubmissionConnector][getMonthlyReturnReportingStatus]"
     )
   }
 

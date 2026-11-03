@@ -22,7 +22,7 @@ import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
 import play.api.http.MimeTypes.JSON
 import play.api.http.Status
 import play.api.http.Status.OK
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
 
 trait CommonStubs { self: TestData =>
@@ -61,9 +61,15 @@ trait CommonStubs { self: TestData =>
         }
     }
   
-  def stubReportingWindow(status: Int, open: Boolean, zReference: String = validZReference): Unit =
+  def stubMonthlyReturnReportingStatus(
+    status:                Int,
+    reportingWindowOpen:   Boolean = true,
+    obligationClosed:      Boolean = false,
+    monthlyReturnDeclared: Boolean = false,
+    zReference:            String = validZReference
+  ): Unit =
     stubFor(
-      get(urlEqualTo(s"/disa-returns-submission/reporting-window/status/$zReference"))
+      get(urlEqualTo(s"/disa-returns-submission/monthly/$zReference/reporting-status"))
         .withHeader(AUTHORIZATION, matching(".+"))
         .willReturn(
           aResponse()
@@ -71,37 +77,25 @@ trait CommonStubs { self: TestData =>
             .withBody(
               Json
                 .obj(
-                  "reportingWindowOpen"  -> open,
-                  "reportingWindowStart" -> "2026-06-06T00:00:00Z",
-                  "reportingWindowEnd"   -> "2026-06-19T23:59:59Z",
-                  "resolvedAt"           -> "2026-06-12T00:00:00Z"
+                  "reportingWindowOpen"   -> reportingWindowOpen,
+                  "reportingWindowStart"  -> "2026-06-06T00:00:00Z",
+                  "reportingWindowEnd"    -> "2026-06-19T23:59:59Z",
+                  "resolvedAt"            -> "2026-06-12T00:00:00Z",
+                  "taxYear"               -> "2026-27",
+                  "month"                 -> 5,
+                  "obligationClosed"      -> obligationClosed,
+                  "monthlyReturnDeclared" -> monthlyReturnDeclared,
+                  "nilReturn"             -> false
                 )
                 .toString
             )
         )
     )
 
-  def stubEtmpObligation(status: Int, body: JsObject, zReference: String): Unit =
-    stubFor(
-      get(urlEqualTo(s"/etmp/check-obligation-status/$zReference"))
-        .willReturn(aResponse().withStatus(status).withBody(body.toString))
-    )
-  def stubCloseEtmpObligation(status: Int, body: JsObject, zReference: String): Unit =
-    stubFor(
-      post(urlEqualTo(s"/etmp/close-obligation-status/$zReference"))
-        .willReturn(aResponse().withStatus(status).withBody(body.toString))
-    )
-
   def stubPPNSBoxId(boxResponseJson: String, clientId: String): Unit =
     stubFor(
       get(urlEqualTo(s"/box?clientId=$clientId&boxName=obligations%2Fdeclaration%2Fisa%2Freturn%23%231.0%23%23callbackUrl"))
         .willReturn(ok(boxResponseJson))
-    )
-
-  def stubETMPDeclaration(status: ResponseDefinitionBuilder, zReference: String): Unit =
-    stubFor(
-      post(urlEqualTo(s"/etmp/declaration/$zReference"))
-        .willReturn(status)
     )
 
   def stubSubmissionDeclaration(

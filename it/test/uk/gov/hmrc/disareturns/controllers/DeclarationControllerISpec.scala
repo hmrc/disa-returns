@@ -24,6 +24,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.await
+import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, ObligationClosed, ReportingWindowClosed}
 import uk.gov.hmrc.disareturns.utils.BaseIntegrationSpec
 
 class DeclarationControllerISpec extends BaseIntegrationSpec {
@@ -71,13 +72,58 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     }
 
     "map eligibility and submission failures" in {
-      stubReportingWindow(status = OK, open = false)
-      stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
+      stubMonthlyReturnReportingStatus(status = OK, reportingWindowOpen = false, obligationClosed = false)
       declarationRequest().status shouldBe FORBIDDEN
 
       stubEligible()
       stubSubmissionDeclaration(serverError, validZReference, taxYear, month)
       declarationRequest().status shouldBe INTERNAL_SERVER_ERROR
+    }
+
+    "return FORBIDDEN with ObligationClosed if the monthly return has already been declared" in {
+      stubMonthlyReturnReportingStatus(status = OK, monthlyReturnDeclared = true)
+
+      val result = declarationRequest()
+
+      result.status                 shouldBe FORBIDDEN
+      result.json.as[ErrorResponse] shouldBe ObligationClosed
+      verify(0, postRequestedFor(urlEqualTo(s"/disa-returns-submission/monthly/$validZReference/$taxYear/$month/declarations")))
+    }
+
+    "return FORBIDDEN with ObligationClosed if the monthly return is declared after the eligibility check" in {
+      stubEligible()
+      stubSubmissionDeclaration(
+        aResponse()
+          .withStatus(UNPROCESSABLE_ENTITY)
+          .withHeader(CONTENT_TYPE, JSON)
+          .withBody("""{"code":"MONTHLY_RETURN_ALREADY_DECLARED","message":"This monthly return was already declared"}"""),
+        validZReference,
+        taxYear,
+        month
+      )
+
+      val result = declarationRequest()
+
+      result.status                 shouldBe FORBIDDEN
+      result.json.as[ErrorResponse] shouldBe ObligationClosed
+    }
+
+    "return FORBIDDEN with ReportingWindowClosed if the reporting window closes after the eligibility check" in {
+      stubEligible()
+      stubSubmissionDeclaration(
+        aResponse()
+          .withStatus(UNPROCESSABLE_ENTITY)
+          .withHeader(CONTENT_TYPE, JSON)
+          .withBody("""{"code":"DECLARATION_PERIOD_CLOSED","message":"Monthly declaration period is closed."}"""),
+        validZReference,
+        taxYear,
+        month
+      )
+
+      val result = declarationRequest()
+
+      result.status                 shouldBe FORBIDDEN
+      result.json.as[ErrorResponse] shouldBe ReportingWindowClosed
     }
 
     "map missing submission data" in {
@@ -95,10 +141,8 @@ class DeclarationControllerISpec extends BaseIntegrationSpec {
     }
   }
 
-  private def stubEligible(): Unit = {
-    stubReportingWindow(status = OK, open = true)
-    stubEtmpObligation(status = OK, body = Json.obj("obligationAlreadyMet" -> false), zReference = validZReference)
-  }
+  private def stubEligible(): Unit =
+    stubMonthlyReturnReportingStatus(status = OK, reportingWindowOpen = true, obligationClosed = false)
 
   private def declarationRequest(
     zReference: String = validZReference,

@@ -28,7 +28,7 @@ import play.api.mvc.{Action, BodyParser, ControllerComponents}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders._
 import uk.gov.hmrc.disareturns.models.common._
 import uk.gov.hmrc.disareturns.models.submission.{ErrorVolume, InvalidSubmission, ValidatedSubmission, ValidationMetrics}
-import uk.gov.hmrc.disareturns.services.{AuditService, ETMPService, ReportingPeriodSource, StreamingParserService, SubmissionService}
+import uk.gov.hmrc.disareturns.services.{AuditService, MonthlyReturnEligibilityService, ReportingPeriodSource, StreamingParserService, SubmissionService}
 import uk.gov.hmrc.disareturns.utils.{HttpHelper, ValidationHelper}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -39,15 +39,15 @@ import scala.util.control.NonFatal
 
 @Singleton
 class SubmitReturnsController @Inject() (
-  cc:                       ControllerComponents,
-  streamingParserService:   StreamingParserService,
-  submissionService:        SubmissionService,
-  reportingPeriodSource:    ReportingPeriodSource,
-  authAction:               AuthAction,
-  validationHelper:         ValidationHelper,
-  auditService:             AuditService,
-  implicit val etmpService: ETMPService
-)(implicit ec:              ExecutionContext, val mat: Materializer)
+  cc:                              ControllerComponents,
+  streamingParserService:          StreamingParserService,
+  submissionService:               SubmissionService,
+  reportingPeriodSource:           ReportingPeriodSource,
+  authAction:                      AuthAction,
+  validationHelper:                ValidationHelper,
+  auditService:                    AuditService,
+  implicit val eligibilityService: MonthlyReturnEligibilityService
+)(implicit ec:                     ExecutionContext, val mat: Materializer)
     extends BackendController(cc)
     with Logging {
 
@@ -58,13 +58,13 @@ class SubmitReturnsController @Inject() (
   private def ignoreBodyParser: BodyParser[Source[ByteString, _]] = BodyParser(_ => Accumulator.done(Right(Source.empty[ByteString])))
 
   def submit(zReference: String): Action[Source[ByteString, _]] =
-    validationHelper.validateParams(zReference) match {
+    validationHelper.validateZReference(zReference) match {
       case Left(errors) => Action.async(ignoreBodyParser)(_ => Future.successful(BadRequest(Json.toJson(errors))))
-      case Right((zRef, _)) =>
+      case Right(zRef) =>
         (Action andThen authAction(zRef)).async(streamingParser) { implicit request =>
           implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
           reportingPeriodSource.get(zRef).flatMap { reportingPeriod =>
-            etmpService.validateEtmpSubmissionEligibility(zRef).flatMap {
+            eligibilityService.validateSubmissionEligibility(zRef).flatMap {
               case Right(_) =>
                 streamingParserService.processToTempFile(request.body).flatMap {
                   case Left(InvalidSubmission(error, errorVolumes, metrics)) =>

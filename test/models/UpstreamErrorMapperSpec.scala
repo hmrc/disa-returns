@@ -18,9 +18,9 @@ package models
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.http.Status.{MULTI_STATUS, UNPROCESSABLE_ENTITY}
+import play.api.http.Status.{CONFLICT, MULTI_STATUS, UNPROCESSABLE_ENTITY}
 import play.mvc.Http.Status
-import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, MonthlyReturnNotSubmitted, UnauthorisedErr}
+import uk.gov.hmrc.disareturns.models.common.{InternalServerErr, MonthlyReturnNotSubmitted, ObligationClosed, ReportingWindowClosed, UnauthorisedErr}
 import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
@@ -68,7 +68,37 @@ class UpstreamErrorMapperSpec extends AnyWordSpec with Matchers {
       result shouldBe MonthlyReturnNotSubmitted
     }
 
-    "map 422 response without NO_SUBMISSION_DATA code to InternalServerErr" in {
+    "map 422 response with MONTHLY_RETURN_ALREADY_DECLARED code to ObligationClosed" in {
+      val body   = """{"code":"MONTHLY_RETURN_ALREADY_DECLARED","message":"This monthly return was already declared"}"""
+      val err    = UpstreamErrorResponse(body, UNPROCESSABLE_ENTITY, UNPROCESSABLE_ENTITY)
+      val result = UpstreamErrorMapper.mapToErrorResponse(err)
+      result shouldBe ObligationClosed
+    }
+
+    "map 422 response with DECLARATION_PERIOD_CLOSED code to ReportingWindowClosed" in {
+      val body   = """{"code":"DECLARATION_PERIOD_CLOSED","message":"Monthly declaration period is closed."}"""
+      val err    = UpstreamErrorResponse(body, UNPROCESSABLE_ENTITY, UNPROCESSABLE_ENTITY)
+      val result = UpstreamErrorMapper.mapToErrorResponse(err)
+      result shouldBe ReportingWindowClosed
+    }
+
+    "map 409 response with MONTHLY_RETURN_ALREADY_DECLARED code embedded in HMRC formatted message to ObligationClosed" in {
+      val body = """{"code":"MONTHLY_RETURN_ALREADY_DECLARED","message":"This monthly return was already declared"}"""
+      val message =
+        s"PUT of 'http://localhost:11111/disa-returns-submission/monthly/Z7900/2025-26/2/submissions/id' returned 409. Response body: '$body'"
+      val err    = UpstreamErrorResponse(message, CONFLICT, CONFLICT)
+      val result = UpstreamErrorMapper.mapToErrorResponse(err)
+      result shouldBe ObligationClosed
+    }
+
+    "map 409 response without a recognised code to InternalServerErr" in {
+      val body   = """{"ERROR":"Submission has already been stored or the monthly return cannot accept it"}"""
+      val err    = UpstreamErrorResponse(body, CONFLICT, CONFLICT)
+      val result = UpstreamErrorMapper.mapToErrorResponse(err)
+      result shouldBe InternalServerErr()
+    }
+
+    "map 422 response without a recognised code to InternalServerErr" in {
       val body   = """{"ERROR":"This monthly return was already declared"}"""
       val err    = UpstreamErrorResponse(body, UNPROCESSABLE_ENTITY, UNPROCESSABLE_ENTITY)
       val result = UpstreamErrorMapper.mapToErrorResponse(err)

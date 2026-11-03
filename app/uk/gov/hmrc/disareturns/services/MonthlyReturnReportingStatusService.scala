@@ -20,7 +20,7 @@ import cats.data.EitherT
 import play.api.Logging
 import uk.gov.hmrc.disareturns.connectors.SubmissionConnector
 import uk.gov.hmrc.disareturns.models.common.{ErrorResponse, InternalServerErr}
-import uk.gov.hmrc.disareturns.models.submission.ReportingWindowStatus
+import uk.gov.hmrc.disareturns.models.submission.MonthlyReturnReportingStatus
 import uk.gov.hmrc.disareturns.utils.UpstreamErrorMapper.mapToErrorResponse
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -28,19 +28,19 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ReportingWindowService @Inject() (connector: SubmissionConnector)(implicit ec: ExecutionContext) extends Logging {
+class MonthlyReturnReportingStatusService @Inject() (connector: SubmissionConnector)(implicit ec: ExecutionContext) extends Logging {
 
-  def getReportingWindowStatus(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, ReportingWindowStatus] = {
-    logger.info("[ReportingWindowService][getReportingWindowStatus] Getting reporting window status")
+  def getReportingStatus(zReference: String)(implicit hc: HeaderCarrier): EitherT[Future, ErrorResponse, MonthlyReturnReportingStatus] = {
+    logger.info(s"[MonthlyReturnReportingStatusService][getReportingStatus] Getting monthly return reporting status for IM ref: [$zReference]")
     EitherT {
-      connector.getReportingWindowStatus(zReference).value.map {
+      connector.getMonthlyReturnReportingStatus(zReference).value.map {
         case Left(upstreamError) => Left(mapToErrorResponse(upstreamError))
         case Right(response) =>
           response.json
-            .validate[ReportingWindowStatus]
+            .validate[MonthlyReturnReportingStatus]
             .fold(
               _ => Left(InternalServerErr()),
-              reportingWindowStatus => Right(reportingWindowStatus)
+              reportingStatus => Right(reportingStatus)
             )
       }
     }
