@@ -18,13 +18,14 @@ package uk.gov.hmrc.disareturns.controllers.actionBuilders
 
 import play.api.Logging
 import play.api.libs.json.Json
-import play.api.mvc.Results.{InternalServerError, Unauthorized}
+import play.api.mvc.Results.{Forbidden, InternalServerError, Unauthorized}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.AffinityGroup.Agent
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, Retrieval, ~}
-import uk.gov.hmrc.disareturns.models.common.{IdentifierRequest, InternalServerErr, UnauthorisedErr, UserDetails}
+import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.models.common.{AgentClientRelationshipNotFound, IdentifierRequest, InternalServerErr, UnauthorisedErr, UserDetails}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
@@ -35,7 +36,9 @@ trait AuthAction {
   def apply(zRef: String): ActionBuilder[IdentifierRequest, AnyContent]
 }
 
-abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext) extends AuthAction with Logging {
+abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents, appConfig: AppConfig)(implicit ec: ExecutionContext)
+    extends AuthAction
+    with Logging {
 
   protected type UserDetailsRetrievals = Option[Credentials] ~ Option[CredentialRole] ~ Option[AffinityGroup] ~ AgentInformation ~ Option[String]
 
@@ -49,6 +52,14 @@ abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(impli
   protected def authorise[A](zRef: String, request: Request[A], block: IdentifierRequest[A] => Future[Result])(implicit
     hc:                            HeaderCarrier
   ): Future[Result]
+
+  protected def isAgent(retrievals: UserDetailsRetrievals): Boolean = {
+    val _ ~ _ ~ maybeAffinityGroup ~ _ ~ _ = retrievals
+    maybeAffinityGroup.contains(Agent)
+  }
+
+  protected def ensureAgentAuthenticationEnabled(): Unit =
+    if (!appConfig.agentAuthenticationEnabled) throw InternalError("Agent authentication is disabled.")
 
   protected def withUserDetails[A](zRef: String, request: Request[A], retrievals: UserDetailsRetrievals)(
     block:                               IdentifierRequest[A] => Future[Result]
@@ -100,30 +111,63 @@ abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(impli
 }
 
 @Singleton
-class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext)
-    extends BaseAuthAction(ac, cc) {
+class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents, appConfig: AppConfig)(implicit ec: ExecutionContext)
+    extends BaseAuthAction(ac, cc, appConfig) {
 
   override protected def authorise[A](zRef: String, request: Request[A], block: IdentifierRequest[A] => Future[Result])(implicit
     hc:                                     HeaderCarrier
   ): Future[Result] =
-    auth.authorised(Enrolment(enrolmentKey)).retrieve(authorisedEnrolments and userDetailsRetrievals) { case enrolments ~ retrievals =>
-      val zRefMatchesEnrolment = enrolments
-        .getEnrolment(enrolmentKey)
-        .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
-
-      if (zRefMatchesEnrolment) withUserDetails(zRef, request, retrievals)(block)
+    auth.authorised().retrieve(allEnrolments and userDetailsRetrievals) { case enrolments ~ retrievals =>
+      if (isAgent(retrievals)) authoriseAgent(zRef, request, retrievals, block)
+      else if (hasEnrolmentFor(enrolments, zRef)) withUserDetails(zRef, request, retrievals)(block)
       else throw InternalError("Z-Ref does not match enrolment.")
     }
 
-  private val enrolmentKey  = "HMRC-DISA-ORG"
-  private val identifierKey = "ZREF"
+  private def hasEnrolmentFor(enrolments: Enrolments, zRef: String): Boolean =
+    enrolments
+      .getEnrolment(enrolmentKey)
+      .filter(_.isActivated)
+      .flatMap(_.getIdentifier(identifierKey))
+      .exists(_.value == zRef)
+
+  private def authoriseAgent[A](
+    zRef:        String,
+    request:     Request[A],
+    retrievals:  UserDetailsRetrievals,
+    block:       IdentifierRequest[A] => Future[Result]
+  )(implicit hc: HeaderCarrier): Future[Result] = {
+    ensureAgentAuthenticationEnabled()
+
+    auth
+      .authorised(agentDelegatedEnrolmentPredicate(zRef))(Future.successful(true))
+      .recover { case _: InsufficientEnrolments => false }
+      .flatMap {
+        case true => withUserDetails(zRef, request, retrievals)(block)
+        case false =>
+          logger.warn(s"[EnrolmentVerificationAuthAction][authoriseAgent] Agent does not have a delegated enrolment for Z-Ref [$zRef]")
+          Future.successful(Forbidden(Json.toJson(AgentClientRelationshipNotFound(zRef))))
+      }
+  }
+
+  private def agentDelegatedEnrolmentPredicate(zRef: String): Enrolment =
+    Enrolment(enrolmentKey)
+      .withIdentifier(identifierKey, zRef)
+      .withDelegatedAuthRule(delegatedAuthRule)
+
+  private val enrolmentKey      = "HMRC-DISA-ORG"
+  private val identifierKey     = "ZREF"
+  private val delegatedAuthRule = "disa-auth"
 }
 
 @Singleton
-class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext) extends BaseAuthAction(ac, cc) {
+class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents, appConfig: AppConfig)(implicit ec: ExecutionContext)
+    extends BaseAuthAction(ac, cc, appConfig) {
 
   override protected def authorise[A](zRef: String, request: Request[A], block: IdentifierRequest[A] => Future[Result])(implicit
     hc:                                     HeaderCarrier
   ): Future[Result] =
-    auth.authorised().retrieve(userDetailsRetrievals)(retrievals => withUserDetails(zRef, request, retrievals)(block))
+    auth.authorised().retrieve(userDetailsRetrievals) { retrievals =>
+      if (isAgent(retrievals)) ensureAgentAuthenticationEnabled()
+      withUserDetails(zRef, request, retrievals)(block)
+    }
 }

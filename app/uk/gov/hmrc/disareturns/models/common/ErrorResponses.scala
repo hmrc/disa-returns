@@ -32,6 +32,11 @@ case object UnauthorisedErr extends ErrorResponse {
   val message = "Unauthorised"
 }
 
+case class AgentClientRelationshipNotFound(zReference: String) extends ErrorResponse {
+  val code    = "AGENT_CLIENT_RELATIONSHIP_NOT_FOUND"
+  val message = s"We are unable to authenticate your access to $zReference"
+}
+
 case class InternalServerErr(
   message: String = "There has been an issue processing your request"
 ) extends ErrorResponse {

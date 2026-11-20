@@ -31,7 +31,7 @@ trait CommonStubs { self: TestData =>
 
   def stubAuth(zRef: String = validZReference): Unit = {
     val validEnrolment = s"""{
-      "authorisedEnrolments": [{
+      "allEnrolments": [{
         "key": "HMRC-DISA-ORG",
         "identifiers": [{ "key": "ZREF", "value": "$zRef" }],
         "state": "Activated"
@@ -51,6 +51,36 @@ trait CommonStubs { self: TestData =>
     }
   }
 
+  def stubAgentAuth(hasDelegatedEnrolment: Boolean, zRef: String = validZReference): Unit = {
+    val agentDetails = """{
+      "allEnrolments": [{
+        "key": "HMRC-AS-AGENT",
+        "identifiers": [{ "key": "AgentReferenceNumber", "value": "TARN0000001" }],
+        "state": "Activated"
+      }],
+      "credentialRole": "User",
+      "affinityGroup": "Agent",
+      "agentInformation": { "agentId": "testAgentId", "agentFriendlyName": "testAgent" },
+      "groupIdentifier": "testGroupId"
+      }"""
+
+    stubFor {
+      post("/auth/authorise")
+        .willReturn(aResponse.withStatus(OK).withBody(agentDetails))
+    }
+
+    val delegatedEnrolmentResponse =
+      if (hasDelegatedEnrolment) aResponse.withStatus(OK).withBody("{}")
+      else aResponse.withStatus(Status.UNAUTHORIZED).withHeader("WWW-Authenticate", "MDTP detail=\"InsufficientEnrolments\"")
+
+    stubFor {
+      post("/auth/authorise")
+        .withRequestBody(matchingJsonPath("$.authorise[0].delegatedAuthRule", equalTo("disa-auth")))
+        .withRequestBody(matchingJsonPath("$.authorise[0].identifiers[0].value", equalTo(zRef)))
+        .willReturn(delegatedEnrolmentResponse)
+    }
+  }
+
   def stubAuthFail(): Unit =
     stubFor {
       post("/auth/authorise")
@@ -60,7 +90,7 @@ trait CommonStubs { self: TestData =>
             .withBody("{}")
         }
     }
-  
+
   def stubMonthlyReturnReportingStatus(
     status:                Int,
     reportingWindowOpen:   Boolean = true,
