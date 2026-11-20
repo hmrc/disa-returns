@@ -2,6 +2,19 @@
 
 All notable changes to this API will be documented in this file. Learn about API features, fixes, deprecations and documentation changes.
 
+## 19 November 2026
+
+### Updates
+
+- Added agent support. Agents can now submit and declare monthly reports and retrieve reconciliation results for an ISA manager they are authorised to act for.
+- The `read:isa-returns` and `write:isa-returns` scopes can now be granted to agents.
+- Added new error response `AGENT_CLIENT_RELATIONSHIP_NOT_FOUND` (403). It is returned when an agent is not authorised to act for the ISA manager with the requested Z-reference.
+
+### What impact does this have?
+
+- Agents must have an authorised relationship with the ISA manager for the requested Z-reference before calling the submit, declare or get reconciliation results endpoints.
+- Consumers should handle the new `AGENT_CLIENT_RELATIONSHIP_NOT_FOUND` error code in their error handling logic.
+
 ## 3 September 2026
 
 ### Updates

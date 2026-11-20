@@ -29,6 +29,33 @@ trait CommonStubs { self: TestData =>
 
   private val submissionIdPattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
+  private val enrolmentVerificationAuthRequest = """{
+    "authorise":[{"$or":[
+      {"enrolment":"HMRC-DISA-ORG","identifiers":[],"state":"Activated"},
+      {"affinityGroup":"Agent"}
+    ]}],
+    "retrieve":["authorisedEnrolments","optionalCredentials","credentialRole","affinityGroup","agentInformation","groupIdentifier"]
+  }"""
+
+  private val authenticatedAuthRequest = """{
+    "authorise":[],
+    "retrieve":["optionalCredentials","credentialRole","affinityGroup","agentInformation","groupIdentifier"]
+  }"""
+
+  def agentDelegatedAuthRequest(zRef: String = validZReference): String = Json.stringify(
+    Json.obj(
+      "authorise" -> Json.arr(
+        Json.obj(
+          "enrolment"         -> "HMRC-DISA-ORG",
+          "identifiers"       -> Json.arr(Json.obj("key" -> "ZREF", "value" -> zRef)),
+          "state"             -> "Activated",
+          "delegatedAuthRule" -> "disa-auth"
+        )
+      ),
+      "retrieve" -> Json.arr()
+    )
+  )
+
   def stubAuth(zRef: String = validZReference): Unit = {
     val validEnrolment = s"""{
       "authorisedEnrolments": [{
@@ -45,11 +72,40 @@ trait CommonStubs { self: TestData =>
 
     stubFor {
       post("/auth/authorise")
+        .withRequestBody(equalToJson(enrolmentVerificationAuthRequest))
         .willReturn {
           aResponse.withStatus(OK).withBody(validEnrolment)
         }
     }
   }
+
+  def stubAgentAuth(hasDelegatedEnrolment: Boolean, enrolmentCheckEnabled: Boolean = true, zRef: String = validZReference): Unit = {
+    val agentDetails = """{
+      "authorisedEnrolments": [],
+      "affinityGroup": "Agent",
+      "agentInformation": { "agentId": "testAgentId", "agentFriendlyName": "testAgent" },
+      "groupIdentifier": "testGroupId"
+      }"""
+
+    stubFor {
+      post("/auth/authorise")
+        .withRequestBody(equalToJson(if (enrolmentCheckEnabled) enrolmentVerificationAuthRequest else authenticatedAuthRequest))
+        .willReturn(aResponse.withStatus(OK).withBody(agentDetails))
+    }
+
+    val delegatedEnrolmentResponse =
+      if (hasDelegatedEnrolment) aResponse.withStatus(OK).withBody("{}")
+      else aResponse.withStatus(Status.UNAUTHORIZED).withHeader("WWW-Authenticate", "MDTP detail=\"InsufficientEnrolments\"")
+
+    stubFor {
+      post("/auth/authorise")
+        .withRequestBody(equalToJson(agentDelegatedAuthRequest(zRef)))
+        .willReturn(delegatedEnrolmentResponse)
+    }
+  }
+
+  def verifyAgentDelegatedAuthRequested(times: Int, zRef: String = validZReference): Unit =
+    verify(times, postRequestedFor(urlEqualTo("/auth/authorise")).withRequestBody(equalToJson(agentDelegatedAuthRequest(zRef))))
 
   def stubAuthFail(): Unit =
     stubFor {
@@ -60,7 +116,7 @@ trait CommonStubs { self: TestData =>
             .withBody("{}")
         }
     }
-  
+
   def stubMonthlyReturnReportingStatus(
     status:                Int,
     reportingWindowOpen:   Boolean = true,

@@ -18,13 +18,14 @@ package uk.gov.hmrc.disareturns.controllers.actionBuilders
 
 import play.api.Logging
 import play.api.libs.json.Json
-import play.api.mvc.Results.{InternalServerError, Unauthorized}
+import play.api.mvc.Results.{Forbidden, InternalServerError, Unauthorized}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.AffinityGroup.Agent
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
-import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, Retrieval, ~}
-import uk.gov.hmrc.disareturns.models.common.{IdentifierRequest, InternalServerErr, UnauthorisedErr, UserDetails}
+import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ~}
+import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.models.common.{AgentClientRelationshipNotFound, IdentifierRequest, InternalServerErr, UnauthorisedErr, UserDetails}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
@@ -37,11 +38,6 @@ trait AuthAction {
 
 abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext) extends AuthAction with Logging {
 
-  protected type UserDetailsRetrievals = Option[Credentials] ~ Option[CredentialRole] ~ Option[AffinityGroup] ~ AgentInformation ~ Option[String]
-
-  protected val userDetailsRetrievals: Retrieval[UserDetailsRetrievals] =
-    credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier
-
   protected val auth: AuthorisedFunctions = new AuthorisedFunctions {
     override def authConnector: AuthConnector = ac
   }
@@ -50,29 +46,50 @@ abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(impli
     hc:                            HeaderCarrier
   ): Future[Result]
 
-  protected def withUserDetails[A](zRef: String, request: Request[A], retrievals: UserDetailsRetrievals)(
-    block:                               IdentifierRequest[A] => Future[Result]
-  ): Future[Result] = {
-    val maybeCredentials ~ maybeCredentialRole ~ maybeAffinityGroup ~ agentInfo ~ maybeGroupId = retrievals
-
-    val maybeUserDetails: Option[UserDetails] = (maybeCredentials, maybeCredentialRole, maybeAffinityGroup, maybeGroupId) match {
-      case (_, _, Some(Agent), Some(groupId)) =>
-        Some(
-          UserDetails.Agent(
-            groupId = groupId,
-            agentId = agentInfo.agentId.getOrElse(UserDetails.unknown),
-            agentName = agentInfo.agentFriendlyName.getOrElse(UserDetails.unknown)
-          )
+  protected def authenticateIsaManagerWithRole[A](
+    zRef:                String,
+    request:             Request[A],
+    credentials:         Credentials,
+    groupId:             String,
+    maybeCredentialRole: Option[CredentialRole]
+  )(block:               IdentifierRequest[A] => Future[Result]): Future[Result] =
+    maybeCredentialRole.fold {
+      logger.warn("[AuthAction][authenticateIsaManager] User was missing credential role")
+      rejectUnauthorised()
+    } { role =>
+      block(
+        IdentifierRequest(
+          request,
+          zRef,
+          UserDetails.IsaManager(groupId = groupId, credId = credentials.providerId, credentialRole = role.toString)
         )
-      case (Some(credentials), Some(role), Some(_), Some(groupId)) =>
-        Some(UserDetails.IsaManager(groupId = groupId, credId = credentials.providerId, credentialRole = role.toString))
-      case _ => None
+      )
     }
 
-    maybeUserDetails.fold[Future[Result]](throw InternalError("User was missing audit identity details.")) { userDetails =>
-      block(IdentifierRequest(request, zRef, userDetails))
-    }
+  protected def agentDetails(groupId: String, agentInformation: AgentInformation): UserDetails.Agent =
+    UserDetails.Agent(
+      groupId = groupId,
+      agentId = agentInformation.agentId.getOrElse(UserDetails.unknown),
+      agentName = agentInformation.agentFriendlyName.getOrElse(UserDetails.unknown)
+    )
+
+  protected def rejectDisabledAgentAuthentication(): Future[Result] = {
+    logger.warn("[AuthAction][authorise] Agent authentication is disabled")
+    rejectUnauthorised()
   }
+
+  protected def rejectMissingAgentGroupId(): Future[Result] = {
+    logger.warn("[AuthAction][authorise] Agent group ID is missing")
+    rejectUnauthorised()
+  }
+
+  protected def rejectMissingAuditIdentity(): Future[Result] = {
+    logger.warn("[AuthAction][authorise] User was missing audit identity details")
+    rejectUnauthorised()
+  }
+
+  protected def rejectUnauthorised(): Future[Result] =
+    Future.successful(Unauthorized(Json.toJson(UnauthorisedErr)))
 
   final override def apply(zRef: String): ActionBuilder[IdentifierRequest, AnyContent] =
     new ActionBuilder[IdentifierRequest, AnyContent] {
@@ -100,30 +117,96 @@ abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(impli
 }
 
 @Singleton
-class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext)
+class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents, appConfig: AppConfig)(implicit ec: ExecutionContext)
     extends BaseAuthAction(ac, cc) {
 
   override protected def authorise[A](zRef: String, request: Request[A], block: IdentifierRequest[A] => Future[Result])(implicit
     hc:                                     HeaderCarrier
   ): Future[Result] =
-    auth.authorised(Enrolment(enrolmentKey)).retrieve(authorisedEnrolments and userDetailsRetrievals) { case enrolments ~ retrievals =>
-      val zRefMatchesEnrolment = enrolments
-        .getEnrolment(enrolmentKey)
-        .fold(false)(_.getIdentifier(identifierKey).exists(_.value == zRef))
+    auth
+      .authorised(Enrolment(enrolmentKey) or Agent)
+      .retrieve(authorisedEnrolments and credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier) {
+        case enrolments ~ maybeCredentials ~ maybeCredentialRole ~ maybeAffinityGroup ~ agentInfo ~ maybeGroupId =>
+          (maybeCredentials, maybeAffinityGroup, maybeGroupId) match {
+            case (_, Some(Agent), _) if !appConfig.agentAuthenticationEnabled =>
+              rejectDisabledAgentAuthentication()
+            case (_, Some(Agent), Some(groupId)) =>
+              authenticateAgent(zRef, request, groupId, agentInfo)(block)
+            case (_, Some(Agent), None) =>
+              rejectMissingAgentGroupId()
+            case (Some(credentials), Some(_), Some(groupId)) =>
+              authenticateIsaManager(zRef, request, enrolments, credentials, groupId, maybeCredentialRole)(block)
+            case _ =>
+              rejectMissingAuditIdentity()
+          }
+      }
 
-      if (zRefMatchesEnrolment) withUserDetails(zRef, request, retrievals)(block)
-      else throw InternalError("Z-Ref does not match enrolment.")
-    }
+  private val enrolmentKey      = "HMRC-DISA-ORG"
+  private val identifierKey     = "ZREF"
+  private val delegatedAuthRule = "disa-auth"
 
-  private val enrolmentKey  = "HMRC-DISA-ORG"
-  private val identifierKey = "ZREF"
+  private def authenticateAgent[A](
+    zRef:             String,
+    request:          Request[A],
+    groupId:          String,
+    agentInformation: AgentInformation
+  )(block:            IdentifierRequest[A] => Future[Result])(implicit hc: HeaderCarrier): Future[Result] =
+    auth
+      .authorised(
+        Enrolment(enrolmentKey)
+          .withIdentifier(identifierKey, zRef)
+          .withDelegatedAuthRule(delegatedAuthRule)
+      ) {
+        block(IdentifierRequest(request, zRef, agentDetails(groupId, agentInformation)))
+      }
+      .recover { case _: InsufficientEnrolments =>
+        logger.warn(s"[EnrolmentVerificationAuthAction][authenticateAgent] Agent does not have a delegated enrolment for Z-Ref [$zRef]")
+        Forbidden(Json.toJson(AgentClientRelationshipNotFound(zRef)))
+      }
+
+  private def authenticateIsaManager[A](
+    zRef:                String,
+    request:             Request[A],
+    enrolments:          Enrolments,
+    credentials:         Credentials,
+    groupId:             String,
+    maybeCredentialRole: Option[CredentialRole]
+  )(block:               IdentifierRequest[A] => Future[Result]): Future[Result] =
+    enrolments
+      .getEnrolment(enrolmentKey)
+      .flatMap(_.getIdentifier(identifierKey))
+      .map(_.value)
+      .filter(_ == zRef)
+      .fold {
+        logger.warn(
+          s"[EnrolmentVerificationAuthAction][authenticateIsaManager] User does not have a $identifierKey identifier matching Z-Ref [$zRef]"
+        )
+        rejectUnauthorised()
+      }(_ => authenticateIsaManagerWithRole(zRef, request, credentials, groupId, maybeCredentialRole)(block))
 }
 
 @Singleton
-class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext) extends BaseAuthAction(ac, cc) {
+class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents, appConfig: AppConfig)(implicit ec: ExecutionContext)
+    extends BaseAuthAction(ac, cc) {
 
   override protected def authorise[A](zRef: String, request: Request[A], block: IdentifierRequest[A] => Future[Result])(implicit
     hc:                                     HeaderCarrier
   ): Future[Result] =
-    auth.authorised().retrieve(userDetailsRetrievals)(retrievals => withUserDetails(zRef, request, retrievals)(block))
+    auth
+      .authorised()
+      .retrieve(credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier) {
+        case maybeCredentials ~ maybeCredentialRole ~ maybeAffinityGroup ~ agentInfo ~ maybeGroupId =>
+          (maybeCredentials, maybeAffinityGroup, maybeGroupId) match {
+            case (_, Some(Agent), _) if !appConfig.agentAuthenticationEnabled =>
+              rejectDisabledAgentAuthentication()
+            case (_, Some(Agent), Some(groupId)) =>
+              block(IdentifierRequest(request, zRef, agentDetails(groupId, agentInfo)))
+            case (_, Some(Agent), None) =>
+              rejectMissingAgentGroupId()
+            case (Some(credentials), Some(_), Some(groupId)) =>
+              authenticateIsaManagerWithRole(zRef, request, credentials, groupId, maybeCredentialRole)(block)
+            case _ =>
+              rejectMissingAuditIdentity()
+          }
+      }
 }

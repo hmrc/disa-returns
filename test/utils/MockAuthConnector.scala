@@ -16,7 +16,7 @@
 
 package utils
 
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.auth.core._
@@ -27,6 +27,9 @@ import scala.concurrent.Future
 trait MockAuthConnector { self: TestData =>
 
   type UserDetailsRetrievals = Option[Credentials] ~ Option[CredentialRole] ~ Option[AffinityGroup] ~ AgentInformation ~ Option[String]
+
+  type EnrolmentRetrievals =
+    Enrolments ~ Option[Credentials] ~ Option[CredentialRole] ~ Option[AffinityGroup] ~ AgentInformation ~ Option[String]
 
   val mockAuthConnector: AuthConnector = mock[AuthConnector]
 
@@ -61,9 +64,26 @@ trait MockAuthConnector { self: TestData =>
       )
     )
 
-    when(mockAuthConnector.authorise[Enrolments ~ UserDetailsRetrievals](any(), any())(any(), any()))
-      .thenReturn(Future.successful(new ~(enrolment, userDetails)))
+    val maybeCredentials ~ maybeCredentialRole ~ maybeAffinityGroup ~ agentInformation ~ maybeGroupId = userDetails
+
+    when(mockAuthConnector.authorise[EnrolmentRetrievals](any(), any())(any(), any()))
+      .thenReturn(
+        Future.successful(
+          new ~(new ~(new ~(new ~(new ~(enrolment, maybeCredentials), maybeCredentialRole), maybeAffinityGroup), agentInformation), maybeGroupId)
+        )
+      )
   }
+
+  def agentDelegatedEnrolmentPredicate(zRef: String = validZReference): Enrolment =
+    Enrolment("HMRC-DISA-ORG").withIdentifier("ZREF", zRef).withDelegatedAuthRule("disa-auth")
+
+  def stubAgentDelegatedEnrolmentSuccess(zRef: String = validZReference): Unit =
+    when(mockAuthConnector.authorise[Unit](eqTo(agentDelegatedEnrolmentPredicate(zRef)), any())(any(), any()))
+      .thenReturn(Future.unit)
+
+  def stubAgentDelegatedEnrolmentFailure(authException: Exception = InsufficientEnrolments(), zRef: String = validZReference): Unit =
+    when(mockAuthConnector.authorise[Unit](eqTo(agentDelegatedEnrolmentPredicate(zRef)), any())(any(), any()))
+      .thenReturn(Future.failed(authException))
 
   def authorizationForZRef(zRef: String = validZReference): Unit =
     stubEnrolments(zRef = zRef)
