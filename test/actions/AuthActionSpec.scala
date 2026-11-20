@@ -24,7 +24,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.auth.core.authorise.{EmptyPredicate, Predicate}
+import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, ~}
@@ -80,10 +80,10 @@ class AuthActionSpec extends BaseUnitSpec {
       )(any(), any())
 
       val actualPredicate   = predicateCaptor.getValue
-      val expectedPredicate = EmptyPredicate
+      val expectedPredicate = Enrolment("HMRC-DISA-ORG") or AffinityGroup.Agent
 
       val actualRetrieval   = retrievalCaptor.getValue
-      val expectedRetrieval = allEnrolments and (credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier)
+      val expectedRetrieval = authorisedEnrolments and credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier
 
       withClue(
         s"""
@@ -145,6 +145,16 @@ class AuthActionSpec extends BaseUnitSpec {
       stubEnrolments(userDetails = agentRetrievals())
 
       val result = enrolmentAuthAction(validZReference, agentAuthenticationEnabled = false).invokeBlock(FakeRequest(), testBlock)
+
+      status(result)        shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
+      verify(mockAuthConnector, never()).authorise(eqTo(agentDelegatedEnrolmentPredicate()), any())(any(), any())
+    }
+
+    "return UNAUTHORISED without checking for a delegated enrolment when the agent group identifier is missing" in {
+      stubEnrolments(userDetails = agentRetrievals(groupId = None))
+
+      val result = enrolmentAuthAction(validZReference).invokeBlock(FakeRequest(), testBlock)
 
       status(result)        shouldBe UNAUTHORIZED
       contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
@@ -221,15 +231,6 @@ class AuthActionSpec extends BaseUnitSpec {
       contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
     }
 
-    "return UNAUTHORISED when the enrolment is not activated" in {
-      stubEnrolments(state = "NotYetActivated")
-
-      val result = enrolmentAuthAction(validZReference).invokeBlock(FakeRequest(), testBlock)
-
-      status(result)        shouldBe UNAUTHORIZED
-      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
-    }
-
     "return UNAUTHORISED when identifier is missing" in {
       stubEnrolments(identifierKey = None)
 
@@ -294,6 +295,16 @@ class AuthActionSpec extends BaseUnitSpec {
       captured.future.futureValue shouldBe testAgentDetails
       verify(mockAuthConnector, times(1)).authorise(any(), any())(any(), any())
       verify(mockAuthConnector, never()).authorise(eqTo(agentDelegatedEnrolmentPredicate()), any())(any(), any())
+    }
+
+    "return UNAUTHORISED for an agent without a group identifier when enrolment verification is disabled" in {
+      when(mockAuthConnector.authorise[UserDetailsRetrievals](any(), any())(any(), any()))
+        .thenReturn(Future.successful(agentRetrievals(groupId = None)))
+
+      val result = authenticatedAuthAction(validZReference).invokeBlock(FakeRequest(), testBlock)
+
+      status(result)        shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
     }
 
     "return UNAUTHORISED for an agent when enrolment verification and agent authentication are disabled" in {

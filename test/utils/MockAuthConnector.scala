@@ -28,6 +28,9 @@ trait MockAuthConnector { self: TestData =>
 
   type UserDetailsRetrievals = Option[Credentials] ~ Option[CredentialRole] ~ Option[AffinityGroup] ~ AgentInformation ~ Option[String]
 
+  type EnrolmentRetrievals =
+    Enrolments ~ Option[Credentials] ~ Option[CredentialRole] ~ Option[AffinityGroup] ~ AgentInformation ~ Option[String]
+
   val mockAuthConnector: AuthConnector = mock[AuthConnector]
 
   def isaManagerRetrievals(
@@ -61,8 +64,14 @@ trait MockAuthConnector { self: TestData =>
       )
     )
 
-    when(mockAuthConnector.authorise[Enrolments ~ UserDetailsRetrievals](any(), any())(any(), any()))
-      .thenReturn(Future.successful(new ~(enrolment, userDetails)))
+    val maybeCredentials ~ maybeCredentialRole ~ maybeAffinityGroup ~ agentInformation ~ maybeGroupId = userDetails
+
+    when(mockAuthConnector.authorise[EnrolmentRetrievals](any(), any())(any(), any()))
+      .thenReturn(
+        Future.successful(
+          new ~(new ~(new ~(new ~(new ~(enrolment, maybeCredentials), maybeCredentialRole), maybeAffinityGroup), agentInformation), maybeGroupId)
+        )
+      )
   }
 
   def agentDelegatedEnrolmentPredicate(zRef: String = validZReference): Enrolment =

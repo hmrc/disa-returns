@@ -99,6 +99,7 @@ class AgentAuthorisationISpec extends BaseIntegrationSpec with AgentAuthorisatio
         stubAgentAuth(hasDelegatedEnrolment = true)
 
         request().status shouldBe successStatus
+        verifyAgentDelegatedAuthRequested(times = 1)
       }
 
       s"return 403 AGENT_CLIENT_RELATIONSHIP_NOT_FOUND when the agent does not have a delegated enrolment matching the requested Z-reference" in {
@@ -108,6 +109,7 @@ class AgentAuthorisationISpec extends BaseIntegrationSpec with AgentAuthorisatio
 
         result.status shouldBe FORBIDDEN
         result.json   shouldBe agentClientRelationshipNotFound
+        verifyAgentDelegatedAuthRequested(times = 1)
       }
     }
   }
@@ -125,9 +127,10 @@ class AgentAuthorisationEnrolmentCheckDisabledISpec extends BaseIntegrationSpec 
     s"the $name endpoint" should {
 
       "allow an agent without a delegated enrolment matching the requested Z-reference through when the enrolment check is disabled" in {
-        stubAgentAuth(hasDelegatedEnrolment = false)
+        stubAgentAuth(hasDelegatedEnrolment = false, enrolmentCheckEnabled = false)
 
         request().status shouldBe successStatus
+        verifyAgentDelegatedAuthRequested(times = 0)
       }
     }
   }
@@ -151,6 +154,7 @@ class AgentAuthorisationDisabledISpec extends BaseIntegrationSpec with AgentAuth
 
         result.status shouldBe UNAUTHORIZED
         result.json   shouldBe unauthorised
+        verifyAgentDelegatedAuthRequested(times = 0)
       }
     }
   }
@@ -168,9 +172,10 @@ class AgentAuthorisationDisabledWithEnrolmentCheckDisabledISpec extends BaseInte
     s"the $name endpoint" should {
 
       "return 401 for an agent when both agent authentication and the enrolment check are disabled" in {
-        stubAgentAuth(hasDelegatedEnrolment = true)
+        stubAgentAuth(hasDelegatedEnrolment = true, enrolmentCheckEnabled = false)
 
         request().status shouldBe UNAUTHORIZED
+        verifyAgentDelegatedAuthRequested(times = 0)
       }
     }
   }
