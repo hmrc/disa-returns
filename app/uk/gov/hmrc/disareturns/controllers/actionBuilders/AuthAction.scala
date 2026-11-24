@@ -74,11 +74,6 @@ abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(impli
       agentName = agentInformation.agentFriendlyName.getOrElse(UserDetails.unknown)
     )
 
-  protected def rejectDisabledAgentAuthentication(): Future[Result] = {
-    logger.warn("[AuthAction][authorise] Agent authentication is disabled")
-    rejectUnauthorised()
-  }
-
   protected def rejectMissingAgentGroupId(): Future[Result] = {
     logger.warn("[AuthAction][authorise] Agent group ID is missing")
     rejectUnauthorised()
@@ -142,6 +137,11 @@ class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: Controll
           }
       }
 
+  private def rejectDisabledAgentAuthentication(): Future[Result] = {
+    logger.warn("[EnrolmentVerificationAuthAction][authorise] Agent authentication is disabled")
+    rejectUnauthorised()
+  }
+
   private def authenticateAgent[A](
     zRef:             String,
     request:          Request[A],
@@ -183,8 +183,7 @@ class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: Controll
 }
 
 @Singleton
-class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents, appConfig: AppConfig)(implicit ec: ExecutionContext)
-    extends BaseAuthAction(ac, cc) {
+class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext) extends BaseAuthAction(ac, cc) {
 
   override protected def authorise[A](zRef: String, request: Request[A], block: IdentifierRequest[A] => Future[Result])(implicit
     hc:                                     HeaderCarrier
@@ -194,8 +193,6 @@ class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerCompon
       .retrieve(credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier) {
         case maybeCredentials ~ maybeCredentialRole ~ maybeAffinityGroup ~ agentInfo ~ maybeGroupId =>
           (maybeCredentials, maybeAffinityGroup, maybeGroupId) match {
-            case (_, Some(Agent), _) if !appConfig.agentAuthenticationEnabled =>
-              rejectDisabledAgentAuthentication()
             case (_, Some(Agent), Some(groupId)) =>
               block(IdentifierRequest(request, zRef, agentDetails(groupId, agentInfo)))
             case (_, Some(Agent), None) =>

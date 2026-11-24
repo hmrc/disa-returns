@@ -168,13 +168,13 @@ class AgentAuthorisationDisabledWithEnrolmentCheckDisabledISpec extends BaseInte
       "features.agent-authentication-enabled"   -> false
     )
 
-  endpoints.foreach { case (name, request, _) =>
+  endpoints.foreach { case (name, request, successStatus) =>
     s"the $name endpoint" should {
 
-      "return 401 for an agent when both agent authentication and the enrolment check are disabled" in {
-        stubAgentAuth(hasDelegatedEnrolment = true, enrolmentCheckEnabled = false)
+      "allow an agent without a delegated enrolment matching the requested Z-reference through when the enrolment check is disabled & agent authentication is disabled" in {
+        stubAgentAuth(hasDelegatedEnrolment = false, enrolmentCheckEnabled = false)
 
-        request().status shouldBe UNAUTHORIZED
+        request().status shouldBe successStatus
         verifyAgentDelegatedAuthRequested(times = 0)
       }
     }

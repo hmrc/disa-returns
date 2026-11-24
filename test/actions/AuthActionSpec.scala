@@ -43,10 +43,8 @@ class AuthActionSpec extends BaseUnitSpec {
     new EnrolmentVerificationAuthAction(mockAuthConnector, stubControllerComponents(), mockAppConfig).apply(zRef)
   }
 
-  private def authenticatedAuthAction(zRef: String, agentAuthenticationEnabled: Boolean = true) = {
-    when(mockAppConfig.agentAuthenticationEnabled).thenReturn(agentAuthenticationEnabled)
-    new AuthenticatedAuthAction(mockAuthConnector, stubControllerComponents(), mockAppConfig).apply(zRef)
-  }
+  private def authenticatedAuthAction(zRef: String) =
+    new AuthenticatedAuthAction(mockAuthConnector, stubControllerComponents()).apply(zRef)
 
   import play.api.mvc.Results._
   def testBlock: IdentifierRequest[AnyContent] => Future[Result] =
@@ -313,16 +311,6 @@ class AuthActionSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(agentRetrievals(groupId = None)))
 
       val result = authenticatedAuthAction(validZReference).invokeBlock(FakeRequest(), testBlock)
-
-      status(result)        shouldBe UNAUTHORIZED
-      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
-    }
-
-    "return UNAUTHORISED for an agent when enrolment verification and agent authentication are disabled" in {
-      when(mockAuthConnector.authorise[UserDetailsRetrievals](any(), any())(any(), any()))
-        .thenReturn(Future.successful(agentRetrievals()))
-
-      val result = authenticatedAuthAction(validZReference, agentAuthenticationEnabled = false).invokeBlock(FakeRequest(), testBlock)
 
       status(result)        shouldBe UNAUTHORIZED
       contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
