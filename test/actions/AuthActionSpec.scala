@@ -29,6 +29,7 @@ import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, ~}
 import uk.gov.hmrc.auth.core.{AffinityGroup, BearerTokenExpired, Enrolment, UnsupportedAuthProvider}
+import uk.gov.hmrc.disareturns.config.Constants.{AgentEnrolmentKey, EnrolmentKey}
 import uk.gov.hmrc.disareturns.controllers.actionBuilders.{AuthenticatedAuthAction, EnrolmentVerificationAuthAction}
 import uk.gov.hmrc.disareturns.models.common.{IdentifierRequest, InternalServerErr, UnauthorisedErr, UserDetails}
 import utils.BaseUnitSpec
@@ -79,8 +80,9 @@ class AuthActionSpec extends BaseUnitSpec {
         retrievalCaptor.capture()
       )(any(), any())
 
-      val actualPredicate   = predicateCaptor.getValue
-      val expectedPredicate = Enrolment("HMRC-DISA-ORG") or AffinityGroup.Agent
+      val actualPredicate = predicateCaptor.getValue
+      val expectedPredicate =
+        (AffinityGroup.Organisation and Enrolment(EnrolmentKey)) or (AffinityGroup.Agent and Enrolment(AgentEnrolmentKey))
 
       val actualRetrieval   = retrievalCaptor.getValue
       val expectedRetrieval = authorisedEnrolments and credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier
@@ -209,6 +211,15 @@ class AuthActionSpec extends BaseUnitSpec {
       }
     }
 
+    "return UNAUTHORISED for an individual user" in {
+      stubEnrolments(userDetails = isaManagerRetrievals(affinityGroup = AffinityGroup.Individual))
+
+      val result = enrolmentAuthAction(validZReference).invokeBlock(FakeRequest(), testBlock)
+
+      status(result)        shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
+    }
+
     "return UNAUTHORISED when zRef does not match that retrieved from enrolment" in {
       authorizationForZRef(zRef = "MISMATCH")
 
@@ -281,7 +292,7 @@ class AuthActionSpec extends BaseUnitSpec {
         ArgumentCaptor.forClass(classOf[Predicate])
 
       verify(mockAuthConnector).authorise[UserDetailsRetrievals](predicateCaptor.capture(), any())(any(), any())
-      predicateCaptor.getValue should not be Enrolment("HMRC-DISA-ORG")
+      predicateCaptor.getValue shouldBe (AffinityGroup.Organisation or (AffinityGroup.Agent and Enrolment(AgentEnrolmentKey)))
     }
 
     "allow an agent without checking for a delegated enrolment when enrolment verification is disabled" in {
@@ -312,6 +323,16 @@ class AuthActionSpec extends BaseUnitSpec {
         .thenReturn(Future.successful(agentRetrievals()))
 
       val result = authenticatedAuthAction(validZReference, agentAuthenticationEnabled = false).invokeBlock(FakeRequest(), testBlock)
+
+      status(result)        shouldBe UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)
+    }
+
+    "return UNAUTHORISED for an individual user when enrolment verification is disabled" in {
+      when(mockAuthConnector.authorise[UserDetailsRetrievals](any(), any())(any(), any()))
+        .thenReturn(Future.successful(isaManagerRetrievals(affinityGroup = AffinityGroup.Individual)))
+
+      val result = authenticatedAuthAction(validZReference).invokeBlock(FakeRequest(), testBlock)
 
       status(result)        shouldBe UNAUTHORIZED
       contentAsJson(result) shouldBe Json.toJson(UnauthorisedErr)

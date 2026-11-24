@@ -21,10 +21,11 @@ import play.api.libs.json.Json
 import play.api.mvc.Results.{Forbidden, InternalServerError, Unauthorized}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.auth.core.AffinityGroup.Agent
+import uk.gov.hmrc.auth.core.AffinityGroup.{Agent, Organisation}
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ~}
 import uk.gov.hmrc.disareturns.config.AppConfig
+import uk.gov.hmrc.disareturns.config.Constants.{AgentEnrolmentKey, DelegatedAuthRule, EnrolmentKey, IdentifierKey}
 import uk.gov.hmrc.disareturns.models.common.{AgentClientRelationshipNotFound, IdentifierRequest, InternalServerErr, UnauthorisedErr, UserDetails}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -46,7 +47,7 @@ abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(impli
     hc:                            HeaderCarrier
   ): Future[Result]
 
-  protected def authenticateIsaManagerWithRole[A](
+  protected def authenticateOrganisationUserWithRole[A](
     zRef:                String,
     request:             Request[A],
     credentials:         Credentials,
@@ -54,7 +55,7 @@ abstract class BaseAuthAction(ac: AuthConnector, cc: ControllerComponents)(impli
     maybeCredentialRole: Option[CredentialRole]
   )(block:               IdentifierRequest[A] => Future[Result]): Future[Result] =
     maybeCredentialRole.fold {
-      logger.warn("[AuthAction][authenticateIsaManager] User was missing credential role")
+      logger.warn("[AuthAction][authenticateOrganisationUserWithRole] User was missing credential role")
       rejectUnauthorised()
     } { role =>
       block(
@@ -124,7 +125,7 @@ class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: Controll
     hc:                                     HeaderCarrier
   ): Future[Result] =
     auth
-      .authorised(Enrolment(enrolmentKey) or Agent)
+      .authorised((Organisation and Enrolment(EnrolmentKey)) or (Agent and Enrolment(AgentEnrolmentKey)))
       .retrieve(authorisedEnrolments and credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier) {
         case enrolments ~ maybeCredentials ~ maybeCredentialRole ~ maybeAffinityGroup ~ agentInfo ~ maybeGroupId =>
           (maybeCredentials, maybeAffinityGroup, maybeGroupId) match {
@@ -134,16 +135,12 @@ class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: Controll
               authenticateAgent(zRef, request, groupId, agentInfo)(block)
             case (_, Some(Agent), None) =>
               rejectMissingAgentGroupId()
-            case (Some(credentials), Some(_), Some(groupId)) =>
-              authenticateIsaManager(zRef, request, enrolments, credentials, groupId, maybeCredentialRole)(block)
+            case (Some(credentials), Some(Organisation), Some(groupId)) =>
+              authenticateOrganisationUser(zRef, request, enrolments, credentials, groupId, maybeCredentialRole)(block)
             case _ =>
               rejectMissingAuditIdentity()
           }
       }
-
-  private val enrolmentKey      = "HMRC-DISA-ORG"
-  private val identifierKey     = "ZREF"
-  private val delegatedAuthRule = "disa-auth"
 
   private def authenticateAgent[A](
     zRef:             String,
@@ -153,9 +150,9 @@ class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: Controll
   )(block:            IdentifierRequest[A] => Future[Result])(implicit hc: HeaderCarrier): Future[Result] =
     auth
       .authorised(
-        Enrolment(enrolmentKey)
-          .withIdentifier(identifierKey, zRef)
-          .withDelegatedAuthRule(delegatedAuthRule)
+        Enrolment(EnrolmentKey)
+          .withIdentifier(IdentifierKey, zRef)
+          .withDelegatedAuthRule(DelegatedAuthRule)
       ) {
         block(IdentifierRequest(request, zRef, agentDetails(groupId, agentInformation)))
       }
@@ -164,7 +161,7 @@ class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: Controll
         Forbidden(Json.toJson(AgentClientRelationshipNotFound(zRef)))
       }
 
-  private def authenticateIsaManager[A](
+  private def authenticateOrganisationUser[A](
     zRef:                String,
     request:             Request[A],
     enrolments:          Enrolments,
@@ -173,16 +170,16 @@ class EnrolmentVerificationAuthAction @Inject() (ac: AuthConnector, cc: Controll
     maybeCredentialRole: Option[CredentialRole]
   )(block:               IdentifierRequest[A] => Future[Result]): Future[Result] =
     enrolments
-      .getEnrolment(enrolmentKey)
-      .flatMap(_.getIdentifier(identifierKey))
+      .getEnrolment(EnrolmentKey)
+      .flatMap(_.getIdentifier(IdentifierKey))
       .map(_.value)
       .filter(_ == zRef)
       .fold {
         logger.warn(
-          s"[EnrolmentVerificationAuthAction][authenticateIsaManager] User does not have a $identifierKey identifier matching Z-Ref [$zRef]"
+          s"[EnrolmentVerificationAuthAction][authenticateOrganisationUser] User does not have a $IdentifierKey identifier matching Z-Ref [$zRef]"
         )
         rejectUnauthorised()
-      }(_ => authenticateIsaManagerWithRole(zRef, request, credentials, groupId, maybeCredentialRole)(block))
+      }(_ => authenticateOrganisationUserWithRole(zRef, request, credentials, groupId, maybeCredentialRole)(block))
 }
 
 @Singleton
@@ -193,7 +190,7 @@ class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerCompon
     hc:                                     HeaderCarrier
   ): Future[Result] =
     auth
-      .authorised()
+      .authorised(Organisation or (Agent and Enrolment(AgentEnrolmentKey)))
       .retrieve(credentials and credentialRole and affinityGroup and agentInformation and groupIdentifier) {
         case maybeCredentials ~ maybeCredentialRole ~ maybeAffinityGroup ~ agentInfo ~ maybeGroupId =>
           (maybeCredentials, maybeAffinityGroup, maybeGroupId) match {
@@ -203,8 +200,8 @@ class AuthenticatedAuthAction @Inject() (ac: AuthConnector, cc: ControllerCompon
               block(IdentifierRequest(request, zRef, agentDetails(groupId, agentInfo)))
             case (_, Some(Agent), None) =>
               rejectMissingAgentGroupId()
-            case (Some(credentials), Some(_), Some(groupId)) =>
-              authenticateIsaManagerWithRole(zRef, request, credentials, groupId, maybeCredentialRole)(block)
+            case (Some(credentials), Some(Organisation), Some(groupId)) =>
+              authenticateOrganisationUserWithRole(zRef, request, credentials, groupId, maybeCredentialRole)(block)
             case _ =>
               rejectMissingAuditIdentity()
           }

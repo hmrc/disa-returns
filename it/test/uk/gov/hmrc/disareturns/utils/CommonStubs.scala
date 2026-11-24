@@ -23,22 +23,26 @@ import play.api.http.MimeTypes.JSON
 import play.api.http.Status
 import play.api.http.Status.OK
 import play.api.libs.json.Json
+import uk.gov.hmrc.disareturns.config.Constants.{AgentEnrolmentKey, DelegatedAuthRule, EnrolmentKey, IdentifierKey}
 import uk.gov.hmrc.disareturns.models.declaration.ReportingNilReturn
 
 trait CommonStubs { self: TestData =>
 
   private val submissionIdPattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
-  private val enrolmentVerificationAuthRequest = """{
-    "authorise":[{"$or":[
-      {"enrolment":"HMRC-DISA-ORG","identifiers":[],"state":"Activated"},
-      {"affinityGroup":"Agent"}
+  private val enrolmentVerificationAuthRequest = s"""{
+    "authorise":[{"$$or":[
+      [{"affinityGroup":"Organisation"},{"enrolment":"$EnrolmentKey","identifiers":[],"state":"Activated"}],
+      [{"affinityGroup":"Agent"},{"enrolment":"$AgentEnrolmentKey","identifiers":[],"state":"Activated"}]
     ]}],
     "retrieve":["authorisedEnrolments","optionalCredentials","credentialRole","affinityGroup","agentInformation","groupIdentifier"]
   }"""
 
-  private val authenticatedAuthRequest = """{
-    "authorise":[],
+  private val authenticatedAuthRequest = s"""{
+    "authorise":[{"$$or":[
+      {"affinityGroup":"Organisation"},
+      [{"affinityGroup":"Agent"},{"enrolment":"$AgentEnrolmentKey","identifiers":[],"state":"Activated"}]
+    ]}],
     "retrieve":["optionalCredentials","credentialRole","affinityGroup","agentInformation","groupIdentifier"]
   }"""
 
@@ -46,10 +50,10 @@ trait CommonStubs { self: TestData =>
     Json.obj(
       "authorise" -> Json.arr(
         Json.obj(
-          "enrolment"         -> "HMRC-DISA-ORG",
-          "identifiers"       -> Json.arr(Json.obj("key" -> "ZREF", "value" -> zRef)),
+          "enrolment"         -> EnrolmentKey,
+          "identifiers"       -> Json.arr(Json.obj("key" -> IdentifierKey, "value" -> zRef)),
           "state"             -> "Activated",
-          "delegatedAuthRule" -> "disa-auth"
+          "delegatedAuthRule" -> DelegatedAuthRule
         )
       ),
       "retrieve" -> Json.arr()
@@ -59,8 +63,8 @@ trait CommonStubs { self: TestData =>
   def stubAuth(zRef: String = validZReference): Unit = {
     val validEnrolment = s"""{
       "authorisedEnrolments": [{
-        "key": "HMRC-DISA-ORG",
-        "identifiers": [{ "key": "ZREF", "value": "$zRef" }],
+        "key": "$EnrolmentKey",
+        "identifiers": [{ "key": "$IdentifierKey", "value": "$zRef" }],
         "state": "Activated"
       }],
       "optionalCredentials": { "providerId": "5053588723516092", "providerType": "GovernmentGateway" },

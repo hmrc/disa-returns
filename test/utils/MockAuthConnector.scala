@@ -20,6 +20,7 @@ import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.auth.core._
+import uk.gov.hmrc.disareturns.config.Constants.{DelegatedAuthRule, EnrolmentKey, IdentifierKey}
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ~}
 
 import scala.concurrent.Future
@@ -36,9 +37,10 @@ trait MockAuthConnector { self: TestData =>
   def isaManagerRetrievals(
     credentials:    Option[Credentials] = Some(Credentials(testCredId, "GovernmentGateway")),
     credentialRole: Option[CredentialRole] = Some(User),
-    groupId:        Option[String] = Some(testGroupId)
+    groupId:        Option[String] = Some(testGroupId),
+    affinityGroup:  AffinityGroup = AffinityGroup.Organisation
   ): UserDetailsRetrievals =
-    new ~(new ~(new ~(new ~(credentials, credentialRole), Some(AffinityGroup.Organisation)), AgentInformation(None, None, None)), groupId)
+    new ~(new ~(new ~(new ~(credentials, credentialRole), Some(affinityGroup)), AgentInformation(None, None, None)), groupId)
 
   def agentRetrievals(groupId: Option[String] = Some(testGroupId)): UserDetailsRetrievals =
     new ~(
@@ -47,8 +49,8 @@ trait MockAuthConnector { self: TestData =>
     )
 
   def stubEnrolments(
-    enrolmentKey:  String = "HMRC-DISA-ORG",
-    identifierKey: Option[String] = Some("ZREF"),
+    enrolmentKey:  String = EnrolmentKey,
+    identifierKey: Option[String] = Some(IdentifierKey),
     zRef:          String = validZReference,
     state:         String = "Activated",
     userDetails:   UserDetailsRetrievals = isaManagerRetrievals()
@@ -75,7 +77,7 @@ trait MockAuthConnector { self: TestData =>
   }
 
   def agentDelegatedEnrolmentPredicate(zRef: String = validZReference): Enrolment =
-    Enrolment("HMRC-DISA-ORG").withIdentifier("ZREF", zRef).withDelegatedAuthRule("disa-auth")
+    Enrolment(EnrolmentKey).withIdentifier(IdentifierKey, zRef).withDelegatedAuthRule(DelegatedAuthRule)
 
   def stubAgentDelegatedEnrolmentSuccess(zRef: String = validZReference): Unit =
     when(mockAuthConnector.authorise[Unit](eqTo(agentDelegatedEnrolmentPredicate(zRef)), any())(any(), any()))
