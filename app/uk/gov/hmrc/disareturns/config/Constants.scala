@@ -18,4 +18,9 @@ package uk.gov.hmrc.disareturns.config
 
 object Constants {
   val BoxName = "obligations/declaration/isa/return##1.0##callbackUrl"
+
+  val AgentEnrolmentKey = "HMRC-AS-AGENT"
+  val EnrolmentKey      = "HMRC-DISA-ORG"
+  val IdentifierKey     = "ZREF"
+  val DelegatedAuthRule = "disa-auth"
 }

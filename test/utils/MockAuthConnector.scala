@@ -16,10 +16,11 @@
 
 package utils
 
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.auth.core._
+import uk.gov.hmrc.disareturns.config.Constants.{DelegatedAuthRule, EnrolmentKey, IdentifierKey}
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ~}
 
 import scala.concurrent.Future
@@ -28,14 +29,18 @@ trait MockAuthConnector { self: TestData =>
 
   type UserDetailsRetrievals = Option[Credentials] ~ Option[CredentialRole] ~ Option[AffinityGroup] ~ AgentInformation ~ Option[String]
 
+  type EnrolmentRetrievals =
+    Enrolments ~ Option[Credentials] ~ Option[CredentialRole] ~ Option[AffinityGroup] ~ AgentInformation ~ Option[String]
+
   val mockAuthConnector: AuthConnector = mock[AuthConnector]
 
   def isaManagerRetrievals(
     credentials:    Option[Credentials] = Some(Credentials(testCredId, "GovernmentGateway")),
     credentialRole: Option[CredentialRole] = Some(User),
-    groupId:        Option[String] = Some(testGroupId)
+    groupId:        Option[String] = Some(testGroupId),
+    affinityGroup:  AffinityGroup = AffinityGroup.Organisation
   ): UserDetailsRetrievals =
-    new ~(new ~(new ~(new ~(credentials, credentialRole), Some(AffinityGroup.Organisation)), AgentInformation(None, None, None)), groupId)
+    new ~(new ~(new ~(new ~(credentials, credentialRole), Some(affinityGroup)), AgentInformation(None, None, None)), groupId)
 
   def agentRetrievals(groupId: Option[String] = Some(testGroupId)): UserDetailsRetrievals =
     new ~(
@@ -44,8 +49,8 @@ trait MockAuthConnector { self: TestData =>
     )
 
   def stubEnrolments(
-    enrolmentKey:  String = "HMRC-DISA-ORG",
-    identifierKey: Option[String] = Some("ZREF"),
+    enrolmentKey:  String = EnrolmentKey,
+    identifierKey: Option[String] = Some(IdentifierKey),
     zRef:          String = validZReference,
     state:         String = "Activated",
     userDetails:   UserDetailsRetrievals = isaManagerRetrievals()
@@ -61,9 +66,26 @@ trait MockAuthConnector { self: TestData =>
       )
     )
 
-    when(mockAuthConnector.authorise[Enrolments ~ UserDetailsRetrievals](any(), any())(any(), any()))
-      .thenReturn(Future.successful(new ~(enrolment, userDetails)))
+    val maybeCredentials ~ maybeCredentialRole ~ maybeAffinityGroup ~ agentInformation ~ maybeGroupId = userDetails
+
+    when(mockAuthConnector.authorise[EnrolmentRetrievals](any(), any())(any(), any()))
+      .thenReturn(
+        Future.successful(
+          new ~(new ~(new ~(new ~(new ~(enrolment, maybeCredentials), maybeCredentialRole), maybeAffinityGroup), agentInformation), maybeGroupId)
+        )
+      )
   }
+
+  def agentDelegatedEnrolmentPredicate(zRef: String = validZReference): Enrolment =
+    Enrolment(EnrolmentKey).withIdentifier(IdentifierKey, zRef).withDelegatedAuthRule(DelegatedAuthRule)
+
+  def stubAgentDelegatedEnrolmentSuccess(zRef: String = validZReference): Unit =
+    when(mockAuthConnector.authorise[Unit](eqTo(agentDelegatedEnrolmentPredicate(zRef)), any())(any(), any()))
+      .thenReturn(Future.unit)
+
+  def stubAgentDelegatedEnrolmentFailure(authException: Exception = InsufficientEnrolments(), zRef: String = validZReference): Unit =
+    when(mockAuthConnector.authorise[Unit](eqTo(agentDelegatedEnrolmentPredicate(zRef)), any())(any(), any()))
+      .thenReturn(Future.failed(authException))
 
   def authorizationForZRef(zRef: String = validZReference): Unit =
     stubEnrolments(zRef = zRef)
